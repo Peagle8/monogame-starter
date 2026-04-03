@@ -13,4 +13,14 @@ public static class VerticalMenuLayout
     {
         return index == selectedIndex ? Color.Yellow : Color.Gray;
     }
+
+    public static Color GetItemColor(int index, int selectedIndex, bool isEnabled)
+    {
+        if (!isEnabled)
+        {
+            return new Color(110, 110, 110);
+        }
+
+        return GetItemColor(index, selectedIndex);
+    }
 }

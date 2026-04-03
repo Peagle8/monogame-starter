@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using MyGame.Gameplay.Enemies;
 using MyGame.Gameplay.Player;
 
 namespace MyGame.Core.Assets;
@@ -12,9 +13,12 @@ public sealed class AssetCatalog : IAssetCatalog
         Pixel = new Texture2D(graphicsDevice, 1, 1);
         Pixel.SetData([Color.White]);
 
+        CrabSprite = CreateTexture(graphicsDevice, CrabSpriteSheet.Rows);
         PlayerSprite = CreatePlayerSpriteSheet(graphicsDevice);
         DebugFont = TryLoadFont(contentManager, "DebugFont");
     }
+
+    public Texture2D CrabSprite { get; }
 
     public Texture2D Pixel { get; }
 
@@ -24,14 +28,21 @@ public sealed class AssetCatalog : IAssetCatalog
 
     private static Texture2D CreatePlayerSpriteSheet(GraphicsDevice graphicsDevice)
     {
-        var texture = new Texture2D(graphicsDevice, PlayerSpriteSheet.SheetWidth, PlayerSpriteSheet.SheetHeight);
-        var pixels = new Color[PlayerSpriteSheet.SheetWidth * PlayerSpriteSheet.SheetHeight];
+        return CreateTexture(graphicsDevice, PlayerSpriteSheet.Rows);
+    }
 
-        for (var y = 0; y < PlayerSpriteSheet.SheetHeight; y++)
+    private static Texture2D CreateTexture(GraphicsDevice graphicsDevice, IReadOnlyList<string> rows)
+    {
+        var width = rows[0].Length;
+        var height = rows.Count;
+        var texture = new Texture2D(graphicsDevice, width, height);
+        var pixels = new Color[width * height];
+
+        for (var y = 0; y < height; y++)
         {
-            for (var x = 0; x < PlayerSpriteSheet.SheetWidth; x++)
+            for (var x = 0; x < width; x++)
             {
-                pixels[(y * PlayerSpriteSheet.SheetWidth) + x] = GetSpriteColor(PlayerSpriteSheet.Rows[y][x]);
+                pixels[(y * width) + x] = GetSpriteColor(rows[y][x]);
             }
         }
 
@@ -60,6 +71,10 @@ public sealed class AssetCatalog : IAssetCatalog
             'e' => new Color(38, 70, 83),
             'c' => new Color(46, 134, 171),
             'b' => new Color(58, 66, 74),
+            'r' => new Color(196, 73, 56),
+            'o' => new Color(229, 122, 52),
+            'w' => new Color(255, 247, 236),
+            'k' => new Color(88, 30, 26),
             _ => Color.Transparent
         };
     }

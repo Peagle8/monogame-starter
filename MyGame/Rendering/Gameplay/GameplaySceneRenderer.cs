@@ -29,6 +29,6 @@ public sealed class GameplaySceneRenderer : IRenderer<GameplayScene>
             entityRenderer.Draw(model.World, frameTime);
         }
 
-        _overlayRenderer.Draw(model.PauseMenu, frameTime);
+        _overlayRenderer.Draw(model, frameTime);
     }
 }

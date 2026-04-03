@@ -8,16 +8,26 @@ public sealed class GameplayPauseMenu
     private readonly List<MenuItem> _items;
     private bool _skipInputUntilNextUpdate;
 
-    public GameplayPauseMenu(Action onResume, Action onReturnToMainMenu)
+    public GameplayPauseMenu(
+        Action onResume,
+        Action onSaveGame,
+        Action onLoadGame,
+        Func<bool> canLoadGame,
+        Action onReturnToMainMenu)
     {
         _items =
         [
             new MenuItem("Resume", onResume),
+            new MenuItem("Save Game", onSaveGame),
+            new MenuItem("Load Game", onLoadGame, canLoadGame),
+            new MenuItem("Controls", OpenControls),
             new MenuItem("Main Menu", onReturnToMainMenu)
         ];
     }
 
     public bool IsOpen { get; private set; }
+
+    public bool IsShowingControls { get; private set; }
 
     public int SelectedIndex { get; private set; }
 
@@ -28,6 +38,7 @@ public sealed class GameplayPauseMenu
     public void Open()
     {
         IsOpen = true;
+        IsShowingControls = false;
         SelectedIndex = 0;
         _skipInputUntilNextUpdate = true;
     }
@@ -35,6 +46,7 @@ public sealed class GameplayPauseMenu
     public void Close()
     {
         IsOpen = false;
+        IsShowingControls = false;
         SelectedIndex = 0;
         _skipInputUntilNextUpdate = false;
     }
@@ -63,6 +75,18 @@ public sealed class GameplayPauseMenu
             return;
         }
 
+        if (IsShowingControls)
+        {
+            if (inputService.IsJustPressed(GameAction.Confirm)
+                || inputService.IsJustPressed(GameAction.Cancel)
+                || inputService.IsJustPressed(GameAction.Pause))
+            {
+                IsShowingControls = false;
+            }
+
+            return;
+        }
+
         if (inputService.IsJustPressed(GameAction.Cancel) || inputService.IsJustPressed(GameAction.Pause))
         {
             Close();
@@ -81,7 +105,16 @@ public sealed class GameplayPauseMenu
 
         if (inputService.IsJustPressed(GameAction.Confirm))
         {
-            _items[SelectedIndex].OnSelected();
+            var selectedItem = _items[SelectedIndex];
+            if (selectedItem.IsEnabled)
+            {
+                selectedItem.OnSelected();
+            }
         }
+    }
+
+    private void OpenControls()
+    {
+        IsShowingControls = true;
     }
 }

@@ -9,14 +9,19 @@ public static class PlayerAnimationFrameSelector
 
     private const float WalkFrameDurationSeconds = 0.16f;
 
-    public static Rectangle GetSourceRectangle(Direction facing, bool isMoving, FrameTime frameTime)
+    public static Rectangle GetSourceRectangle(Direction facing, bool isMoving, bool isAttacking, FrameTime frameTime)
     {
-        var frameIndex = GetFrameIndex(isMoving, frameTime.TotalSeconds);
+        var frameIndex = GetFrameIndex(isMoving, isAttacking, frameTime.TotalSeconds);
         return PlayerSpriteSheet.GetSourceRectangle(facing, frameIndex);
     }
 
-    public static int GetFrameIndex(bool isMoving, float totalSeconds)
+    public static int GetFrameIndex(bool isMoving, bool isAttacking, float totalSeconds)
     {
+        if (isAttacking)
+        {
+            return 2;
+        }
+
         if (!isMoving)
         {
             return 1;

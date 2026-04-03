@@ -13,6 +13,7 @@ public sealed class DefaultInputBindings
             [GameAction.MoveDown] = [Keys.S, Keys.Down],
             [GameAction.MoveLeft] = [Keys.A, Keys.Left],
             [GameAction.MoveRight] = [Keys.D, Keys.Right],
+            [GameAction.Attack] = [Keys.J, Keys.LeftControl],
             [GameAction.Confirm] = [Keys.Enter, Keys.Space],
             [GameAction.Cancel] = [Keys.Escape, Keys.Back],
             [GameAction.Pause] = [Keys.P, Keys.Escape]

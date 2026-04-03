@@ -18,7 +18,11 @@ public sealed class PlayerRenderer : IRenderer<PlayerActor>
 
     public void Draw(PlayerActor model, FrameTime frameTime)
     {
-        var sourceRectangle = PlayerAnimationFrameSelector.GetSourceRectangle(model.Facing, model.IsMoving, frameTime);
+        var sourceRectangle = PlayerAnimationFrameSelector.GetSourceRectangle(
+            model.Facing,
+            model.IsMoving,
+            model.IsAttacking,
+            frameTime);
         _worldSpriteRenderer.Draw(
             texture: _renderContext.Assets.PlayerSprite,
             worldBounds: model.Bounds,
