@@ -28,3 +28,5 @@ c:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\My
 c:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\obj\Debug\net8.0\ref\MyGame.dll
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\DebugFont.xnb
 c:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\obj\Debug\net8.0\MyGame.sourcelink.json
+C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\Configuration\PlayerMovementSettings.json
+C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\Configuration\EnemySettings.json

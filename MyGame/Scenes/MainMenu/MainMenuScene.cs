@@ -21,6 +21,8 @@ public sealed class MainMenuScene : IScene
         IRenderer<MainMenuScene> sceneRenderer,
         IRenderContext renderContext,
         Action onStartGame,
+        Action onLoadGame,
+        Func<bool> canLoadGame,
         Action onExitGame)
     {
         _inputService = inputService;
@@ -29,6 +31,8 @@ public sealed class MainMenuScene : IScene
         _items =
         [
             new MenuItem("Start Game", onStartGame),
+            new MenuItem("Load Game", onLoadGame, canLoadGame),
+            new MenuItem("Controls", OpenControls),
             new MenuItem("Exit", onExitGame)
         ];
     }
@@ -41,9 +45,12 @@ public sealed class MainMenuScene : IScene
 
     public int SelectedIndex => _selectedIndex;
 
+    public bool IsShowingControls { get; private set; }
+
     public void Enter()
     {
         _selectedIndex = 0;
+        IsShowingControls = false;
     }
 
     public void Exit()
@@ -52,6 +59,18 @@ public sealed class MainMenuScene : IScene
 
     public void Update(FrameTime frameTime)
     {
+        if (IsShowingControls)
+        {
+            if (_inputService.IsJustPressed(GameAction.Confirm)
+                || _inputService.IsJustPressed(GameAction.Cancel)
+                || _inputService.IsJustPressed(GameAction.Pause))
+            {
+                IsShowingControls = false;
+            }
+
+            return;
+        }
+
         if (_inputService.IsJustPressed(GameAction.MoveDown))
         {
             _selectedIndex = (_selectedIndex + 1) % _items.Count;
@@ -64,7 +83,11 @@ public sealed class MainMenuScene : IScene
 
         if (_inputService.IsJustPressed(GameAction.Confirm))
         {
-            _items[_selectedIndex].OnSelected();
+            var selectedItem = _items[_selectedIndex];
+            if (selectedItem.IsEnabled)
+            {
+                selectedItem.OnSelected();
+            }
         }
     }
 
@@ -84,8 +107,14 @@ public sealed class MainMenuScene : IScene
     {
         return new Dictionary<string, string>
         {
+            ["ShowingControls"] = IsShowingControls.ToString(),
             ["SelectedMenuIndex"] = _selectedIndex.ToString(),
             ["SelectedMenuText"] = _items[_selectedIndex].Text
         };
+    }
+
+    private void OpenControls()
+    {
+        IsShowingControls = true;
     }
 }

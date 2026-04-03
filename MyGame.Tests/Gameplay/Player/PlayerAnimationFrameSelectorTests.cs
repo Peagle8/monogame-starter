@@ -9,7 +9,7 @@ public sealed class PlayerAnimationFrameSelectorTests
     [Fact]
     public void GetFrameIndex_WhenIdle_ReturnsCenterFrame()
     {
-        var frameIndex = PlayerAnimationFrameSelector.GetFrameIndex(false, totalSeconds: 8.5f);
+        var frameIndex = PlayerAnimationFrameSelector.GetFrameIndex(false, false, totalSeconds: 8.5f);
 
         Assert.Equal(1, frameIndex);
     }
@@ -22,9 +22,17 @@ public sealed class PlayerAnimationFrameSelectorTests
     [InlineData(0.64f, 0)]
     public void GetFrameIndex_WhenWalking_CyclesThroughWalkFrames(float totalSeconds, int expectedFrame)
     {
-        var frameIndex = PlayerAnimationFrameSelector.GetFrameIndex(true, totalSeconds);
+        var frameIndex = PlayerAnimationFrameSelector.GetFrameIndex(true, false, totalSeconds);
 
         Assert.Equal(expectedFrame, frameIndex);
+    }
+
+    [Fact]
+    public void GetFrameIndex_WhenAttacking_ReturnsAttackPose()
+    {
+        var frameIndex = PlayerAnimationFrameSelector.GetFrameIndex(isMoving: true, isAttacking: true, totalSeconds: 0.48f);
+
+        Assert.Equal(2, frameIndex);
     }
 
     [Fact]
@@ -32,7 +40,7 @@ public sealed class PlayerAnimationFrameSelectorTests
     {
         var frameTime = new FrameTime(TimeSpan.FromSeconds(0.16), TimeSpan.FromSeconds(0.32));
 
-        var rectangle = PlayerAnimationFrameSelector.GetSourceRectangle(Direction.Left, isMoving: true, frameTime);
+        var rectangle = PlayerAnimationFrameSelector.GetSourceRectangle(Direction.Left, isMoving: true, isAttacking: false, frameTime);
 
         Assert.Equal(new Rectangle(64, 32, 32, 16), rectangle);
     }

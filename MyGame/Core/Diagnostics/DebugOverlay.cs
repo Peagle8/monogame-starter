@@ -6,6 +6,7 @@ namespace MyGame.Core.Diagnostics;
 public sealed class DebugOverlay
 {
     private readonly Dictionary<string, string> _values = new();
+    private Vector2 _position = new(10f, 10f);
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _font;
 
@@ -24,6 +25,11 @@ public sealed class DebugOverlay
         _values[key] = value;
     }
 
+    public void SetPosition(Vector2 position)
+    {
+        _position = position;
+    }
+
     public void Draw()
     {
         if (_spriteBatch is null || _font is null || _values.Count == 0)
@@ -32,7 +38,7 @@ public sealed class DebugOverlay
         }
 
         var lines = _values.Select(static pair => $"{pair.Key}: {pair.Value}").ToArray();
-        var position = new Vector2(10f, 10f);
+        var position = _position;
 
         _spriteBatch.Begin();
 

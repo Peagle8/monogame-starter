@@ -3,6 +3,8 @@ using MyGame.Configuration;
 using MyGame.Core.Input;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.World;
+using MyGame.Infrastructure.Configuration;
+using MyGame.Infrastructure.Logging;
 
 namespace MyGame.Tests.Infrastructure.DependencyInjection;
 
@@ -13,10 +15,18 @@ public sealed class WorldRegistrationTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<IInputService>(new StubInputService());
+        services.AddSingleton<ILogger, InMemoryLogger>();
+        services.AddSingleton<JsonFileLoader<EnemySettings>>();
+        services.AddSingleton<JsonFileLoader<PlayerMovementSettings>>();
+        services.AddSingleton(new EnemySettings());
+        services.AddSingleton(new PlayerAttackSettings());
+        services.AddTransient<PlayerAttackController>();
         services.AddSingleton(new PlayerMovementSettings());
         services.AddTransient<PlayerMovementController>();
         services.AddTransient<PlayerActor>();
-        services.AddTransient(provider => new World(provider.GetRequiredService<PlayerActor>()));
+        services.AddTransient(provider => new World(
+            provider.GetRequiredService<PlayerActor>(),
+            provider.GetRequiredService<EnemySettings>()));
 
         using var serviceProvider = services.BuildServiceProvider();
 
@@ -29,6 +39,8 @@ public sealed class WorldRegistrationTests
     public void ResolvedPlayerMovementController_UsesRegisteredSettings()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<ILogger, InMemoryLogger>();
+        services.AddSingleton<JsonFileLoader<PlayerMovementSettings>>();
         services.AddSingleton(new PlayerMovementSettings { MoveSpeed = 240f });
         services.AddTransient<PlayerMovementController>();
 

@@ -5,9 +5,14 @@ using MyGame.Scenes.Gameplay;
 
 namespace MyGame.Rendering.Gameplay;
 
-public sealed class GameplayOverlayRenderer : IRenderer<GameplayPauseMenu>
+public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
 {
-    private static readonly Vector2 InstructionPosition = new(10f, 440f);
+    private static readonly Color PanelFillColor = new(9, 17, 24, 220);
+    private static readonly Color PanelBorderColor = new(82, 121, 111);
+    private static readonly Color HealthPipColor = new(211, 78, 68);
+    private static readonly Color MissingHealthPipColor = new(73, 50, 52);
+    private static readonly Color DeathPanelFillColor = new(36, 12, 16, 235);
+    private static readonly Color DeathPanelBorderColor = new(190, 92, 82);
 
     private readonly IRenderContext _renderContext;
     private readonly IRenderer<GameplayPauseMenu> _pauseMenuRenderer;
@@ -18,17 +23,93 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayPauseMenu>
         _pauseMenuRenderer = pauseMenuRenderer;
     }
 
-    public void Draw(GameplayPauseMenu model, FrameTime frameTime)
+    public void Draw(GameplayScene model, FrameTime frameTime)
     {
+        var viewport = _renderContext.SpriteBatch.GraphicsDevice.Viewport;
+        var viewportSize = new Point(viewport.Width, viewport.Height);
+
+        DrawHealthHud(model);
+
         if (_renderContext.Assets.DebugFont is not null)
         {
+            // TODO: move thse two draw strings into their own method as well? Or do they belong here and aren't naturally grouped together?
             _renderContext.SpriteBatch.DrawString(
                 _renderContext.Assets.DebugFont,
-                "Move with WASD or arrows. Press Esc or P to pause.",
-                InstructionPosition,
+                $"Health: {model.World.Player.CurrentHealth}/{model.World.Player.MaxHealth}",
+                GameplayHudLayout.GetHealthTextPosition(),
                 Color.White);
+
+            _renderContext.SpriteBatch.DrawString(
+                _renderContext.Assets.DebugFont,
+                $"Crabs: {model.World.DefeatedEnemyCount}",
+                GameplayHudLayout.GetKillCountPosition(),
+                new Color(255, 220, 196));
+
+            if (model.IsPlayerDead)
+            {
+                DrawDeathPanel(viewportSize);
+            }
         }
 
-        _pauseMenuRenderer.Draw(model, frameTime);
+        _pauseMenuRenderer.Draw(model.PauseMenu, frameTime);
+    }
+
+    private void DrawHealthHud(GameplayScene model)
+    {
+        var panelBounds = GameplayHudLayout.GetHealthPanelBounds();
+        DrawPanel(panelBounds, PanelFillColor, PanelBorderColor);
+
+        for (var index = 0; index < model.World.Player.MaxHealth; index++)
+        {
+            var color = index < model.World.Player.CurrentHealth
+                ? HealthPipColor
+                : MissingHealthPipColor;
+
+            _renderContext.SpriteBatch.Draw(
+                _renderContext.Assets.Pixel,
+                GameplayHudLayout.GetHealthPipBounds(index),
+                color);
+        }
+    }
+
+    private void DrawDeathPanel(Point viewportSize)
+    {
+        var font = _renderContext.Assets.DebugFont;
+        if (font is null)
+        {
+            return;
+        }
+
+        DrawPanel(
+            GameplayHudLayout.GetDeathPanelBounds(viewportSize),
+            DeathPanelFillColor,
+            DeathPanelBorderColor);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "You got pinched.",
+            GameplayHudLayout.GetDeathTitlePosition(viewportSize),
+            new Color(255, 220, 220));
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "Press Enter to restart",
+            GameplayHudLayout.GetDeathHintLineOnePosition(viewportSize),
+            Color.White);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "Press Esc for menu.",
+            GameplayHudLayout.GetDeathHintLineTwoPosition(viewportSize),
+            Color.White);
+    }
+
+    private void DrawPanel(Rectangle bounds, Color fillColor, Color borderColor)
+    {
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, bounds, fillColor);
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Y, bounds.Width, 2), borderColor);
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Bottom - 2, bounds.Width, 2), borderColor);
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Y, 2, bounds.Height), borderColor);
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.Right - 2, bounds.Y, 2, bounds.Height), borderColor);
     }
 }

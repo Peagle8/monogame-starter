@@ -10,6 +10,7 @@ using MyGame.Core.Scenes;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.DependencyInjection;
 using MyGame.Infrastructure.Logging;
+using MyGame.Infrastructure.Save;
 using MyGame.Rendering.Gameplay;
 using MyGame.Rendering.MainMenu;
 using MyGame.Scenes.Gameplay;
@@ -57,6 +58,8 @@ public sealed class GameRoot : Game
             _serviceProvider.GetServices<IRenderer<MainMenuScene>>().OfType<MainMenuSceneRenderer>().Single(),
             _serviceProvider.GetRequiredService<IRenderContext>(),
             onStartGame: () => _sceneManager!.ChangeScene(CreateGameplayScene()),
+            onLoadGame: LoadGameplayFromSave,
+            canLoadGame: () => _serviceProvider.GetRequiredService<ISaveGameService>().SaveExists(),
             onExitGame: Exit);
     }
 
@@ -67,7 +70,24 @@ public sealed class GameRoot : Game
             _serviceProvider.GetRequiredService<World>(),
             _serviceProvider.GetServices<IRenderer<GameplayScene>>().OfType<GameplaySceneRenderer>().Single(),
             _serviceProvider.GetRequiredService<IRenderContext>(),
+            _serviceProvider.GetRequiredService<ISaveGameService>(),
+            onRestart: () => _sceneManager!.ChangeScene(CreateGameplayScene()),
             onReturnToMainMenu: () => _sceneManager!.ChangeScene(CreateMainMenuScene()));
+    }
+
+    private void LoadGameplayFromSave()
+    {
+        var saveGameService = _serviceProvider.GetRequiredService<ISaveGameService>();
+        var saveData = saveGameService.Load();
+
+        if (saveData is null || saveData.SceneName != "Gameplay")
+        {
+            return;
+        }
+
+        var scene = CreateGameplayScene();
+        scene.World.ApplySaveData(saveData);
+        _sceneManager!.ChangeScene(scene);
     }
 
     protected override void LoadContent()
@@ -77,6 +97,7 @@ public sealed class GameRoot : Game
 
         _debugOverlay?.SetSpriteBatch(_spriteBatch);
         _debugOverlay?.SetFont(_assetCatalog.DebugFont);
+        _debugOverlay?.SetPosition(Rendering.Gameplay.GameplayHudLayout.GetDebugOverlayPosition());
     }
 
     protected override void Update(GameTime gameTime)

@@ -1,0 +1,14 @@
+{
+  "SceneName": "Gameplay",
+  "PlayerPositionX": 102.99993,
+  "PlayerPositionY": 240,
+  "PlayerHealth": 5,
+  "DefeatedEnemyCount": 0,
+  "Enemies": [
+    {
+      "PositionX": 336,
+      "PositionY": 240,
+      "CurrentHealth": 3
+    }
+  ]
+}
