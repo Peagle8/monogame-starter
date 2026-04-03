@@ -1,0 +1,22 @@
+using Microsoft.Xna.Framework.Input;
+using MyGame.Core.Input;
+using MyGame.Infrastructure.Input;
+
+namespace MyGame.Tests.Infrastructure.Input;
+
+public sealed class DefaultInputBindingsTests
+{
+    [Fact]
+    public void Create_ReturnsExpectedDefaultBindings()
+    {
+        var bindings = new DefaultInputBindings().Create();
+
+        Assert.Equal([Keys.W, Keys.Up], bindings[GameAction.MoveUp]);
+        Assert.Equal([Keys.S, Keys.Down], bindings[GameAction.MoveDown]);
+        Assert.Equal([Keys.A, Keys.Left], bindings[GameAction.MoveLeft]);
+        Assert.Equal([Keys.D, Keys.Right], bindings[GameAction.MoveRight]);
+        Assert.Equal([Keys.Enter, Keys.Space], bindings[GameAction.Confirm]);
+        Assert.Equal([Keys.Escape, Keys.Back], bindings[GameAction.Cancel]);
+        Assert.Equal([Keys.P, Keys.Escape], bindings[GameAction.Pause]);
+    }
+}

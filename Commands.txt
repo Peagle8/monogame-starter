@@ -1,0 +1,4 @@
+dotnet restore
+dotnet build MyGame.sln
+dotnet run --project MyGame
+dotnet test MyGame.Tests
