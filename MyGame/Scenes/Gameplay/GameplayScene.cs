@@ -5,8 +5,7 @@ using MyGame.Core.Assets;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
-using MyGame.Gameplay.Props;
-using MyGame.Gameplay.Player;
+using MyGame.Gameplay.World;
 using MyGame.Rendering.Gameplay;
 
 namespace MyGame.Scenes.Gameplay;
@@ -20,13 +19,13 @@ public sealed class GameplayScene : IScene
 
     public GameplayScene(
         IInputService inputService,
-        PlayerActor player,
+        World world,
         IRenderer<GameplayScene> renderer,
         IRenderContext renderContext,
         Action onReturnToMainMenu)
     {
         _inputService = inputService;
-        Player = player;
+        World = world;
         _renderer = renderer;
         _renderContext = renderContext;
         GameplayPauseMenu? pauseMenu = null;
@@ -38,16 +37,9 @@ public sealed class GameplayScene : IScene
 
     public string Name => "Gameplay";
 
-    public PlayerActor Player { get; }
+    public World World { get; }
 
     public GameplayPauseMenu PauseMenu => _pauseMenu;
-
-    public IReadOnlyList<TreeProp> TreeProps { get; } =
-    [
-        new(new Vector2(120f, 120f), new Point(72, 104)),
-        new(new Vector2(560f, 160f), new Point(64, 96)),
-        new(new Vector2(620f, 320f), new Point(80, 112))
-    ];
 
     public void Enter()
     {
@@ -70,16 +62,16 @@ public sealed class GameplayScene : IScene
             return;
         }
 
-        Player.Update(frameTime);
+        World.Update(frameTime);
     }
 
     public void Draw(FrameTime frameTime, SpriteBatch spriteBatch, IAssetCatalog assetCatalog)
     {
         var viewport = spriteBatch.GraphicsDevice.Viewport;
         var camera = GameplayCamera.Create(
-            Player.Position,
+            World.Player.Position,
             new Point(viewport.Width, viewport.Height),
-            new Point(Player.Bounds.Width, Player.Bounds.Height));
+            new Point(World.Player.Bounds.Width, World.Player.Bounds.Height));
         _renderContext.Bind(spriteBatch, assetCatalog, camera);
         spriteBatch.Begin();
         _renderer.Draw(this, frameTime);
@@ -88,13 +80,12 @@ public sealed class GameplayScene : IScene
 
     public IReadOnlyDictionary<string, string> GetDebugState()
     {
-        return new Dictionary<string, string>
+        var debugState = new Dictionary<string, string>(World.GetDebugState())
         {
-            ["PlayerPosition"] = $"{Player.Position.X:0.00}, {Player.Position.Y:0.00}",
-            ["PlayerFacing"] = Player.Facing.ToString(),
-            ["TreePropCount"] = TreeProps.Count.ToString(),
             ["PauseMenuOpen"] = _pauseMenu.IsOpen.ToString(),
             ["PauseMenuSelection"] = _pauseMenu.SelectedText
         };
+
+        return debugState;
     }
 }

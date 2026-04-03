@@ -7,7 +7,7 @@ using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
-using MyGame.Gameplay.Player;
+using MyGame.Gameplay.World;
 using MyGame.Infrastructure.DependencyInjection;
 using MyGame.Infrastructure.Logging;
 using MyGame.Rendering.Gameplay;
@@ -64,7 +64,7 @@ public sealed class GameRoot : Game
     {
         return new GameplayScene(
             _inputService!,
-            _serviceProvider.GetRequiredService<PlayerActor>(),
+            _serviceProvider.GetRequiredService<World>(),
             _serviceProvider.GetServices<IRenderer<GameplayScene>>().OfType<GameplaySceneRenderer>().Single(),
             _serviceProvider.GetRequiredService<IRenderContext>(),
             onReturnToMainMenu: () => _sceneManager!.ChangeScene(CreateMainMenuScene()));

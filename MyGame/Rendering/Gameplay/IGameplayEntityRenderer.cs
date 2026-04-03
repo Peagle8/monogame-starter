@@ -1,5 +1,5 @@
 using MyGame.Core;
-using MyGame.Scenes.Gameplay;
+using MyGame.Gameplay.World;
 
 namespace MyGame.Rendering.Gameplay;
 
@@ -7,5 +7,5 @@ public interface IGameplayEntityRenderer
 {
     int DrawOrder { get; }
 
-    void Draw(GameplayScene scene, FrameTime frameTime);
+    void Draw(World world, FrameTime frameTime);
 }

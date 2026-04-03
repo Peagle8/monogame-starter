@@ -26,7 +26,7 @@ public sealed class GameplaySceneRenderer : IRenderer<GameplayScene>
 
         foreach (var entityRenderer in _entityRenderers)
         {
-            entityRenderer.Draw(model, frameTime);
+            entityRenderer.Draw(model.World, frameTime);
         }
 
         _overlayRenderer.Draw(model.PauseMenu, frameTime);

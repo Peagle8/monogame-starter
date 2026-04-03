@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using MyGame.Core;
 using MyGame.Core.Rendering;
-using MyGame.Scenes.Gameplay;
+using MyGame.Gameplay.World;
 
 namespace MyGame.Rendering.Gameplay;
 
@@ -20,9 +20,9 @@ public sealed class TreeEntityRenderer : IGameplayEntityRenderer
 
     public int DrawOrder => 50;
 
-    public void Draw(GameplayScene scene, FrameTime frameTime)
+    public void Draw(World world, FrameTime frameTime)
     {
-        foreach (var tree in scene.TreeProps)
+        foreach (var tree in world.TreeProps)
         {
             var canopyBounds = TreeRenderLayout.GetCanopyBounds(tree.Bounds);
             var trunkBounds = TreeRenderLayout.GetTrunkBounds(tree.Bounds);

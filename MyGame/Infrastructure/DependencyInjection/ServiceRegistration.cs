@@ -1,10 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework.Input;
+using MyGame.Configuration;
 using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
 using MyGame.Gameplay.Player;
+using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Input;
 using MyGame.Infrastructure.Logging;
 using MyGame.Rendering.Gameplay;
@@ -34,8 +36,10 @@ public static class ServiceRegistration
             provider.GetRequiredService<DefaultInputBindings>().Create());
 
         services.AddSingleton<IInputService, InputService>();
-        services.AddTransient(_ => new PlayerMovementController(180f));
+        services.AddSingleton(new PlayerMovementSettings());
+        services.AddTransient<PlayerMovementController>();
         services.AddTransient<PlayerActor>();
+        services.AddTransient(provider => new World(provider.GetRequiredService<PlayerActor>()));
         // TODO: eventually let's move all of these render injections into an extension method and call that method here so this doesn't get out of hand
         services.AddTransient<IRenderer<PlayerActor>, PlayerRenderer>();
         services.AddTransient<IGameplayEntityRenderer, TreeEntityRenderer>();

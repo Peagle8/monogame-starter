@@ -1,7 +1,7 @@
 using MyGame.Core;
 using MyGame.Core.Rendering;
 using MyGame.Gameplay.Player;
-using MyGame.Scenes.Gameplay;
+using MyGame.Gameplay.World;
 
 namespace MyGame.Rendering.Gameplay;
 
@@ -16,8 +16,8 @@ public sealed class PlayerEntityRenderer : IGameplayEntityRenderer
 
     public int DrawOrder => 100;
 
-    public void Draw(GameplayScene scene, FrameTime frameTime)
+    public void Draw(World world, FrameTime frameTime)
     {
-        _playerRenderer.Draw(scene.Player, frameTime);
+        _playerRenderer.Draw(world.Player, frameTime);
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Core.Input;
 
@@ -6,11 +7,11 @@ namespace MyGame.Gameplay.Player;
 
 public sealed class PlayerMovementController
 {
-    private readonly float _moveSpeed;
+    private readonly PlayerMovementSettings _settings;
 
-    public PlayerMovementController(float moveSpeed)
+    public PlayerMovementController(PlayerMovementSettings settings)
     {
-        _moveSpeed = moveSpeed;
+        _settings = settings;
     }
 
     public PlayerMovementResult Update(Vector2 position, Direction facing, InputSnapshot input, FrameTime frameTime)
@@ -47,7 +48,7 @@ public sealed class PlayerMovementController
             movement.Normalize();
         }
 
-        var nextPosition = position + (movement * _moveSpeed * frameTime.DeltaSeconds);
+        var nextPosition = position + (movement * _settings.MoveSpeed * frameTime.DeltaSeconds);
         return new PlayerMovementResult(nextPosition, nextFacing);
     }
 }

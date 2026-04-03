@@ -1,6 +1,6 @@
 using MyGame.Core;
+using MyGame.Gameplay.World;
 using MyGame.Rendering.Gameplay;
-using MyGame.Scenes.Gameplay;
 
 namespace MyGame.Tests.Rendering.Gameplay;
 
@@ -34,7 +34,7 @@ public sealed class GameplayEntityRenderOrderingTests
 
         public int DrawOrder { get; }
 
-        public void Draw(GameplayScene scene, FrameTime frameTime)
+        public void Draw(World world, FrameTime frameTime)
         {
         }
     }
