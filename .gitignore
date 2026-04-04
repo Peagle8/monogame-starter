@@ -13,3 +13,8 @@ MyGame.Tests/obj/Debug/net8.0/MyGame.Tests.AssemblyInfo.cs
 MyGame.Tests/obj/Debug/net8.0/MyGame.Tests.AssemblyInfoInputs.cache
 MyGame/obj/Debug/net8.0/MyGame.AssemblyInfo.cs
 MyGame/obj/Debug/net8.0/MyGame.AssemblyInfoInputs.cache
+/MyGame.Tests/bin/Debug
+/MyGame.Tests/obj/Debug
+/MyGame/obj
+/MyGame/bin/Debug
+/MyGame/obj/Debug
