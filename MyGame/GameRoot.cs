@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Core.Assets;
 using MyGame.Core.Diagnostics;
@@ -71,6 +72,8 @@ public sealed class GameRoot : Game
             _serviceProvider.GetServices<IRenderer<GameplayScene>>().OfType<GameplaySceneRenderer>().Single(),
             _serviceProvider.GetRequiredService<IRenderContext>(),
             _serviceProvider.GetRequiredService<ISaveGameService>(),
+            _serviceProvider.GetRequiredService<GameRecorder>(),
+            _serviceProvider.GetRequiredService<DiagnosticsSettings>(),
             onRestart: () => _sceneManager!.ChangeScene(CreateGameplayScene()),
             onReturnToMainMenu: () => _sceneManager!.ChangeScene(CreateMainMenuScene()));
     }
@@ -113,15 +116,27 @@ public sealed class GameRoot : Game
         _inputService.Update();
         _sceneManager.Update(_frameTime);
 
-        _gameRecorder?.Capture(new RecordedFrame(
-            _frameTime.Total,
-            _sceneManager.CurrentSceneName,
-            _inputService.Current,
-            _sceneManager.GetDebugState()));
+        if (_gameRecorder?.IsRecording == true)
+        {
+            _gameRecorder.Capture(new RecordedFrame(
+                _frameTime.Total,
+                _sceneManager.CurrentSceneName,
+                _inputService.Current,
+                _sceneManager.GetDebugState()));
+        }
 
         _debugOverlay?.SetValue("Scene", _sceneManager.CurrentSceneName);
         _debugOverlay?.SetValue("Elapsed", _frameTime.TotalSeconds.ToString("0.000"));
         _debugOverlay?.SetValue("FrameInput", _inputService.Current.ToSummary());
+        _debugOverlay?.SetValue("Recorder", _gameRecorder is null
+            ? "Unavailable"
+            : _gameRecorder.IsRecording
+                ? "Recording"
+                : _gameRecorder.IsReplayPaused
+                    ? "Replay Paused"
+                    : _gameRecorder.IsReplaying
+                        ? "Replay"
+                        : "Idle");
 
         base.Update(gameTime);
     }

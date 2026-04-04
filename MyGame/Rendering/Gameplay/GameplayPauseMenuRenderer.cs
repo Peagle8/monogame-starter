@@ -37,6 +37,12 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
             return;
         }
 
+        if (model.IsShowingReplayMenu)
+        {
+            DrawReplayPanel(model);
+            return;
+        }
+
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, PanelBounds, Color.Black * 0.85f);
         _renderContext.SpriteBatch.DrawString(_renderContext.Assets.DebugFont, "Paused", TitlePosition, Color.White);
 
@@ -86,5 +92,20 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
             ControlsOverlayText.HintLineTwo,
             ControlsOverlayLayout.GetHintLineTwoPosition(viewportSize),
             new Color(170, 198, 190));
+    }
+
+    private void DrawReplayPanel(GameplayPauseMenu model)
+    {
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, PanelBounds, Color.Black * 0.88f);
+        _renderContext.SpriteBatch.DrawString(_renderContext.Assets.DebugFont!, "Replay", TitlePosition, Color.White);
+
+        for (var index = 0; index < model.ReplayItems.Count; index++)
+        {
+            _renderContext.SpriteBatch.DrawString(
+                _renderContext.Assets.DebugFont!,
+                model.ReplayItems[index].Text,
+                VerticalMenuLayout.GetItemPosition(ItemsStartPosition, ItemSpacing, index),
+                VerticalMenuLayout.GetItemColor(index, model.ReplaySelectedIndex, model.ReplayItems[index].IsEnabled));
+        }
     }
 }

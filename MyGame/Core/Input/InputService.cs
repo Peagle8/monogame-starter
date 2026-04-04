@@ -1,14 +1,16 @@
-using Microsoft.Xna.Framework.Input;
+using MyGame.Core.Diagnostics;
 
 namespace MyGame.Core.Input;
 
 public sealed class InputService : IInputService
 {
-    private readonly IReadOnlyDictionary<GameAction, Keys[]> _bindings;
+    private readonly IInputSnapshotSource _snapshotSource;
+    private readonly GameRecorder _gameRecorder;
 
-    public InputService(IReadOnlyDictionary<GameAction, Keys[]> bindings)
+    public InputService(IInputSnapshotSource snapshotSource, GameRecorder gameRecorder)
     {
-        _bindings = bindings;
+        _snapshotSource = snapshotSource;
+        _gameRecorder = gameRecorder;
         Current = InputSnapshot.Empty;
         Previous = InputSnapshot.Empty;
     }
@@ -20,19 +22,17 @@ public sealed class InputService : IInputService
     public void Update()
     {
         Previous = Current;
+        var liveSnapshot = _snapshotSource.ReadCurrent();
 
-        var keyboardState = Keyboard.GetState();
-        var pressedActions = new HashSet<GameAction>();
-
-        foreach (var binding in _bindings)
+        if (liveSnapshot.IsPressed(GameAction.Pause) && _gameRecorder.IsReplaying)
         {
-            if (binding.Value.Any(keyboardState.IsKeyDown))
-            {
-                pressedActions.Add(binding.Key);
-            }
+            Current = liveSnapshot;
+            return;
         }
 
-        Current = new InputSnapshot(pressedActions);
+        Current = _gameRecorder.TryDequeueReplayInput(out var replaySnapshot)
+            ? replaySnapshot
+            : liveSnapshot;
     }
 
     public bool IsPressed(GameAction action)

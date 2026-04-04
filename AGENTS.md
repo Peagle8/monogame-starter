@@ -46,3 +46,4 @@
 - When introducing new folders or systems, follow the existing project shape first
 - If a requested change conflicts with these guidelines, call it out before implementing
 - In assistant responses, prefer plain file references like `MyGame/GameRoot.cs:46` instead of markdown links
+- Do not run the unit tests at the same time as compiling the solution since that will result in a file lock.

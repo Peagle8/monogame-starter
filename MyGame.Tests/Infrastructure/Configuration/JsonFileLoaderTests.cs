@@ -55,6 +55,24 @@ public sealed class JsonFileLoaderTests : IDisposable
     }
 
     [Fact]
+    public void LoadOrDefault_LoadsDiagnosticsSettingsFromJson()
+    {
+        var logger = new InMemoryLogger();
+        var loader = new JsonFileLoader<DiagnosticsSettings>(logger);
+        var path = Path.Combine(_directoryPath, "DiagnosticsSettings.json");
+        File.WriteAllText(path, """
+            {
+              "EnableReplayMenu": false
+            }
+            """);
+
+        var settings = loader.LoadOrDefault(path, new DiagnosticsSettings());
+
+        Assert.False(settings.EnableReplayMenu);
+        Assert.Contains(logger.Entries, entry => entry.Level == "Info");
+    }
+
+    [Fact]
     public void LoadOrDefault_WhenFileIsMissing_ReturnsDefaultValue()
     {
         var logger = new InMemoryLogger();

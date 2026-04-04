@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Core.Assets;
+using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
@@ -19,6 +21,7 @@ public sealed class GameplayScene : IScene
     private readonly IRenderer<GameplayScene> _renderer;
     private readonly IRenderContext _renderContext;
     private readonly ISaveGameService _saveGameService;
+    private readonly GameRecorder _gameRecorder;
     private readonly GameplayPauseMenu _pauseMenu;
 
     public GameplayScene(
@@ -27,6 +30,8 @@ public sealed class GameplayScene : IScene
         IRenderer<GameplayScene> renderer,
         IRenderContext renderContext,
         ISaveGameService saveGameService,
+        GameRecorder gameRecorder,
+        DiagnosticsSettings diagnosticsSettings,
         Action onRestart,
         Action onReturnToMainMenu)
     {
@@ -37,13 +42,27 @@ public sealed class GameplayScene : IScene
         _renderer = renderer;
         _renderContext = renderContext;
         _saveGameService = saveGameService;
+        _gameRecorder = gameRecorder;
         GameplayPauseMenu? pauseMenu = null;
         pauseMenu = new GameplayPauseMenu(
-            onResume: () => pauseMenu!.Close(),
+            onResume: () =>
+            {
+                _gameRecorder.ResumeReplay();
+                pauseMenu!.Close();
+            },
             onSaveGame: SaveGame,
             onLoadGame: LoadGame,
             canLoadGame: () => _saveGameService.SaveExists(),
-            onReturnToMainMenu: onReturnToMainMenu);
+            showReplayMenu: diagnosticsSettings.EnableReplayMenu,
+            recordingToggleText: () => _gameRecorder.IsRecording ? "Stop Recording" : "Start Recording",
+            onToggleRecording: ToggleRecording,
+            onReplayLastRecording: () =>
+            {
+                _gameRecorder.StartReplayFromBeginning();
+                _onRestart();
+            },
+            canReplayRecording: () => _gameRecorder.Frames.Count > 0 && !_gameRecorder.IsRecording,
+            onReturnToMainMenu: ReturnToMainMenu);
         _pauseMenu = pauseMenu;
     }
 
@@ -54,6 +73,12 @@ public sealed class GameplayScene : IScene
     public GameplayPauseMenu PauseMenu => _pauseMenu;
 
     public bool IsPlayerDead => World.Player.IsDead;
+
+    public bool IsRecording => _gameRecorder.IsRecording;
+
+    public bool IsReplaying => _gameRecorder.IsReplaying;
+
+    public bool IsReplayPaused => _gameRecorder.IsReplayPaused;
 
     public void Enter()
     {
@@ -73,6 +98,7 @@ public sealed class GameplayScene : IScene
 
         if (_inputService.IsJustPressed(GameAction.Pause))
         {
+            _gameRecorder.PauseReplay();
             _pauseMenu.Toggle();
         }
 
@@ -104,7 +130,11 @@ public sealed class GameplayScene : IScene
         {
             ["PlayerDead"] = IsPlayerDead.ToString(),
             ["PauseMenuOpen"] = _pauseMenu.IsOpen.ToString(),
-            ["PauseMenuSelection"] = _pauseMenu.SelectedText
+            ["PauseMenuSelection"] = _pauseMenu.SelectedText,
+            ["ReplayMenuOpen"] = _pauseMenu.IsShowingReplayMenu.ToString(),
+            ["RecorderRecording"] = _gameRecorder.IsRecording.ToString(),
+            ["RecorderReplaying"] = _gameRecorder.IsReplaying.ToString(),
+            ["RecorderReplayPaused"] = _gameRecorder.IsReplayPaused.ToString()
         };
 
         return debugState;
@@ -114,13 +144,14 @@ public sealed class GameplayScene : IScene
     {
         if (_inputService.IsJustPressed(GameAction.Confirm))
         {
+            _gameRecorder.StopReplay();
             _onRestart();
             return;
         }
 
         if (_inputService.IsJustPressed(GameAction.Cancel) || _inputService.IsJustPressed(GameAction.Pause))
         {
-            _onReturnToMainMenu();
+            ReturnToMainMenu();
         }
     }
 
@@ -139,5 +170,23 @@ public sealed class GameplayScene : IScene
         }
 
         _pauseMenu.Close();
+    }
+
+    private void ToggleRecording()
+    {
+        if (_gameRecorder.IsRecording)
+        {
+            _gameRecorder.StopRecording();
+            return;
+        }
+
+        _gameRecorder.StartRecording();
+        _pauseMenu.Close();
+    }
+
+    private void ReturnToMainMenu()
+    {
+        _gameRecorder.StopReplay();
+        _onReturnToMainMenu();
     }
 }

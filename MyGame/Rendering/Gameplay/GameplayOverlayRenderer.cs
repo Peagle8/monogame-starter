@@ -13,6 +13,12 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
     private static readonly Color MissingHealthPipColor = new(73, 50, 52);
     private static readonly Color DeathPanelFillColor = new(36, 12, 16, 235);
     private static readonly Color DeathPanelBorderColor = new(190, 92, 82);
+    private static readonly Color RecordingIndicatorColor = new(220, 82, 82);
+    private static readonly Color ReplayIndicatorColor = new(106, 208, 126);
+    private static readonly Color IndicatorPanelFillColor = new(9, 17, 24, 210);
+    private static readonly Color IndicatorPanelBorderColor = new(70, 88, 96);
+    private static readonly Point IndicatorPadding = new(10, 6);
+    private static readonly Point IndicatorMargin = new(20, 20);
 
     private readonly IRenderContext _renderContext;
     private readonly IRenderer<GameplayPauseMenu> _pauseMenuRenderer;
@@ -44,6 +50,8 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
                 $"Crabs: {model.World.DefeatedEnemyCount}",
                 GameplayHudLayout.GetKillCountPosition(),
                 new Color(255, 220, 196));
+
+            DrawDiagnosticsIndicator(model, viewportSize);
 
             if (model.IsPlayerDead)
             {
@@ -102,6 +110,53 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
             "Press Esc for menu.",
             GameplayHudLayout.GetDeathHintLineTwoPosition(viewportSize),
             Color.White);
+    }
+
+    private void DrawDiagnosticsIndicator(GameplayScene model, Point viewportSize)
+    {
+        var font = _renderContext.Assets.DebugFont;
+        if (font is null)
+        {
+            return;
+        }
+
+        string? label = null;
+        Color labelColor = Color.White;
+
+        if (model.IsRecording)
+        {
+            label = "RECORDING";
+            labelColor = RecordingIndicatorColor;
+        }
+        else if (model.IsReplayPaused)
+        {
+            label = "REPLAY PAUSED";
+            labelColor = ReplayIndicatorColor;
+        }
+        else if (model.IsReplaying)
+        {
+            label = "REPLAY";
+            labelColor = ReplayIndicatorColor;
+        }
+
+        if (label is null)
+        {
+            return;
+        }
+
+        var textSize = font.MeasureString(label);
+        var bounds = new Rectangle(
+            viewportSize.X - IndicatorMargin.X - (int)MathF.Ceiling(textSize.X) - (IndicatorPadding.X * 2),
+            IndicatorMargin.Y,
+            (int)MathF.Ceiling(textSize.X) + (IndicatorPadding.X * 2),
+            (int)MathF.Ceiling(textSize.Y) + (IndicatorPadding.Y * 2));
+
+        DrawPanel(bounds, IndicatorPanelFillColor, IndicatorPanelBorderColor);
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            label,
+            new Vector2(bounds.X + IndicatorPadding.X, bounds.Y + IndicatorPadding.Y),
+            labelColor);
     }
 
     private void DrawPanel(Rectangle bounds, Color fillColor, Color borderColor)

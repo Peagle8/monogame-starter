@@ -6,6 +6,7 @@ namespace MyGame.Scenes.Gameplay;
 public sealed class GameplayPauseMenu
 {
     private readonly List<MenuItem> _items;
+    private readonly List<MenuItem> _replayItems;
     private bool _skipInputUntilNextUpdate;
 
     public GameplayPauseMenu(
@@ -13,6 +14,11 @@ public sealed class GameplayPauseMenu
         Action onSaveGame,
         Action onLoadGame,
         Func<bool> canLoadGame,
+        bool showReplayMenu,
+        Func<string> recordingToggleText,
+        Action onToggleRecording,
+        Action onReplayLastRecording,
+        Func<bool> canReplayRecording,
         Action onReturnToMainMenu)
     {
         _items =
@@ -21,7 +27,20 @@ public sealed class GameplayPauseMenu
             new MenuItem("Save Game", onSaveGame),
             new MenuItem("Load Game", onLoadGame, canLoadGame),
             new MenuItem("Controls", OpenControls),
-            new MenuItem("Main Menu", onReturnToMainMenu)
+        ];
+
+        if (showReplayMenu)
+        {
+            _items.Add(new MenuItem("Replay", OpenReplayMenu));
+        }
+
+        _items.Add(new MenuItem("Main Menu", onReturnToMainMenu));
+
+        _replayItems =
+        [
+            new MenuItem(recordingToggleText, onToggleRecording),
+            new MenuItem("Replay Last Recording", onReplayLastRecording, canReplayRecording),
+            new MenuItem("Back", CloseReplayMenu)
         ];
     }
 
@@ -29,17 +48,27 @@ public sealed class GameplayPauseMenu
 
     public bool IsShowingControls { get; private set; }
 
+    public bool IsShowingReplayMenu { get; private set; }
+
     public int SelectedIndex { get; private set; }
 
     public string SelectedText => _items[SelectedIndex].Text;
 
     public IReadOnlyList<MenuItem> Items => _items;
 
+    public int ReplaySelectedIndex { get; private set; }
+
+    public string ReplaySelectedText => _replayItems[ReplaySelectedIndex].Text;
+
+    public IReadOnlyList<MenuItem> ReplayItems => _replayItems;
+
     public void Open()
     {
         IsOpen = true;
         IsShowingControls = false;
+        IsShowingReplayMenu = false;
         SelectedIndex = 0;
+        ReplaySelectedIndex = 0;
         _skipInputUntilNextUpdate = true;
     }
 
@@ -47,7 +76,9 @@ public sealed class GameplayPauseMenu
     {
         IsOpen = false;
         IsShowingControls = false;
+        IsShowingReplayMenu = false;
         SelectedIndex = 0;
+        ReplaySelectedIndex = 0;
         _skipInputUntilNextUpdate = false;
     }
 
@@ -87,6 +118,12 @@ public sealed class GameplayPauseMenu
             return;
         }
 
+        if (IsShowingReplayMenu)
+        {
+            UpdateReplayMenu(inputService);
+            return;
+        }
+
         if (inputService.IsJustPressed(GameAction.Cancel) || inputService.IsJustPressed(GameAction.Pause))
         {
             Close();
@@ -116,5 +153,45 @@ public sealed class GameplayPauseMenu
     private void OpenControls()
     {
         IsShowingControls = true;
+    }
+
+    private void OpenReplayMenu()
+    {
+        IsShowingReplayMenu = true;
+        ReplaySelectedIndex = 0;
+    }
+
+    private void CloseReplayMenu()
+    {
+        IsShowingReplayMenu = false;
+        ReplaySelectedIndex = 0;
+    }
+
+    private void UpdateReplayMenu(IInputService inputService)
+    {
+        if (inputService.IsJustPressed(GameAction.Cancel) || inputService.IsJustPressed(GameAction.Pause))
+        {
+            CloseReplayMenu();
+            return;
+        }
+
+        if (inputService.IsJustPressed(GameAction.MoveDown))
+        {
+            ReplaySelectedIndex = (ReplaySelectedIndex + 1) % _replayItems.Count;
+        }
+
+        if (inputService.IsJustPressed(GameAction.MoveUp))
+        {
+            ReplaySelectedIndex = (ReplaySelectedIndex - 1 + _replayItems.Count) % _replayItems.Count;
+        }
+
+        if (inputService.IsJustPressed(GameAction.Confirm))
+        {
+            var selectedItem = _replayItems[ReplaySelectedIndex];
+            if (selectedItem.IsEnabled)
+            {
+                selectedItem.OnSelected();
+            }
+        }
     }
 }

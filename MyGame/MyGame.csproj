@@ -21,6 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Content\Configuration\DiagnosticsSettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Content\Configuration\EnemySettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
