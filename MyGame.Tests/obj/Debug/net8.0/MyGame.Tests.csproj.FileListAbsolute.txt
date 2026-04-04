@@ -119,3 +119,4 @@ C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\My
 c:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\obj\Debug\net8.0\MyGame.Tests.sourcelink.json
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\bin\Debug\net8.0\Content\Configuration\PlayerMovementSettings.json
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\bin\Debug\net8.0\Content\Configuration\EnemySettings.json
+C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\bin\Debug\net8.0\Content\Configuration\DiagnosticsSettings.json

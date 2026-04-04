@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Core.Assets;
+using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Gameplay.Player;
@@ -131,11 +132,126 @@ public sealed class GameplaySceneTests
         Assert.Equal(0, scene.World.Enemies[0].CurrentHealth);
     }
 
+    [Fact]
+    public void Update_WhenReplaySelected_StartsReplayAndRestartsGameplay()
+    {
+        var recorder = new GameRecorder();
+        recorder.StartRecording();
+        recorder.Capture(new RecordedFrame(
+            TimeSpan.Zero,
+            "Gameplay",
+            new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight }),
+            new Dictionary<string, string>()));
+        recorder.StopRecording();
+        var state = new CallbackState();
+        var scene = CreateScene(new StubInputService(), state, gameRecorder: recorder);
+
+        scene.PauseMenu.Open();
+        scene.PauseMenu.Update(new StubInputService());
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.True(state.Restarted);
+        Assert.True(recorder.IsReplaying);
+    }
+
+    [Fact]
+    public void Update_WhenPausePressedDuringReplay_PausesReplayAndOpensPauseMenu()
+    {
+        var recorder = new GameRecorder();
+        recorder.StartReplay(new[]
+        {
+            new RecordedFrame(
+                TimeSpan.Zero,
+                "Gameplay",
+                new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight }),
+                new Dictionary<string, string>())
+        });
+        var scene = CreateScene(new StubInputService(GameAction.Pause), new CallbackState(), gameRecorder: recorder);
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(scene.PauseMenu.IsOpen);
+        Assert.True(recorder.IsReplayPaused);
+    }
+
+    [Fact]
+    public void Update_WhenReplayPaused_ResumeContinuesReplay()
+    {
+        var recorder = new GameRecorder();
+        recorder.StartReplay(new[]
+        {
+            new RecordedFrame(
+                TimeSpan.Zero,
+                "Gameplay",
+                new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight }),
+                new Dictionary<string, string>())
+        });
+        recorder.PauseReplay();
+        var scene = CreateScene(new StubInputService(), new CallbackState(), gameRecorder: recorder);
+
+        scene.PauseMenu.Open();
+        scene.PauseMenu.Update(new StubInputService());
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.False(scene.PauseMenu.IsOpen);
+        Assert.False(recorder.IsReplayPaused);
+        Assert.True(recorder.IsReplaying);
+    }
+
+    [Fact]
+    public void Update_WhenRecordingToggleSelected_StartsRecordingAndClosesPauseMenu()
+    {
+        var recorder = new GameRecorder();
+        var scene = CreateScene(new StubInputService(), new CallbackState(), gameRecorder: recorder);
+
+        scene.PauseMenu.Open();
+        scene.PauseMenu.Update(new StubInputService());
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.True(recorder.IsRecording);
+        Assert.False(scene.PauseMenu.IsOpen);
+    }
+
+    [Fact]
+    public void Update_WhenRecordingToggleSelectedAgain_StopsRecordingAndKeepsPauseMenuOpen()
+    {
+        var recorder = new GameRecorder();
+        recorder.StartRecording();
+        var scene = CreateScene(new StubInputService(), new CallbackState(), gameRecorder: recorder);
+
+        scene.PauseMenu.Open();
+        scene.PauseMenu.Update(new StubInputService());
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.False(recorder.IsRecording);
+        Assert.True(scene.PauseMenu.IsOpen);
+        Assert.True(scene.PauseMenu.IsShowingReplayMenu);
+    }
+
     private static GameplayScene CreateScene(
         IInputService inputService,
         CallbackState state,
         ISaveGameService? saveGameService = null,
-        World? world = null)
+        World? world = null,
+        GameRecorder? gameRecorder = null,
+        DiagnosticsSettings? diagnosticsSettings = null)
     {
         world ??= CreateWorld(inputService);
 
@@ -145,6 +261,8 @@ public sealed class GameplaySceneTests
             new StubSceneRenderer(),
             new StubRenderContext(),
             saveGameService ?? new StubSaveGameService(),
+            gameRecorder ?? new GameRecorder(),
+            diagnosticsSettings ?? new DiagnosticsSettings(),
             onRestart: () => state.Restarted = true,
             onReturnToMainMenu: () => state.ReturnedToMainMenu = true);
     }

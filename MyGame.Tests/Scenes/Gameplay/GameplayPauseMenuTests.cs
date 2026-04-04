@@ -8,7 +8,7 @@ public sealed class GameplayPauseMenuTests
     [Fact]
     public void Toggle_OpensMenu_AndSelectsResume()
     {
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => { }, () => true, () => { });
+        var pauseMenu = CreatePauseMenu();
 
         pauseMenu.Toggle();
 
@@ -20,7 +20,7 @@ public sealed class GameplayPauseMenuTests
     [Fact]
     public void Update_MoveDown_SelectsNextItem()
     {
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => { }, () => true, () => { });
+        var pauseMenu = CreatePauseMenu();
         var inputService = new StubInputService(GameAction.MoveDown);
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
@@ -35,7 +35,7 @@ public sealed class GameplayPauseMenuTests
     public void Update_ConfirmOnResume_ClosesMenu()
     {
         GameplayPauseMenu? pauseMenu = null;
-        pauseMenu = new GameplayPauseMenu(() => pauseMenu!.Close(), () => { }, () => { }, () => true, () => { });
+        pauseMenu = CreatePauseMenu(onResume: () => pauseMenu!.Close());
         var inputService = new StubInputService(GameAction.Confirm);
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
@@ -49,7 +49,7 @@ public sealed class GameplayPauseMenuTests
     public void Update_ConfirmOnLoadGame_InvokesCallback()
     {
         var loadInvoked = false;
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => loadInvoked = true, () => true, () => { });
+        var pauseMenu = CreatePauseMenu(onLoadGame: () => loadInvoked = true);
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -63,7 +63,7 @@ public sealed class GameplayPauseMenuTests
     [Fact]
     public void Update_ConfirmOnControls_OpensControlsPanel()
     {
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => { }, () => true, () => { });
+        var pauseMenu = CreatePauseMenu();
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -78,7 +78,7 @@ public sealed class GameplayPauseMenuTests
     [Fact]
     public void Update_WhenControlsPanelOpen_CancelClosesControlsOnly()
     {
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => { }, () => true, () => { });
+        var pauseMenu = CreatePauseMenu();
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -95,7 +95,7 @@ public sealed class GameplayPauseMenuTests
     [Fact]
     public void Update_Cancel_ClosesMenu()
     {
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => { }, () => true, () => { });
+        var pauseMenu = CreatePauseMenu();
         var inputService = new StubInputService(GameAction.Cancel);
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
@@ -108,7 +108,7 @@ public sealed class GameplayPauseMenuTests
     [Fact]
     public void Update_PausePressedImmediatelyAfterOpen_KeepsMenuOpen()
     {
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => { }, () => true, () => { });
+        var pauseMenu = CreatePauseMenu();
         var inputService = new StubInputService(GameAction.Pause);
         pauseMenu.Open();
 
@@ -121,9 +121,10 @@ public sealed class GameplayPauseMenuTests
     public void Update_ConfirmOnMainMenu_InvokesCallback()
     {
         var returnedToMainMenu = false;
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => { }, () => true, () => returnedToMainMenu = true);
+        var pauseMenu = CreatePauseMenu(onReturnToMainMenu: () => returnedToMainMenu = true);
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -138,7 +139,7 @@ public sealed class GameplayPauseMenuTests
     public void Update_ConfirmOnDisabledLoadGame_DoesNotInvokeCallback()
     {
         var loadInvoked = false;
-        var pauseMenu = new GameplayPauseMenu(() => { }, () => { }, () => loadInvoked = true, () => false, () => { });
+        var pauseMenu = CreatePauseMenu(onLoadGame: () => loadInvoked = true, canLoadGame: () => false);
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -147,6 +148,111 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         Assert.False(loadInvoked);
+    }
+
+    [Fact]
+    public void Update_ConfirmOnReplay_OpensReplaySubmenu()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.True(pauseMenu.IsShowingReplayMenu);
+        Assert.Equal("Start Recording", pauseMenu.ReplaySelectedText);
+    }
+
+    [Fact]
+    public void Update_WhenReplaySubmenuOpen_ConfirmInvokesReplay()
+    {
+        var replayInvoked = false;
+        var pauseMenu = CreatePauseMenu(onReplayLastRecording: () => replayInvoked = true);
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.True(replayInvoked);
+    }
+
+    [Fact]
+    public void Update_WhenReplaySubmenuOpen_CancelReturnsToPauseMenu()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        pauseMenu.Update(new StubInputService(GameAction.Cancel));
+
+        Assert.True(pauseMenu.IsOpen);
+        Assert.False(pauseMenu.IsShowingReplayMenu);
+    }
+
+    [Fact]
+    public void Constructor_WhenReplayMenuDisabled_OmitsReplayItem()
+    {
+        var pauseMenu = CreatePauseMenu(showReplayMenu: false);
+
+        Assert.DoesNotContain(pauseMenu.Items, item => item.Text == "Replay");
+    }
+
+    [Fact]
+    public void Update_WhenReplaySubmenuOpen_ConfirmOnRecordingToggleInvokesCallback()
+    {
+        var toggled = false;
+        var pauseMenu = CreatePauseMenu(onToggleRecording: () => toggled = true);
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.True(toggled);
+    }
+
+    private static GameplayPauseMenu CreatePauseMenu(
+        Action? onResume = null,
+        Action? onSaveGame = null,
+        Action? onLoadGame = null,
+        Func<bool>? canLoadGame = null,
+        bool showReplayMenu = true,
+        Func<string>? recordingToggleText = null,
+        Action? onToggleRecording = null,
+        Action? onReplayLastRecording = null,
+        Func<bool>? canReplayRecording = null,
+        Action? onReturnToMainMenu = null)
+    {
+        return new GameplayPauseMenu(
+            onResume ?? (() => { }),
+            onSaveGame ?? (() => { }),
+            onLoadGame ?? (() => { }),
+            canLoadGame ?? (() => true),
+            showReplayMenu,
+            recordingToggleText ?? (() => "Start Recording"),
+            onToggleRecording ?? (() => { }),
+            onReplayLastRecording ?? (() => { }),
+            canReplayRecording ?? (() => true),
+            onReturnToMainMenu ?? (() => { }));
     }
 
     private sealed class StubInputService : IInputService

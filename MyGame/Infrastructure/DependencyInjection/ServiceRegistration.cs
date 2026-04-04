@@ -38,14 +38,31 @@ public static class ServiceRegistration
         services.AddSingleton<ISaveGameService>(provider => new JsonSaveGameService(
             provider.GetRequiredService<ILogger>(),
             Path.Combine(AppContext.BaseDirectory, "Saves", "savegame.json")));
+        services.AddSingleton<JsonFileLoader<DiagnosticsSettings>>();
         services.AddSingleton<JsonFileLoader<EnemySettings>>();
         services.AddSingleton<JsonFileLoader<PlayerMovementSettings>>();
+        // TODO: lets also move all of the capture related injections into an extension method
+        // TODO: In fact, update the AGENTS.md to mention that if there are more than x of the same flavor of service being injected, move it into it's own extension method in it's own file.
+        // TODO: sorry while I am thinking of it, also add rules for class and method length best practice
         services.AddSingleton<DefaultInputBindings>();
         services.AddSingleton<IReadOnlyDictionary<GameAction, Keys[]>>(provider =>
             provider.GetRequiredService<DefaultInputBindings>().Create());
 
-        services.AddSingleton<IInputService, InputService>();
+        services.AddSingleton<IInputSnapshotSource, KeyboardInputSnapshotSource>();
+        services.AddSingleton<InputService>();
+        services.AddSingleton<IInputService>(provider => provider.GetRequiredService<InputService>());
         // TODO: move these into their own extension method and call that here to keep this clean
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<DiagnosticsSettings>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Configuration",
+                "DiagnosticsSettings.json");
+
+            return loader.LoadOrDefault(path, new DiagnosticsSettings());
+        });
         services.AddSingleton(provider =>
         {
             var loader = provider.GetRequiredService<JsonFileLoader<PlayerMovementSettings>>();
