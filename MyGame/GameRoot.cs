@@ -78,19 +78,20 @@ public sealed class GameRoot : Game
             onReturnToMainMenu: () => _sceneManager!.ChangeScene(CreateMainMenuScene()));
     }
 
-    private void LoadGameplayFromSave()
+    private bool LoadGameplayFromSave()
     {
         var saveGameService = _serviceProvider.GetRequiredService<ISaveGameService>();
         var saveData = saveGameService.Load();
 
         if (saveData is null || saveData.SceneName != "Gameplay")
         {
-            return;
+            return false;
         }
 
         var scene = CreateGameplayScene();
         scene.World.ApplySaveData(saveData);
         _sceneManager!.ChangeScene(scene);
+        return true;
     }
 
     protected override void LoadContent()
@@ -128,6 +129,7 @@ public sealed class GameRoot : Game
         _debugOverlay?.SetValue("Scene", _sceneManager.CurrentSceneName);
         _debugOverlay?.SetValue("Elapsed", _frameTime.TotalSeconds.ToString("0.000"));
         _debugOverlay?.SetValue("FrameInput", _inputService.Current.ToSummary());
+        // TODO: fix this, this is way too many layers of indentation... could we use a switch expression instead?
         _debugOverlay?.SetValue("Recorder", _gameRecorder is null
             ? "Unavailable"
             : _gameRecorder.IsRecording

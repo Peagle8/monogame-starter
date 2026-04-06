@@ -14,9 +14,12 @@ public sealed class WorldTests
     public void Update_UpdatesPlayerState()
     {
         var inputService = new StubInputService(new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight }));
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             inputService,
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var enemy = new EnemyActor(new EnemySettings(), new Vector2(900f, 240f));
         var world = new global::MyGame.Gameplay.World.World(player, [], [enemy]);
@@ -32,9 +35,12 @@ public sealed class WorldTests
     [Fact]
     public void Update_WhenEnemyIntersectsPlayer_AppliesContactDamage()
     {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var enemy = new EnemyActor(
             new EnemySettings { MoveSpeed = 0f, ChaseRange = 100f, RecoverySeconds = 0.65f },
@@ -44,15 +50,19 @@ public sealed class WorldTests
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
 
         Assert.Equal(4, world.Player.CurrentHealth);
+        Assert.Equal(new Vector2(400f, 230f), world.Player.Position);
         Assert.Equal(EnemyState.Recovering, enemy.State);
     }
 
     [Fact]
     public void Update_WhenWithinContactCooldown_DoesNotApplyRepeatedDamage()
     {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var enemy = new EnemyActor(
             new EnemySettings { MoveSpeed = 0f, ChaseRange = 100f, RecoverySeconds = 0.65f },
@@ -68,9 +78,12 @@ public sealed class WorldTests
     [Fact]
     public void Update_AfterCooldownExpires_AllowsContactDamageAgain()
     {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var enemy = new EnemyActor(
             new EnemySettings { MoveSpeed = 0f, ChaseRange = 100f, RecoverySeconds = 0.65f },
@@ -87,9 +100,12 @@ public sealed class WorldTests
     [Fact]
     public void Update_WhenEnemyIsRecovering_DoesNotApplyDamageEvenIfStillIntersecting()
     {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var enemy = new EnemyActor(
             new EnemySettings { MoveSpeed = 0f, ChaseRange = 100f, RecoverySeconds = 1.0f },
@@ -107,9 +123,12 @@ public sealed class WorldTests
     public void Constructor_StoresTreeProps()
     {
         var enemySettings = new EnemySettings();
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         TreeProp[] treeProps =
         [
@@ -128,9 +147,12 @@ public sealed class WorldTests
     public void GetDebugState_ReturnsPlayerTreeAndEnemyDetails()
     {
         var inputService = new StubInputService(new InputSnapshot(new HashSet<GameAction> { GameAction.MoveUp }));
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 60f };
         var player = new PlayerActor(
             inputService,
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 60f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var enemy = new EnemyActor(new EnemySettings(), new Vector2(450f, 240f));
         var world = new global::MyGame.Gameplay.World.World(
@@ -155,9 +177,12 @@ public sealed class WorldTests
     [Fact]
     public void Update_WhenPlayerAttackHitsEnemy_DealsDamageOncePerAttack()
     {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var enemy = new EnemyActor(
             new EnemySettings { MoveSpeed = 0f, ChaseRange = 20f },
@@ -171,12 +196,125 @@ public sealed class WorldTests
     }
 
     [Fact]
+    public void Update_AfterEnemyHitsPlayer_ContinuesPlayerKnockbackMotion()
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        var enemy = new EnemyActor(
+            new EnemySettings { MoveSpeed = 0f, ChaseRange = 100f, RecoverySeconds = 0.65f },
+            new Vector2(400f, 240f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
+
+        Assert.Equal(new Vector2(400f, 225f), world.Player.Position);
+    }
+
+    [Fact]
+    public void Update_WhenPlayerAttackHitsEnemy_AppliesKnockback()
+    {
+        var enemySettings = new EnemySettings
+        {
+            MoveSpeed = 0f,
+            ChaseRange = 20f,
+            PlayerHitKnockbackDistance = 24f,
+            PlayerHitKnockbackSeconds = 0.12f
+        };
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.Attack),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        var enemy = new EnemyActor(
+            enemySettings,
+            new Vector2(400f, 272f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy], enemySettings);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(new Vector2(400f, 284f), enemy.Position);
+        Assert.Equal(EnemyState.Recovering, enemy.State);
+    }
+
+    [Fact]
+    public void Update_AfterPlayerAttackHit_ContinuesEnemyKnockbackMotion()
+    {
+        var enemySettings = new EnemySettings
+        {
+            MoveSpeed = 0f,
+            ChaseRange = 20f,
+            PlayerHitKnockbackDistance = 24f,
+            PlayerHitKnockbackSeconds = 0.12f,
+            PlayerHitPauseSeconds = 0.045f
+        };
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.Attack),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        var enemy = new EnemyActor(
+            enemySettings,
+            new Vector2(400f, 272f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy], enemySettings);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.06), TimeSpan.FromSeconds(0.16)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.06), TimeSpan.FromSeconds(0.22)));
+
+        Assert.Equal(new Vector2(400f, 290f), enemy.Position);
+    }
+
+    [Fact]
+    public void Update_AfterPlayerAttackHit_AppliesShortHitPause()
+    {
+        var enemySettings = new EnemySettings
+        {
+            MoveSpeed = 0f,
+            ChaseRange = 200f,
+            PlayerHitKnockbackDistance = 24f,
+            PlayerHitKnockbackSeconds = 0.12f,
+            PlayerHitPauseSeconds = 0.045f
+        };
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight }), GameAction.Attack),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        var enemy = new EnemyActor(
+            enemySettings,
+            new Vector2(418f, 272f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy], enemySettings);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var enemyPositionAfterHit = enemy.Position;
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.02), TimeSpan.FromSeconds(0.12)));
+
+        Assert.Equal(enemyPositionAfterHit, enemy.Position);
+    }
+
+    [Fact]
     public void Update_WhenPlayerAttackKillsEnemy_EnemyBecomesDead()
     {
         var enemySettings = new EnemySettings { MaxHealth = 2, MoveSpeed = 0f, ChaseRange = 20f };
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings { Damage = 3 }));
         var enemy = new EnemyActor(
             enemySettings,
@@ -194,9 +332,12 @@ public sealed class WorldTests
     public void CreateSaveData_IncludesEnemySnapshotsAndWorldState()
     {
         var enemySettings = new EnemySettings { MaxHealth = 2, MoveSpeed = 0f, ChaseRange = 20f };
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings { Damage = 3 }));
         var enemy = new EnemyActor(enemySettings, new Vector2(400f, 272f));
         var world = new global::MyGame.Gameplay.World.World(player, [], [enemy], enemySettings);
@@ -207,6 +348,8 @@ public sealed class WorldTests
         Assert.Equal("Gameplay", saveData.SceneName);
         Assert.Equal(1, saveData.DefeatedEnemyCount);
         Assert.Single(saveData.Enemies);
+        Assert.Equal(EnemyKind.Crab, saveData.Enemies[0].Kind);
+        Assert.Equal(EnemyAxisPreference.None, saveData.Enemies[0].AxisPreference);
         Assert.Equal(400f, saveData.Enemies[0].PositionX);
         Assert.Equal(272f, saveData.Enemies[0].PositionY);
         Assert.Equal(0, saveData.Enemies[0].CurrentHealth);
@@ -216,9 +359,12 @@ public sealed class WorldTests
     public void ApplySaveData_RestoresEnemyStateAndDefeatedCount()
     {
         var enemySettings = new EnemySettings { MaxHealth = 3, MoveSpeed = 120f, ChaseRange = 160f };
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
         var world = new global::MyGame.Gameplay.World.World(player, [], [], enemySettings);
         var saveData = new MyGame.Infrastructure.Save.SaveGameData
@@ -229,12 +375,16 @@ public sealed class WorldTests
             [
                 new MyGame.Infrastructure.Save.EnemySaveData
                 {
+                    Kind = EnemyKind.Crab,
+                    AxisPreference = EnemyAxisPreference.None,
                     PositionX = 150f,
                     PositionY = 160f,
                     CurrentHealth = 2
                 },
                 new MyGame.Infrastructure.Save.EnemySaveData
                 {
+                    Kind = EnemyKind.Crab,
+                    AxisPreference = EnemyAxisPreference.None,
                     PositionX = 240f,
                     PositionY = 260f,
                     CurrentHealth = 0

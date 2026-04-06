@@ -148,6 +148,7 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         Assert.False(loadInvoked);
+        Assert.Equal("No save found yet.", pauseMenu.StatusMessage);
     }
 
     [Fact]
@@ -228,6 +229,18 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         Assert.True(toggled);
+    }
+
+    [Fact]
+    public void FooterText_WhenLoadGameIsDisabled_ExplainsWhy()
+    {
+        var pauseMenu = CreatePauseMenu(canLoadGame: () => false);
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+
+        Assert.Equal("No save found yet.", pauseMenu.FooterText);
     }
 
     private static GameplayPauseMenu CreatePauseMenu(

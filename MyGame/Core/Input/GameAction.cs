@@ -7,6 +7,7 @@ public enum GameAction
     MoveLeft,
     MoveRight,
     Attack,
+    Dash,
     Confirm,
     Cancel,
     Pause

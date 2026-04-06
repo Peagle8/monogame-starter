@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Player;
 
 namespace MyGame.Tests.Gameplay.Enemies;
 
@@ -146,5 +147,129 @@ public sealed class EnemyActorTests
 
         Assert.False(enemy.IsRenderable);
         Assert.Equal(0f, enemy.DefeatedVisibilityAlpha);
+    }
+
+    [Fact]
+    public void ApplyKnockback_MovesEnemyAwayUsingConfiguredDistance()
+    {
+        var enemy = new EnemyActor(
+            new EnemySettings { PlayerHitKnockbackDistance = 12f, PlayerHitKnockbackSeconds = 0.2f },
+            new Vector2(100f, 100f));
+
+        enemy.ApplyKnockback(new Vector2(1f, 0f));
+
+        Assert.Equal(new Vector2(106f, 100f), enemy.Position);
+        Assert.True(enemy.IsMoving);
+        Assert.Equal(EnemyState.Recovering, enemy.State);
+    }
+
+    [Fact]
+    public void Update_AfterKnockbackApplied_ContinuesMovingDuringHitRecoil()
+    {
+        var enemy = new EnemyActor(
+            new EnemySettings { PlayerHitKnockbackDistance = 12f, PlayerHitKnockbackSeconds = 0.2f },
+            new Vector2(100f, 100f));
+        enemy.ApplyKnockback(new Vector2(1f, 0f));
+
+        enemy.Update(new Vector2(0f, 0f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(new Vector2(109f, 100f), enemy.Position);
+        Assert.Equal(EnemyState.Recovering, enemy.State);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitPlayerInRange_StartsDashInStraightLine()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(160f, 120f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.IsMoving);
+        Assert.Equal(Direction.Right, enemy.DashDirection);
+        Assert.True(enemy.Position.X > 100f);
+        Assert.Equal(100f, enemy.Position.Y);
+        Assert.True(enemy.CanDealContactDamage);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitDashEnds_EntersAimingPause()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(
+            new Vector2(160f, 120f),
+            new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds)));
+
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.False(enemy.IsMoving);
+        Assert.False(enemy.CanDealContactDamage);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitPauseExpires_RetargetsAndDashesAgain()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(
+            new Vector2(160f, 100f),
+            new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds)));
+        var retargetPosition = new Vector2(enemy.Position.X, 10f);
+        enemy.Update(
+            retargetPosition,
+            new FrameTime(TimeSpan.FromSeconds(settings.DashPauseSeconds - 0.01f), TimeSpan.FromSeconds(settings.DashSeconds + settings.DashPauseSeconds - 0.01f)));
+        enemy.Update(
+            retargetPosition,
+            new FrameTime(TimeSpan.FromSeconds(0.02), TimeSpan.FromSeconds(settings.DashSeconds + settings.DashPauseSeconds + 0.01f)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.Equal(Direction.Up, enemy.DashDirection);
+        Assert.True(enemy.Position.Y < 100f);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitHasInitialDashPause_WaitsBeforeFirstDash()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f), initialDashPauseSeconds: 0.5f);
+
+        enemy.Update(new Vector2(160f, 100f), new FrameTime(TimeSpan.FromSeconds(0.25), TimeSpan.FromSeconds(0.25)));
+
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.False(enemy.IsMoving);
+        Assert.False(enemy.CanDealContactDamage);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitPrefersHorizontal_UsesHorizontalDashEvenWhenVerticalGapIsLarger()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit);
+        var enemy = new EnemyActor(
+            settings,
+            new Vector2(100f, 100f),
+            axisPreference: EnemyAxisPreference.Horizontal);
+
+        enemy.Update(new Vector2(120f, 220f), new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+
+        Assert.Equal(Direction.Right, enemy.DashDirection);
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitPrefersVertical_UsesVerticalDashEvenWhenHorizontalGapIsLarger()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit);
+        var enemy = new EnemyActor(
+            settings,
+            new Vector2(100f, 100f),
+            axisPreference: EnemyAxisPreference.Vertical);
+
+        enemy.Update(new Vector2(220f, 120f), new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+
+        Assert.Equal(Direction.Down, enemy.DashDirection);
+        Assert.Equal(EnemyState.Dashing, enemy.State);
     }
 }

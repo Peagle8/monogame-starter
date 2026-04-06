@@ -1,5 +1,6 @@
 using MyGame.Infrastructure.Logging;
 using MyGame.Infrastructure.Save;
+using MyGame.Gameplay.Enemies;
 
 namespace MyGame.Tests.Infrastructure.Save;
 
@@ -27,6 +28,8 @@ public sealed class JsonSaveGameServiceTests : IDisposable
             [
                 new EnemySaveData
                 {
+                    Kind = EnemyKind.Crab,
+                    AxisPreference = EnemyAxisPreference.None,
                     PositionX = 520f,
                     PositionY = 240f,
                     CurrentHealth = 0
@@ -47,6 +50,8 @@ public sealed class JsonSaveGameServiceTests : IDisposable
         Assert.Equal(expected.PlayerPositionX, loaded.PlayerPositionX);
         Assert.Equal(expected.PlayerPositionY, loaded.PlayerPositionY);
         Assert.Single(loaded.Enemies);
+        Assert.Equal(expected.Enemies[0].Kind, loaded.Enemies[0].Kind);
+        Assert.Equal(expected.Enemies[0].AxisPreference, loaded.Enemies[0].AxisPreference);
         Assert.Equal(expected.Enemies[0].PositionX, loaded.Enemies[0].PositionX);
         Assert.Equal(expected.Enemies[0].PositionY, loaded.Enemies[0].PositionY);
         Assert.Equal(expected.Enemies[0].CurrentHealth, loaded.Enemies[0].CurrentHealth);

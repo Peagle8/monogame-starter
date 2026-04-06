@@ -7,6 +7,7 @@ using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Gameplay.Player;
+using MyGame.Gameplay.Enemies;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Save;
 using MyGame.Scenes.Gameplay;
@@ -89,6 +90,8 @@ public sealed class GameplaySceneTests
         Assert.Equal(240f, saveGameService.LastSavedData.PlayerPositionY);
         Assert.Equal(5, saveGameService.LastSavedData.PlayerHealth);
         Assert.Single(saveGameService.LastSavedData.Enemies);
+        Assert.Equal("Game saved.", scene.PauseMenu.StatusMessage);
+        Assert.True(scene.PauseMenu.IsOpen);
     }
 
     [Fact]
@@ -104,6 +107,8 @@ public sealed class GameplaySceneTests
                 [
                     new EnemySaveData
                     {
+                        Kind = EnemyKind.Crab,
+                        AxisPreference = EnemyAxisPreference.None,
                         PositionX = 512f,
                         PositionY = 288f,
                         CurrentHealth = 0
@@ -130,6 +135,27 @@ public sealed class GameplaySceneTests
         Assert.Single(scene.World.Enemies);
         Assert.Equal(new Vector2(512f, 288f), scene.World.Enemies[0].Position);
         Assert.Equal(0, scene.World.Enemies[0].CurrentHealth);
+        Assert.Equal("Game loaded.", scene.PauseMenu.StatusMessage);
+        Assert.True(scene.PauseMenu.IsOpen);
+    }
+
+    [Fact]
+    public void Update_WhenPauseMenuLoadSelectedWithoutSave_ShowsFeedback()
+    {
+        var saveGameService = new StubSaveGameService { Exists = false };
+        var scene = CreateScene(
+            new StubInputService(),
+            new CallbackState(),
+            saveGameService);
+
+        scene.PauseMenu.Open();
+        scene.PauseMenu.Update(new StubInputService());
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.Equal("No save found yet.", scene.PauseMenu.StatusMessage);
+        Assert.True(scene.PauseMenu.IsOpen);
     }
 
     [Fact]
@@ -269,10 +295,13 @@ public sealed class GameplaySceneTests
 
     private static World CreateWorld(IInputService inputService)
     {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var attackController = new PlayerAttackController(new PlayerAttackSettings());
         var player = new PlayerActor(
             inputService,
-            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
             attackController);
         return new World(player, new EnemySettings());
     }

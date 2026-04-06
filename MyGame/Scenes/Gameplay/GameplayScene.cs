@@ -44,6 +44,7 @@ public sealed class GameplayScene : IScene
         _saveGameService = saveGameService;
         _gameRecorder = gameRecorder;
         GameplayPauseMenu? pauseMenu = null;
+        // TODO: Would this logic be better off inside of GameplayPauseMenu as a constructor?  
         pauseMenu = new GameplayPauseMenu(
             onResume: () =>
             {
@@ -132,6 +133,7 @@ public sealed class GameplayScene : IScene
             ["PauseMenuOpen"] = _pauseMenu.IsOpen.ToString(),
             ["PauseMenuSelection"] = _pauseMenu.SelectedText,
             ["ReplayMenuOpen"] = _pauseMenu.IsShowingReplayMenu.ToString(),
+            ["PauseMenuFooterText"] = _pauseMenu.FooterText,
             ["RecorderRecording"] = _gameRecorder.IsRecording.ToString(),
             ["RecorderReplaying"] = _gameRecorder.IsReplaying.ToString(),
             ["RecorderReplayPaused"] = _gameRecorder.IsReplayPaused.ToString()
@@ -158,7 +160,7 @@ public sealed class GameplayScene : IScene
     private void SaveGame()
     {
         _saveGameService.Save(World.CreateSaveData(Name));
-        _pauseMenu.Close();
+        _pauseMenu.SetStatus("Game saved.");
     }
 
     private void LoadGame()
@@ -167,9 +169,11 @@ public sealed class GameplayScene : IScene
         if (data is not null && data.SceneName == Name)
         {
             World.ApplySaveData(data);
+            _pauseMenu.SetStatus("Game loaded.");
+            return;
         }
 
-        _pauseMenu.Close();
+        _pauseMenu.SetStatus("No gameplay save could be loaded.");
     }
 
     private void ToggleRecording()

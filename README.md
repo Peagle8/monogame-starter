@@ -21,16 +21,17 @@ The game currently includes:
   - enemy positions
   - enemy health/dead state
   - defeated enemy count
-- a debug overlay and basic recording support
+- a debug overlay plus replay/record diagnostics support
 - fast unit tests for gameplay and infrastructure logic
 
 ## Controls
 
-- move: `WASD` or arrow keys
-- attack: `J` or `Left Ctrl`
-- confirm: `Enter`
-- cancel/back: `Esc`
-- pause: `Esc` or `P`
+- move: `WASD`, arrow keys, left stick, or D-pad
+- attack: `J`, `Left Ctrl`, or `X`
+- dash: `Shift` or `Right Shoulder`
+- confirm: `Enter`, `Space`, or `A`
+- cancel/back: `Esc`, `B`, or `Back`
+- pause: `Esc`, `P`, or `Start`
 
 `Load Game` is disabled in menus until a save file exists.
 
@@ -40,6 +41,8 @@ The game currently includes:
   - MonoGame host, scenes, rendering, input, diagnostics, save/load, and gameplay code
 - `MyGame.Tests`
   - fast tests for gameplay rules, state transitions, save/load, and layout logic
+- `docs`
+  - design notes and longer-term direction
 
 ## Architecture Notes
 
@@ -47,8 +50,11 @@ The game currently includes:
 - `SceneManager` handles scene changes and forwards update/draw calls.
 - `World` owns active gameplay simulation state.
 - `IInputService` maps hardware input to `GameAction`.
+- `IPlayerAbilityService` gates unlockable actions like dash without pushing progression rules into input code.
 - gameplay tuning is loaded from JSON config objects rather than hidden magic numbers
 - save/load uses explicit DTOs instead of serializing live runtime objects directly
+
+See `docs/GameDesign.md` for the current higher-level design direction.
 
 ## What Is Working
 
@@ -66,17 +72,23 @@ Near-term priorities:
 
 1. add multiple save slots
 2. improve save UX further now that single-save flow works
-3. continue improving presentation and art beyond the current placeholder visuals
-4. expand enemy variety and world content beyond the single crab test loop
+3. add controller support so combat iteration is comfortable and easier to judge
+4. focus hard on combat feel, enemy interactions, and the core "is this fun?" loop
 5. keep extracting clean gameplay services where `World` is still doing too much directly
 
-Likely future systems:
+High-level roadmap after the current agenda:
 
-1. additional enemies and combat behaviors
-2. more room/world content
-3. HUD polish beyond the current functional pass
-4. stronger graphics and animation pass
-5. replay input / deterministic debugging improvements
+1. deepen combat before investing heavily in presentation
+2. build multiple world "areas" with clearer progression
+3. gate each area with a boss before the next area opens
+4. transition between areas by having the player exit along a path and load into the next area
+5. expand enemies, bosses, and area-specific content once the core combat loop is fun
+
+Presentation philosophy:
+
+1. placeholder visuals are fine for now
+2. gameplay feel and combat fun come before a major graphics pass
+3. art polish should follow once the core loop and progression are proving out
 
 ## Running Tests
 

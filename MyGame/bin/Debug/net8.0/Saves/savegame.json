@@ -1,14 +1,21 @@
 {
   "SceneName": "Gameplay",
-  "PlayerPositionX": 400,
-  "PlayerPositionY": 240,
-  "PlayerHealth": 3,
+  "PlayerPositionX": 558.27216,
+  "PlayerPositionY": 601.2486,
+  "PlayerHealth": 5,
   "DefeatedEnemyCount": 0,
   "Enemies": [
     {
-      "PositionX": 428,
-      "PositionY": 240,
+      "Kind": 0,
+      "PositionX": 125.36818,
+      "PositionY": 393.41046,
       "CurrentHealth": 3
+    },
+    {
+      "Kind": 1,
+      "PositionX": 236.79883,
+      "PositionY": 508.80078,
+      "CurrentHealth": 2
     }
   ]
 }

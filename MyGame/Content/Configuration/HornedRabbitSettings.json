@@ -1,0 +1,15 @@
+{
+  "MaxHealth": 2,
+  "MoveSpeed": 210,
+  "ChaseRange": 260,
+  "RecoverySeconds": 0.5,
+  "DefeatedVisibleSeconds": 0.8,
+  "PlayerHitKnockbackDistance": 20,
+  "PlayerHitKnockbackSeconds": 0.1,
+  "PlayerHitPauseSeconds": 0.05,
+  "DashSpeed": 504,
+  "DashSeconds": 0.252,
+  "DashPauseSeconds": 1.0,
+  "InitialDashPauseMinSeconds": 0.0,
+  "InitialDashPauseMaxSeconds": 0.8
+}

@@ -8,10 +8,13 @@ namespace MyGame.Rendering.Gameplay;
 
 public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
 {
-    private static readonly Rectangle PanelBounds = new(240, 90, 320, 252);
-    private static readonly Vector2 TitlePosition = new(340f, 120f);
-    private static readonly Vector2 ItemsStartPosition = new(320f, 200f);
-    private const float ItemSpacing = 36f;
+    private static readonly Rectangle PanelBounds = new(220, 68, 360, 344);
+    private static readonly Vector2 TitlePosition = new(330f, 104f);
+    private static readonly Vector2 ItemsStartPosition = new(300f, 168f);
+    private static readonly Vector2 FooterPosition = new(252f, 374f);
+    private const float FooterWidth = 296f;
+    private const float FooterLineSpacing = 18f;
+    private const float ItemSpacing = 34f;
     private const float ControlsLineSpacing = 24f;
 
     private readonly IRenderContext _renderContext;
@@ -54,6 +57,8 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
                 VerticalMenuLayout.GetItemPosition(ItemsStartPosition, ItemSpacing, index),
                 VerticalMenuLayout.GetItemColor(index, model.SelectedIndex, model.Items[index].IsEnabled));
         }
+
+        DrawFooter(model.FooterText);
     }
 
     private void DrawControlsPanel()
@@ -106,6 +111,23 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
                 model.ReplayItems[index].Text,
                 VerticalMenuLayout.GetItemPosition(ItemsStartPosition, ItemSpacing, index),
                 VerticalMenuLayout.GetItemColor(index, model.ReplaySelectedIndex, model.ReplayItems[index].IsEnabled));
+        }
+
+        DrawFooter(model.FooterText);
+    }
+
+    private void DrawFooter(string text)
+    {
+        var font = _renderContext.Assets.DebugFont!;
+        var lines = WrappedTextLayout.WrapText(font, text, FooterWidth);
+
+        for (var index = 0; index < lines.Count; index++)
+        {
+            _renderContext.SpriteBatch.DrawString(
+                font,
+                lines[index],
+                new Vector2(FooterPosition.X, FooterPosition.Y + (index * FooterLineSpacing)),
+                new Color(154, 178, 171));
         }
     }
 }

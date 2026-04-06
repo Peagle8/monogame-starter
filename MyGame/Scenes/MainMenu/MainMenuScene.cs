@@ -14,6 +14,7 @@ public sealed class MainMenuScene : IScene
     private readonly IRenderer<MainMenuScene> _sceneRenderer;
     private readonly IRenderContext _renderContext;
     private readonly List<MenuItem> _items;
+    private readonly Func<bool> _onLoadGame;
     private int _selectedIndex;
 
     public MainMenuScene(
@@ -21,17 +22,18 @@ public sealed class MainMenuScene : IScene
         IRenderer<MainMenuScene> sceneRenderer,
         IRenderContext renderContext,
         Action onStartGame,
-        Action onLoadGame,
+        Func<bool> onLoadGame,
         Func<bool> canLoadGame,
         Action onExitGame)
     {
         _inputService = inputService;
         _sceneRenderer = sceneRenderer;
         _renderContext = renderContext;
+        _onLoadGame = onLoadGame;
         _items =
         [
             new MenuItem("Start Game", onStartGame),
-            new MenuItem("Load Game", onLoadGame, canLoadGame),
+            new MenuItem("Load Game", HandleLoadGameSelected, canLoadGame),
             new MenuItem("Controls", OpenControls),
             new MenuItem("Exit", onExitGame)
         ];
@@ -47,10 +49,15 @@ public sealed class MainMenuScene : IScene
 
     public bool IsShowingControls { get; private set; }
 
+    public string? StatusMessage { get; private set; }
+
+    public string FooterText => StatusMessage ?? GetSelectionHint();
+
     public void Enter()
     {
         _selectedIndex = 0;
         IsShowingControls = false;
+        StatusMessage = null;
     }
 
     public void Exit()
@@ -88,6 +95,10 @@ public sealed class MainMenuScene : IScene
             {
                 selectedItem.OnSelected();
             }
+            else if (selectedItem.Text == "Load Game")
+            {
+                StatusMessage = "No save yet. Start a run and save from the pause menu.";
+            }
         }
     }
 
@@ -109,12 +120,35 @@ public sealed class MainMenuScene : IScene
         {
             ["ShowingControls"] = IsShowingControls.ToString(),
             ["SelectedMenuIndex"] = _selectedIndex.ToString(),
-            ["SelectedMenuText"] = _items[_selectedIndex].Text
+            ["SelectedMenuText"] = _items[_selectedIndex].Text,
+            ["FooterText"] = FooterText
         };
     }
 
     private void OpenControls()
     {
         IsShowingControls = true;
+    }
+
+    private void HandleLoadGameSelected()
+    {
+        StatusMessage = _onLoadGame()
+            ? null
+            : "That save could not be loaded.";
+    }
+
+    private string GetSelectionHint()
+    {
+        var selectedItem = _items[_selectedIndex];
+
+        return selectedItem.Text switch
+        {
+            "Start Game" => "Start a new run from the beginning.",
+            "Load Game" when !selectedItem.IsEnabled => "No save yet. Start a run and save from the pause menu.",
+            "Load Game" => "Continue from your most recent save.",
+            "Controls" => "Review the current keyboard controls.",
+            "Exit" => "Close the game.",
+            _ => "Press Enter to select."
+        };
     }
 }

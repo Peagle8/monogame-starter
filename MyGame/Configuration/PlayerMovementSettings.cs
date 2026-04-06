@@ -3,4 +3,14 @@ namespace MyGame.Configuration;
 public sealed class PlayerMovementSettings
 {
     public float MoveSpeed { get; init; } = 180f;
+
+    public float DashDistance { get; init; } = 72f;
+
+    public float DashSeconds { get; init; } = 0.18f;
+
+    public float DashCooldownSeconds { get; init; } = 0.35f;
+
+    public float ContactKnockbackDistance { get; init; } = 22f;
+
+    public float ContactKnockbackSeconds { get; init; } = 0.12f;
 }
