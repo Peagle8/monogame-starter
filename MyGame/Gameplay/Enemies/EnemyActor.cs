@@ -11,10 +11,8 @@ public sealed class EnemyActor
 {
     private readonly EnemySettings _settings;
     private readonly EnemyAxisPreference _axisPreference;
+    private readonly IEnemyBehavior _behavior;
     private readonly KnockbackMotion _knockbackMotion = new();
-    private Direction _dashDirection = Direction.Left;
-    private float _remainingDashSeconds;
-    private float _remainingDashPauseSeconds;
     private float _remainingDefeatedVisibleSeconds;
     private float _remainingHitFlashSeconds;
     private float _remainingRecoverySeconds;
@@ -28,9 +26,10 @@ public sealed class EnemyActor
     {
         _settings = settings;
         _axisPreference = axisPreference;
+        _behavior = EnemyBehaviorFactory.Create(settings.Kind, axisPreference, initialDashPauseSeconds);
         Position = position;
         CurrentHealth = settings.MaxHealth;
-        _remainingDashPauseSeconds = Math.Max(0f, initialDashPauseSeconds);
+        DashDirection = Direction.Left;
         State = EnemyState.Idle;
     }
 
@@ -50,7 +49,7 @@ public sealed class EnemyActor
         State is not EnemyState.Dead and not EnemyState.Recovering
         && (Kind != EnemyKind.HornedRabbit || State == EnemyState.Dashing);
 
-    public Direction DashDirection => _dashDirection;
+    public Direction DashDirection { get; internal set; }
 
     public EnemyAxisPreference AxisPreference => _axisPreference;
 
@@ -100,17 +99,7 @@ public sealed class EnemyActor
             }
         }
 
-        switch (Kind)
-        {
-            case EnemyKind.Crab:
-                UpdateCrab(playerPosition, frameTime);
-                return;
-            case EnemyKind.HornedRabbit:
-                UpdateHornedRabbit(playerPosition, frameTime);
-                return;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+        _behavior.Update(this, playerPosition, frameTime);
     }
 
     public void BeginRecovery()
@@ -177,121 +166,20 @@ public sealed class EnemyActor
         _remainingDefeatedVisibleSeconds = 0f;
         _remainingHitFlashSeconds = 0f;
         _remainingRecoverySeconds = 0f;
-        _remainingDashSeconds = 0f;
-        _remainingDashPauseSeconds = 0f;
-        _dashDirection = Direction.Left;
         _knockbackMotion.Reset();
+        _behavior.Reset(this);
     }
 
-    // TODO: we have to get these per enemy update methods out of here and refactor this before it gets out of control... let's do this by the third enemy.
-    // TODO: when refactoring these pause and ask for my opinion on options
-    private void UpdateCrab(Vector2 playerPosition, FrameTime frameTime)
+    internal EnemySettings Settings => _settings;
+
+    internal void MoveBy(Vector2 delta)
     {
-        var toPlayer = playerPosition - Position;
-        var distanceToPlayer = toPlayer.Length();
-
-        if (distanceToPlayer > _settings.ChaseRange || distanceToPlayer <= 0.001f)
-        {
-            State = EnemyState.Idle;
-            IsMoving = false;
-            return;
-        }
-
-        toPlayer.Normalize();
-        Position += toPlayer * _settings.MoveSpeed * frameTime.DeltaSeconds;
-        State = EnemyState.Chasing;
-        IsMoving = true;
+        Position += delta;
     }
 
-    private void UpdateHornedRabbit(Vector2 playerPosition, FrameTime frameTime)
+    internal void SetState(EnemyState state, bool isMoving)
     {
-        var toPlayer = playerPosition - Position;
-        var distanceToPlayer = toPlayer.Length();
-
-        if (distanceToPlayer > _settings.ChaseRange || distanceToPlayer <= 0.001f)
-        {
-            _remainingDashSeconds = 0f;
-            _remainingDashPauseSeconds = 0f;
-            State = EnemyState.Idle;
-            IsMoving = false;
-            return;
-        }
-
-        if (_remainingDashSeconds > 0f)
-        {
-            Position += GetDirectionVector(_dashDirection) * _settings.DashSpeed * frameTime.DeltaSeconds;
-            _remainingDashSeconds = Math.Max(0f, _remainingDashSeconds - frameTime.DeltaSeconds);
-            IsMoving = true;
-            State = _remainingDashSeconds > 0f ? EnemyState.Dashing : EnemyState.Aiming;
-
-            if (_remainingDashSeconds <= 0f)
-            {
-                _remainingDashPauseSeconds = _settings.DashPauseSeconds;
-                IsMoving = false;
-            }
-
-            return;
-        }
-
-        _dashDirection = ResolveDashDirection(toPlayer, _axisPreference);
-
-        if (_remainingDashPauseSeconds > 0f)
-        {
-            _remainingDashPauseSeconds = Math.Max(0f, _remainingDashPauseSeconds - frameTime.DeltaSeconds);
-            State = EnemyState.Aiming;
-            IsMoving = false;
-
-            if (_remainingDashPauseSeconds > 0f)
-            {
-                return;
-            }
-        }
-
-        _remainingDashSeconds = _settings.DashSeconds;
-        State = EnemyState.Dashing;
-        IsMoving = true;
-        Position += GetDirectionVector(_dashDirection) * _settings.DashSpeed * frameTime.DeltaSeconds;
-        _remainingDashSeconds = Math.Max(0f, _remainingDashSeconds - frameTime.DeltaSeconds);
-
-        if (_remainingDashSeconds <= 0f)
-        {
-            _remainingDashPauseSeconds = _settings.DashPauseSeconds;
-            State = EnemyState.Aiming;
-            IsMoving = false;
-        }
-    }
-
-    // TODO: refactor, add this to a common util method/type with other related direction methods.
-    private static Direction ResolveDashDirection(Vector2 directionToPlayer, EnemyAxisPreference axisPreference)
-    {
-        if (axisPreference == EnemyAxisPreference.Horizontal && Math.Abs(directionToPlayer.X) > 0.001f)
-        {
-            return directionToPlayer.X < 0f ? Direction.Left : Direction.Right;
-        }
-
-        if (axisPreference == EnemyAxisPreference.Vertical && Math.Abs(directionToPlayer.Y) > 0.001f)
-        {
-            return directionToPlayer.Y < 0f ? Direction.Up : Direction.Down;
-        }
-
-        if (Math.Abs(directionToPlayer.X) > Math.Abs(directionToPlayer.Y))
-        {
-            return directionToPlayer.X < 0f ? Direction.Left : Direction.Right;
-        }
-
-        return directionToPlayer.Y < 0f ? Direction.Up : Direction.Down;
-    }
-
-    // TODO: I know this method is identical to one elsewhere with a TODO so refactor in a utility type and method with like common direction methods
-    private static Vector2 GetDirectionVector(Direction direction)
-    {
-        return direction switch
-        {
-            Direction.Up => new Vector2(0f, -1f),
-            Direction.Down => new Vector2(0f, 1f),
-            Direction.Left => new Vector2(-1f, 0f),
-            Direction.Right => new Vector2(1f, 0f),
-            _ => Vector2.Zero
-        };
+        State = state;
+        IsMoving = isMoving;
     }
 }

@@ -30,7 +30,6 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             {
                 Kind = EnemyKind.Crab
             },
-            // TODO: shouldn't most of this be in config?
             EnemyKind.HornedRabbit => new EnemySettings
             {
                 Kind = EnemyKind.HornedRabbit,

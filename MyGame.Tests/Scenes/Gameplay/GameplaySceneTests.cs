@@ -88,7 +88,7 @@ public sealed class GameplaySceneTests
         Assert.Equal("Gameplay", saveGameService.LastSavedData!.SceneName);
         Assert.Equal(400f, saveGameService.LastSavedData.PlayerPositionX);
         Assert.Equal(240f, saveGameService.LastSavedData.PlayerPositionY);
-        Assert.Equal(5, saveGameService.LastSavedData.PlayerHealth);
+        Assert.Equal(20, saveGameService.LastSavedData.PlayerHealth);
         Assert.Single(saveGameService.LastSavedData.Enemies);
         Assert.Equal("Game saved.", scene.PauseMenu.StatusMessage);
         Assert.True(scene.PauseMenu.IsOpen);
@@ -271,6 +271,17 @@ public sealed class GameplaySceneTests
         Assert.True(scene.PauseMenu.IsShowingReplayMenu);
     }
 
+    [Fact]
+    public void Constructor_WhenReplayMenuDisabled_HidesReplayEntry()
+    {
+        var scene = CreateScene(
+            new StubInputService(),
+            new CallbackState(),
+            diagnosticsSettings: new DiagnosticsSettings { EnableReplayMenu = false });
+
+        Assert.DoesNotContain(scene.PauseMenu.Items, item => item.Text == "Replay");
+    }
+
     private static GameplayScene CreateScene(
         IInputService inputService,
         CallbackState state,
@@ -299,6 +310,7 @@ public sealed class GameplaySceneTests
         var attackController = new PlayerAttackController(new PlayerAttackSettings());
         var player = new PlayerActor(
             inputService,
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),

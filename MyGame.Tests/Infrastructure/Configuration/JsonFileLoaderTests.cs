@@ -73,6 +73,24 @@ public sealed class JsonFileLoaderTests : IDisposable
     }
 
     [Fact]
+    public void LoadOrDefault_LoadsPlayerCombatSettingsFromJson()
+    {
+        var logger = new InMemoryLogger();
+        var loader = new JsonFileLoader<PlayerCombatSettings>(logger);
+        var path = Path.Combine(_directoryPath, "PlayerCombatSettings.json");
+        File.WriteAllText(path, """
+            {
+              "MaxHealth": 24
+            }
+            """);
+
+        var settings = loader.LoadOrDefault(path, new PlayerCombatSettings());
+
+        Assert.Equal(24, settings.MaxHealth);
+        Assert.Contains(logger.Entries, entry => entry.Level == "Info");
+    }
+
+    [Fact]
     public void LoadOrDefault_WhenFileIsMissing_ReturnsDefaultValue()
     {
         var logger = new InMemoryLogger();

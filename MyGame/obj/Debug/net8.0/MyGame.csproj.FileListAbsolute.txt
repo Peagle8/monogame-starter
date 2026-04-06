@@ -32,3 +32,5 @@ C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\My
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\Configuration\EnemySettings.json
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\Configuration\DiagnosticsSettings.json
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\Configuration\HornedRabbitSettings.json
+C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\Configuration\PlayerCombatSettings.json
+C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame\bin\Debug\net8.0\Content\Configuration\WorldCombatSettings.json

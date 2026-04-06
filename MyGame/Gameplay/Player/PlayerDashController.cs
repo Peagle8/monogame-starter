@@ -43,7 +43,7 @@ public sealed class PlayerDashController
         if (isDashing)
         {
             nextFacing = dashDirection;
-            var dashVelocity = GetDirectionVector(dashDirection) * (_settings.DashDistance / _settings.DashSeconds);
+            var dashVelocity = DirectionHelper.ToVector(dashDirection) * (_settings.DashDistance / _settings.DashSeconds);
             nextPosition += dashVelocity * frameTime.DeltaSeconds;
         }
 
@@ -58,7 +58,6 @@ public sealed class PlayerDashController
                 remainingCooldownSeconds));
     }
 
-    // TODO: this is just determining movement direction and should eventually move somewhere shared.
     private static Direction ResolveDashDirection(Direction facing, InputSnapshot input)
     {
         var movement = Vector2.Zero;
@@ -88,24 +87,6 @@ public sealed class PlayerDashController
             return facing;
         }
 
-        if (Math.Abs(movement.X) > Math.Abs(movement.Y))
-        {
-            return movement.X < 0f ? Direction.Left : Direction.Right;
-        }
-
-        return movement.Y < 0f ? Direction.Up : Direction.Down;
-    }
-
-    // TODO: same as ResolveDashDirection; this is generic direction math and should eventually live in a shared place.
-    private static Vector2 GetDirectionVector(Direction direction)
-    {
-        return direction switch
-        {
-            Direction.Up => new Vector2(0f, -1f),
-            Direction.Down => new Vector2(0f, 1f),
-            Direction.Left => new Vector2(-1f, 0f),
-            Direction.Right => new Vector2(1f, 0f),
-            _ => Vector2.Zero
-        };
+        return DirectionHelper.FromDominantAxis(movement, facing);
     }
 }

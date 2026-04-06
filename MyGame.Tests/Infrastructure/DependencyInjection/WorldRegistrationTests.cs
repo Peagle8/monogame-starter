@@ -19,6 +19,7 @@ public sealed class WorldRegistrationTests
         services.AddSingleton<JsonFileLoader<EnemySettings>>();
         services.AddSingleton<JsonFileLoader<PlayerMovementSettings>>();
         services.AddSingleton(new EnemySettings());
+        services.AddSingleton(new PlayerCombatSettings());
         services.AddSingleton(new PlayerAttackSettings());
         services.AddSingleton<IPlayerAbilityService>(new PlayerAbilityService([PlayerAbility.Dash]));
         services.AddTransient<PlayerAttackController>();

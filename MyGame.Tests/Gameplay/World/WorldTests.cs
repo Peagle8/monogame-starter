@@ -17,6 +17,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             inputService,
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -38,6 +39,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -49,7 +51,7 @@ public sealed class WorldTests
 
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
 
-        Assert.Equal(4, world.Player.CurrentHealth);
+        Assert.Equal(19, world.Player.CurrentHealth);
         Assert.Equal(new Vector2(400f, 230f), world.Player.Position);
         Assert.Equal(EnemyState.Recovering, enemy.State);
     }
@@ -60,6 +62,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -72,7 +75,7 @@ public sealed class WorldTests
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
 
-        Assert.Equal(4, world.Player.CurrentHealth);
+        Assert.Equal(19, world.Player.CurrentHealth);
     }
 
     [Fact]
@@ -81,6 +84,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -94,7 +98,7 @@ public sealed class WorldTests
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.6), TimeSpan.FromSeconds(0.7)));
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.8)));
 
-        Assert.Equal(3, world.Player.CurrentHealth);
+        Assert.Equal(18, world.Player.CurrentHealth);
     }
 
     [Fact]
@@ -103,6 +107,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -115,7 +120,7 @@ public sealed class WorldTests
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.6), TimeSpan.FromSeconds(0.7)));
 
-        Assert.Equal(4, world.Player.CurrentHealth);
+        Assert.Equal(19, world.Player.CurrentHealth);
         Assert.Equal(EnemyState.Recovering, enemy.State);
     }
 
@@ -126,6 +131,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -150,6 +156,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 60f };
         var player = new PlayerActor(
             inputService,
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -171,7 +178,7 @@ public sealed class WorldTests
         Assert.Equal("0", debugState["DefeatedEnemyCount"]);
         Assert.Equal("Chasing", debugState["FirstEnemyState"]);
         Assert.Equal("False", debugState["PlayerAttackActive"]);
-        Assert.Equal("5/5", debugState["PlayerHealth"]);
+        Assert.Equal("20/20", debugState["PlayerHealth"]);
     }
 
     [Fact]
@@ -180,6 +187,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -201,6 +209,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -229,6 +238,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -258,6 +268,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -288,6 +299,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight }), GameAction.Attack),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -312,6 +324,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -335,6 +348,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Attack),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -362,6 +376,7 @@ public sealed class WorldTests
         var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
             new PlayerMovementController(movementSettings),
             new PlayerDashController(movementSettings),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -449,3 +464,5 @@ public sealed class WorldTests
         }
     }
 }
+
+

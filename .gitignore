@@ -33,3 +33,12 @@ MyGame/obj/Debug/net8.0/MyGame.pdb
 MyGame/obj/Debug/net8.0/MyGame.sourcelink.json
 MyGame/obj/Debug/net8.0/ref/MyGame.dll
 MyGame/obj/Debug/net8.0/refint/MyGame.dll
+MyGame.Tests/bin/Debug/net8.0/MyGame.dll
+MyGame.Tests/bin/Debug/net8.0/MyGame.exe
+MyGame.Tests/bin/Debug/net8.0/MyGame.pdb
+MyGame.Tests/bin/Debug/net8.0/MyGame.Tests.dll
+MyGame.Tests/bin/Debug/net8.0/MyGame.Tests.pdb
+/MyGame.Tests/bin
+/MyGame.Tests/obj
+/MyGame/bin
+/MyGame/obj
