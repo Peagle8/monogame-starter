@@ -11,13 +11,14 @@ public sealed class PlayerActorTests
     {
         var player = new PlayerActor(
             new StubInputService(),
+            new PlayerCombatSettings(),
             new PlayerMovementController(new PlayerMovementSettings()),
             new PlayerDashController(new PlayerMovementSettings()),
             new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
 
-        Assert.Equal(5, player.CurrentHealth);
-        Assert.Equal(5, player.MaxHealth);
+        Assert.Equal(20, player.CurrentHealth);
+        Assert.Equal(20, player.MaxHealth);
         Assert.False(player.IsDead);
     }
 
@@ -26,13 +27,14 @@ public sealed class PlayerActorTests
     {
         var player = new PlayerActor(
             new StubInputService(),
+            new PlayerCombatSettings(),
             new PlayerMovementController(new PlayerMovementSettings()),
             new PlayerDashController(new PlayerMovementSettings()),
             new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
 
         player.TakeDamage(2);
-        player.TakeDamage(10);
+        player.TakeDamage(30);
 
         Assert.Equal(0, player.CurrentHealth);
         Assert.True(player.IsDead);
@@ -43,6 +45,7 @@ public sealed class PlayerActorTests
     {
         var player = new PlayerActor(
             new StubInputService(GameAction.Attack),
+            new PlayerCombatSettings(),
             new PlayerMovementController(new PlayerMovementSettings()),
             new PlayerDashController(new PlayerMovementSettings()),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -60,6 +63,7 @@ public sealed class PlayerActorTests
     {
         var player = new PlayerActor(
             new StubInputService(),
+            new PlayerCombatSettings(),
             new PlayerMovementController(new PlayerMovementSettings { ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f }),
             new PlayerDashController(new PlayerMovementSettings()),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -76,6 +80,7 @@ public sealed class PlayerActorTests
     {
         var player = new PlayerActor(
             new StubInputService(),
+            new PlayerCombatSettings(),
             new PlayerMovementController(new PlayerMovementSettings { ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f, MoveSpeed = 180f }),
             new PlayerDashController(new PlayerMovementSettings()),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -93,6 +98,7 @@ public sealed class PlayerActorTests
     {
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Dash),
+            new PlayerCombatSettings(),
             new PlayerMovementController(new PlayerMovementSettings()),
             new PlayerDashController(new PlayerMovementSettings { DashDistance = 72f, DashSeconds = 0.18f }),
             new PlayerAbilityService([PlayerAbility.Dash]),
@@ -109,6 +115,7 @@ public sealed class PlayerActorTests
     {
         var player = new PlayerActor(
             new StubInputService(InputSnapshot.Empty, GameAction.Dash),
+            new PlayerCombatSettings(),
             new PlayerMovementController(new PlayerMovementSettings()),
             new PlayerDashController(new PlayerMovementSettings { DashDistance = 72f, DashSeconds = 0.18f }),
             new PlayerAbilityService(),

@@ -18,6 +18,8 @@
 - Rendering, input, file IO, and platform APIs should stay in adapter or service layers
 - Prefer small focused services over large manager classes
 - Pass dependencies explicitly through constructors
+- Simple is always better than complex (KISS)
+- Cognitive complexity for methods should never go over 15
 
 ## State And Data
 
@@ -33,6 +35,7 @@
 - Avoid clever abstractions unless they remove real duplication
 - Add comments only when intent is not obvious from the code
 - Match the style of nearby files before introducing new patterns
+- If a DI registration block grows past roughly 3 related services of the same flavor, extract it into a dedicated `IServiceCollection` extension method in its own file
 
 ## Testing
 

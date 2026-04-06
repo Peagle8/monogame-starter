@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Core.Input;
 using MyGame.Gameplay.Combat;
@@ -7,10 +8,8 @@ namespace MyGame.Gameplay.Player;
 
 public sealed class PlayerActor
 {
-    // TODO: move this into config so it's not a magic number
-    private const int DefaultMaxHealth = 5;
-
     private readonly IInputService _inputService;
+    private readonly PlayerCombatSettings _combatSettings;
     private readonly PlayerAttackController _attackController;
     private readonly PlayerMovementController _movementController;
     private readonly PlayerDashController _dashController;
@@ -21,19 +20,21 @@ public sealed class PlayerActor
 
     public PlayerActor(
         IInputService inputService,
+        PlayerCombatSettings combatSettings,
         PlayerMovementController movementController,
         PlayerDashController dashController,
         IPlayerAbilityService abilityService,
         PlayerAttackController attackController)
     {
         _inputService = inputService;
+        _combatSettings = combatSettings;
         _movementController = movementController;
         _dashController = dashController;
         _abilityService = abilityService;
         _attackController = attackController;
         Position = new Vector2(400f, 240f);
         Facing = Direction.Down;
-        CurrentHealth = DefaultMaxHealth;
+        CurrentHealth = _combatSettings.MaxHealth;
     }
 
     public Vector2 Position { get; private set; }
@@ -42,7 +43,7 @@ public sealed class PlayerActor
 
     public int CurrentHealth { get; private set; }
 
-    public int MaxHealth => DefaultMaxHealth;
+    public int MaxHealth => _combatSettings.MaxHealth;
 
     public int AttackDamage => _attackController.Damage;
 
@@ -66,56 +67,17 @@ public sealed class PlayerActor
     {
         if (_knockbackMotion.IsActive)
         {
-            Position += _knockbackMotion.Update(frameTime.DeltaSeconds);
-            IsMoving = true;
-            _attackState = _attackController.Update(
-                _attackState,
-                Position,
-                Facing,
-                attackJustPressed: false,
-                frameTime);
+            UpdateRecoil(frameTime);
             return;
         }
 
-        // TODO: these at least belong in their own method... one method per action maybe, however might be better as a player action service?
-        var dashResult = _dashController.Update(
-            _dashState,
-            Position,
-            Facing,
-            _inputService.Current,
-            // TODO: When we have a lot of abilities repeating this pattern will be gross... lets make this common once we have say four abilities if we see this same pattern in multiple
-            _inputService.IsJustPressed(GameAction.Dash)
-                && _abilityService.HasAbility(PlayerAbility.Dash)
-                && !IsDead
-                && !IsAttacking,
-            frameTime);
-        _dashState = dashResult.State;
-
-        if (_dashState.IsDashing)
+        if (TryUpdateDash(frameTime))
         {
-            Position = dashResult.Position;
-            Facing = dashResult.Facing;
-            IsMoving = true;
-            _attackState = _attackController.Update(
-                _attackState,
-                Position,
-                Facing,
-                attackJustPressed: false,
-                frameTime);
             return;
         }
 
-        var previousPosition = Position;
-        var result = _movementController.Update(Position, Facing, _inputService.Current, frameTime);
-        Position = result.Position;
-        Facing = result.Facing;
-        IsMoving = Position != previousPosition;
-        _attackState = _attackController.Update(
-            _attackState,
-            Position,
-            Facing,
-            _inputService.IsJustPressed(GameAction.Attack) && !IsDead,
-            frameTime);
+        UpdateMovement(frameTime);
+        UpdateAttack(frameTime, _inputService.IsJustPressed(GameAction.Attack) && !IsDead);
     }
 
     public void TakeDamage(int amount)
@@ -146,5 +108,62 @@ public sealed class PlayerActor
         _attackState = PlayerAttackState.Idle;
         _dashState = PlayerDashState.Idle;
         _knockbackMotion.Reset();
+    }
+
+    private void UpdateRecoil(FrameTime frameTime)
+    {
+        Position += _knockbackMotion.Update(frameTime.DeltaSeconds);
+        IsMoving = true;
+        UpdateAttack(frameTime, attackJustPressed: false);
+    }
+
+    private bool TryUpdateDash(FrameTime frameTime)
+    {
+        var dashResult = _dashController.Update(
+            _dashState,
+            Position,
+            Facing,
+            _inputService.Current,
+            CanStartDash(),
+            frameTime);
+        _dashState = dashResult.State;
+
+        if (!_dashState.IsDashing)
+        {
+            return false;
+        }
+
+        Position = dashResult.Position;
+        Facing = dashResult.Facing;
+        IsMoving = true;
+        UpdateAttack(frameTime, attackJustPressed: false);
+        return true;
+    }
+
+    private bool CanStartDash()
+    {
+        return _inputService.IsJustPressed(GameAction.Dash)
+            && _abilityService.HasAbility(PlayerAbility.Dash)
+            && !IsDead
+            && !IsAttacking;
+    }
+
+    private void UpdateMovement(FrameTime frameTime)
+    {
+        var previousPosition = Position;
+        var result = _movementController.Update(Position, Facing, _inputService.Current, frameTime);
+        Position = result.Position;
+        Facing = result.Facing;
+        IsMoving = Position != previousPosition;
+    }
+
+    private void UpdateAttack(FrameTime frameTime, bool attackJustPressed)
+    {
+        _attackState = _attackController.Update(
+            _attackState,
+            Position,
+            Facing,
+            attackJustPressed,
+            frameTime);
     }
 }

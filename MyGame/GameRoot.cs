@@ -129,16 +129,7 @@ public sealed class GameRoot : Game
         _debugOverlay?.SetValue("Scene", _sceneManager.CurrentSceneName);
         _debugOverlay?.SetValue("Elapsed", _frameTime.TotalSeconds.ToString("0.000"));
         _debugOverlay?.SetValue("FrameInput", _inputService.Current.ToSummary());
-        // TODO: fix this, this is way too many layers of indentation... could we use a switch expression instead?
-        _debugOverlay?.SetValue("Recorder", _gameRecorder is null
-            ? "Unavailable"
-            : _gameRecorder.IsRecording
-                ? "Recording"
-                : _gameRecorder.IsReplayPaused
-                    ? "Replay Paused"
-                    : _gameRecorder.IsReplaying
-                        ? "Replay"
-                        : "Idle");
+        _debugOverlay?.SetValue("Recorder", GetRecorderStatus(_gameRecorder));
 
         base.Update(gameTime);
     }
@@ -157,5 +148,17 @@ public sealed class GameRoot : Game
         _debugOverlay?.Draw();
 
         base.Draw(gameTime);
+    }
+
+    private static string GetRecorderStatus(GameRecorder? recorder)
+    {
+        return recorder switch
+        {
+            null => "Unavailable",
+            { IsRecording: true } => "Recording",
+            { IsReplayPaused: true } => "Replay Paused",
+            { IsReplaying: true } => "Replay",
+            _ => "Idle"
+        };
     }
 }

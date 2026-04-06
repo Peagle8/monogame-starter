@@ -38,19 +38,7 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
 
         if (_renderContext.Assets.DebugFont is not null)
         {
-            // TODO: move thse two draw strings into their own method as well? Or do they belong here and aren't naturally grouped together?
-            _renderContext.SpriteBatch.DrawString(
-                _renderContext.Assets.DebugFont,
-                $"Health: {model.World.Player.CurrentHealth}/{model.World.Player.MaxHealth}",
-                GameplayHudLayout.GetHealthTextPosition(),
-                Color.White);
-
-            _renderContext.SpriteBatch.DrawString(
-                _renderContext.Assets.DebugFont,
-                $"Crabs: {model.World.DefeatedEnemyCount}",
-                GameplayHudLayout.GetKillCountPosition(),
-                new Color(255, 220, 196));
-
+            DrawHudText(model);
             DrawDiagnosticsIndicator(model, viewportSize);
 
             if (model.IsPlayerDead)
@@ -78,6 +66,27 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
                 GameplayHudLayout.GetHealthPipBounds(index),
                 color);
         }
+    }
+
+    private void DrawHudText(GameplayScene model)
+    {
+        var font = _renderContext.Assets.DebugFont;
+        if (font is null)
+        {
+            return;
+        }
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            $"Health: {model.World.Player.CurrentHealth}/{model.World.Player.MaxHealth}",
+            GameplayHudLayout.GetHealthTextPosition(),
+            Color.White);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            $"Crabs: {model.World.DefeatedEnemyCount}",
+            GameplayHudLayout.GetKillCountPosition(),
+            new Color(255, 220, 196));
     }
 
     private void DrawDeathPanel(Point viewportSize)

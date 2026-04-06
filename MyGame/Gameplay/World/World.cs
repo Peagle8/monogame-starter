@@ -10,17 +10,14 @@ namespace MyGame.Gameplay.World;
 
 public sealed class World
 {
-    // TODO: move these two constants into config
-    private const int ContactDamage = 1;
-    private const float ContactDamageCooldownSeconds = 0.5f;
-
     private readonly List<EnemyActor> _enemies;
     private readonly HashSet<EnemyActor> _countedDefeatedEnemies = [];
-    private readonly Dictionary<EnemyActor, int> _enemyLastHitByAttackSequence = new();
     private readonly EnemySettings _enemySettings;
+    private readonly IEnemyFactory _enemyFactory;
     private readonly IEnemySettingsCatalog _enemySettingsCatalog;
+    private readonly PlayerAttackHitResolver _playerAttackHitResolver;
+    private readonly EnemyContactResolver _enemyContactResolver;
     private readonly List<TreeProp> _treeProps;
-    private float _remainingContactDamageCooldown;
     private float _remainingPlayerHitPauseSeconds;
 
     public World(PlayerActor player, EnemySettings enemySettings)
@@ -32,7 +29,13 @@ public sealed class World
                 new TreeProp(new Vector2(620f, 320f), new Point(80, 112))
             ],
             [new EnemyActor(enemySettings, new Vector2(520f, 240f))],
-            enemySettings)
+            enemySettings,
+            enemyFactory: new EnemyFactory(new EnemySettingsCatalog(
+                enemySettings,
+                EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit))),
+            playerAttackHitResolver: new PlayerAttackHitResolver(),
+            enemyContactResolver: new EnemyContactResolver(new WorldCombatSettings()),
+            worldCombatSettings: new WorldCombatSettings())
     {
     }
 
@@ -41,13 +44,21 @@ public sealed class World
         IEnumerable<TreeProp> treeProps,
         IEnumerable<EnemyActor> enemies,
         EnemySettings? enemySettings = null,
-        IEnemySettingsCatalog? enemySettingsCatalog = null)
+        IEnemySettingsCatalog? enemySettingsCatalog = null,
+        IEnemyFactory? enemyFactory = null,
+        PlayerAttackHitResolver? playerAttackHitResolver = null,
+        EnemyContactResolver? enemyContactResolver = null,
+        WorldCombatSettings? worldCombatSettings = null)
     {
         Player = player;
         _enemySettings = enemySettings ?? new EnemySettings();
         _enemySettingsCatalog = enemySettingsCatalog ?? new EnemySettingsCatalog(
             _enemySettings,
             EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit));
+        var resolvedWorldCombatSettings = worldCombatSettings ?? new WorldCombatSettings();
+        _enemyFactory = enemyFactory ?? new EnemyFactory(_enemySettingsCatalog);
+        _playerAttackHitResolver = playerAttackHitResolver ?? new PlayerAttackHitResolver();
+        _enemyContactResolver = enemyContactResolver ?? new EnemyContactResolver(resolvedWorldCombatSettings);
         _treeProps = treeProps.ToList();
         _enemies = enemies.ToList();
     }
@@ -75,7 +86,7 @@ public sealed class World
             enemy.Update(Player.Position, frameTime);
         }
 
-        var playerHitEnemy = ResolvePlayerAttackHits();
+        var playerHitEnemy = _playerAttackHitResolver.Resolve(Player, _enemies);
         TrackDefeatedEnemies();
 
         if (playerHitEnemy)
@@ -84,7 +95,7 @@ public sealed class World
             return;
         }
 
-        ResolveEnemyContacts(frameTime);
+        _enemyContactResolver.Resolve(Player, _enemies, frameTime);
     }
 
     public IReadOnlyDictionary<string, string> GetDebugState()
@@ -119,21 +130,15 @@ public sealed class World
     public void ApplySaveData(SaveGameData data)
     {
         Player.RestoreState(new Vector2(data.PlayerPositionX, data.PlayerPositionY), data.PlayerHealth);
-        _remainingContactDamageCooldown = 0f;
         _remainingPlayerHitPauseSeconds = 0f;
-        _enemyLastHitByAttackSequence.Clear();
+        _playerAttackHitResolver.Reset();
+        _enemyContactResolver.Reset();
         _countedDefeatedEnemies.Clear();
         _enemies.Clear();
 
         foreach (var enemyData in data.Enemies)
         {
-            var enemySettings = _enemySettingsCatalog.Get(enemyData.Kind);
-            var enemy = new EnemyActor(
-                enemySettings,
-                new Vector2(enemyData.PositionX, enemyData.PositionY),
-                axisPreference: enemyData.AxisPreference);
-            enemy.RestoreState(enemy.Position, enemyData.CurrentHealth);
-            _enemies.Add(enemy);
+            _enemies.Add(_enemyFactory.CreateFromSaveData(enemyData));
         }
 
         TrackDefeatedEnemies();
@@ -148,109 +153,5 @@ public sealed class World
                 _countedDefeatedEnemies.Add(enemy);
             }
         }
-    }
-
-    // TODO: this should be a small service injected and invoked rather than bake this into world
-    // TODO: is there common elements between the player and enemy methods that could be refactored?
-    private bool ResolvePlayerAttackHits()
-    {
-        if (!Player.IsAttacking || Player.AttackBounds is null)
-        {
-            return false;
-        }
-
-        var hitEnemy = false;
-
-        foreach (var enemy in _enemies)
-        {
-            if (enemy.State == EnemyState.Dead)
-            {
-                continue;
-            }
-
-            if (_enemyLastHitByAttackSequence.TryGetValue(enemy, out var lastAttackSequence)
-                && lastAttackSequence == Player.AttackSequence)
-            {
-                continue;
-            }
-
-            if (!enemy.Bounds.Intersects(Player.AttackBounds.Value))
-            {
-                continue;
-            }
-
-            enemy.TakeDamage(Player.AttackDamage);
-            enemy.ApplyKnockback(GetEnemyKnockbackDirection(enemy));
-            _enemyLastHitByAttackSequence[enemy] = Player.AttackSequence;
-            hitEnemy = true;
-        }
-
-        return hitEnemy;
-    }
-
-    private Vector2 GetEnemyKnockbackDirection(EnemyActor enemy)
-    {
-        var knockbackDirection = enemy.Position - Player.Position;
-        if (knockbackDirection.LengthSquared() > 0.0001f)
-        {
-            return knockbackDirection;
-        }
-
-        return Player.Facing switch
-        {
-            Direction.Up => new Vector2(0f, -1f),
-            Direction.Down => new Vector2(0f, 1f),
-            Direction.Left => new Vector2(-1f, 0f),
-            Direction.Right => new Vector2(1f, 0f),
-            _ => Vector2.Zero
-        };
-    }
-
-    // TODO: this should prob be a small service and called from world rather then a private method here
-    private void ResolveEnemyContacts(FrameTime frameTime)
-    {
-        _remainingContactDamageCooldown = Math.Max(0f, _remainingContactDamageCooldown - frameTime.DeltaSeconds);
-
-        if (_remainingContactDamageCooldown > 0f || Player.IsDead)
-        {
-            return;
-        }
-
-        foreach (var enemy in _enemies)
-        {
-            if (!enemy.CanDealContactDamage)
-            {
-                continue;
-            }
-
-            if (!enemy.Bounds.Intersects(Player.Bounds))
-            {
-                continue;
-            }
-
-            Player.TakeDamage(ContactDamage);
-            Player.ApplyKnockback(GetPlayerKnockbackDirection(enemy));
-            enemy.BeginRecovery();
-            _remainingContactDamageCooldown = ContactDamageCooldownSeconds;
-            break;
-        }
-    }
-
-    private Vector2 GetPlayerKnockbackDirection(EnemyActor enemy)
-    {
-        var knockbackDirection = Player.Position - enemy.Position;
-        if (knockbackDirection.LengthSquared() > 0.0001f)
-        {
-            return knockbackDirection;
-        }
-
-        return Player.Facing switch
-        {
-            Direction.Up => new Vector2(0f, 1f),
-            Direction.Down => new Vector2(0f, -1f),
-            Direction.Left => new Vector2(1f, 0f),
-            Direction.Right => new Vector2(-1f, 0f),
-            _ => Vector2.Zero
-        };
     }
 }

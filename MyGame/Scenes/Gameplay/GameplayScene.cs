@@ -43,28 +43,15 @@ public sealed class GameplayScene : IScene
         _renderContext = renderContext;
         _saveGameService = saveGameService;
         _gameRecorder = gameRecorder;
-        GameplayPauseMenu? pauseMenu = null;
-        // TODO: Would this logic be better off inside of GameplayPauseMenu as a constructor?  
-        pauseMenu = new GameplayPauseMenu(
-            onResume: () =>
-            {
-                _gameRecorder.ResumeReplay();
-                pauseMenu!.Close();
-            },
-            onSaveGame: SaveGame,
-            onLoadGame: LoadGame,
-            canLoadGame: () => _saveGameService.SaveExists(),
-            showReplayMenu: diagnosticsSettings.EnableReplayMenu,
-            recordingToggleText: () => _gameRecorder.IsRecording ? "Stop Recording" : "Start Recording",
-            onToggleRecording: ToggleRecording,
-            onReplayLastRecording: () =>
-            {
-                _gameRecorder.StartReplayFromBeginning();
-                _onRestart();
-            },
-            canReplayRecording: () => _gameRecorder.Frames.Count > 0 && !_gameRecorder.IsRecording,
-            onReturnToMainMenu: ReturnToMainMenu);
-        _pauseMenu = pauseMenu;
+        _pauseMenu = GameplayPauseMenu.CreateGameplayMenu(
+            _saveGameService,
+            _gameRecorder,
+            diagnosticsSettings,
+            Name,
+            () => World.CreateSaveData(Name),
+            World.ApplySaveData,
+            _onRestart,
+            ReturnToMainMenu);
     }
 
     public string Name => "Gameplay";
@@ -157,40 +144,8 @@ public sealed class GameplayScene : IScene
         }
     }
 
-    private void SaveGame()
-    {
-        _saveGameService.Save(World.CreateSaveData(Name));
-        _pauseMenu.SetStatus("Game saved.");
-    }
-
-    private void LoadGame()
-    {
-        var data = _saveGameService.Load();
-        if (data is not null && data.SceneName == Name)
-        {
-            World.ApplySaveData(data);
-            _pauseMenu.SetStatus("Game loaded.");
-            return;
-        }
-
-        _pauseMenu.SetStatus("No gameplay save could be loaded.");
-    }
-
-    private void ToggleRecording()
-    {
-        if (_gameRecorder.IsRecording)
-        {
-            _gameRecorder.StopRecording();
-            return;
-        }
-
-        _gameRecorder.StartRecording();
-        _pauseMenu.Close();
-    }
-
     private void ReturnToMainMenu()
     {
-        _gameRecorder.StopReplay();
         _onReturnToMainMenu();
     }
 }

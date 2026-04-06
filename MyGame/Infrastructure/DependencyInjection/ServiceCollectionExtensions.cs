@@ -1,0 +1,139 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Xna.Framework.Input;
+using MyGame.Configuration;
+using MyGame.Core.Input;
+using MyGame.Core.Rendering;
+using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Player;
+using MyGame.Gameplay.World;
+using MyGame.Infrastructure.Configuration;
+using MyGame.Infrastructure.Input;
+using MyGame.Rendering.Enemies;
+using MyGame.Rendering.Gameplay;
+using MyGame.Rendering.MainMenu;
+using MyGame.Rendering.Player;
+using MyGame.Scenes.Gameplay;
+using MyGame.Scenes.MainMenu;
+
+namespace MyGame.Infrastructure.DependencyInjection;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddInputServices(this IServiceCollection services)
+    {
+        services.AddSingleton<DefaultInputBindings>();
+        services.AddSingleton<DefaultGamePadBindings>();
+        services.AddSingleton<IReadOnlyDictionary<GameAction, Keys[]>>(provider =>
+            provider.GetRequiredService<DefaultInputBindings>().Create());
+        services.AddSingleton<IReadOnlyDictionary<GameAction, GamePadControl[]>>(provider =>
+            provider.GetRequiredService<DefaultGamePadBindings>().Create());
+        services.AddSingleton<KeyboardInputSnapshotSource>();
+        services.AddSingleton<MonoGameGamePadSnapshotReader>();
+        services.AddSingleton<GamePadInputSnapshotSource>();
+        services.AddSingleton<IInputSnapshotSource>(provider => new CompositeInputSnapshotSource(
+        [
+            provider.GetRequiredService<KeyboardInputSnapshotSource>(),
+            provider.GetRequiredService<GamePadInputSnapshotSource>()
+        ]));
+        services.AddSingleton<InputService>();
+        services.AddSingleton<IInputService>(provider => provider.GetRequiredService<InputService>());
+
+        return services;
+    }
+
+    public static IServiceCollection AddConfigurationServices(this IServiceCollection services)
+    {
+        services.AddSingleton<JsonFileLoader<DiagnosticsSettings>>();
+        services.AddSingleton<JsonFileLoader<EnemySettings>>();
+        services.AddSingleton<JsonFileLoader<PlayerCombatSettings>>();
+        services.AddSingleton<JsonFileLoader<PlayerMovementSettings>>();
+        services.AddSingleton<JsonFileLoader<WorldCombatSettings>>();
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<DiagnosticsSettings>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Configuration",
+                "DiagnosticsSettings.json");
+
+            return loader.LoadOrDefault(path, new DiagnosticsSettings());
+        });
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<PlayerCombatSettings>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Configuration",
+                "PlayerCombatSettings.json");
+
+            return loader.LoadOrDefault(path, new PlayerCombatSettings());
+        });
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<PlayerMovementSettings>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Configuration",
+                "PlayerMovementSettings.json");
+
+            return loader.LoadOrDefault(path, new PlayerMovementSettings());
+        });
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<WorldCombatSettings>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Configuration",
+                "WorldCombatSettings.json");
+
+            return loader.LoadOrDefault(path, new WorldCombatSettings());
+        });
+        services.AddSingleton<IEnemySettingsCatalog>(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<EnemySettings>>();
+            var configDirectory = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Configuration");
+            var crabSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "EnemySettings.json"),
+                new EnemySettings());
+            var hornedRabbitSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "HornedRabbitSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit));
+
+            return new EnemySettingsCatalog(crabSettings, hornedRabbitSettings);
+        });
+        services.AddSingleton(provider => provider.GetRequiredService<IEnemySettingsCatalog>().Get(EnemyKind.Crab));
+
+        return services;
+    }
+
+    public static IServiceCollection AddRenderingServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IRenderContext, RenderContext>();
+        services.AddSingleton<IWorldRectangleRenderer, WorldRectangleRenderer>();
+        services.AddSingleton<IWorldSpriteRenderer, WorldSpriteRenderer>();
+        services.AddTransient<IEnemyKindRenderer, CrabEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, HornedRabbitEnemyRenderer>();
+        services.AddTransient<IRenderer<EnemyActor>, EnemyRenderer>();
+        services.AddTransient<IRenderer<PlayerActor>, PlayerRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, TreeEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, EnemyEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, PlayerAttackEffectRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, PlayerEntityRenderer>();
+        services.AddTransient<IRenderer<GameplayPauseMenu>, GameplayPauseMenuRenderer>();
+        services.AddTransient<GameplayOverlayRenderer>();
+        services.AddTransient<MainMenuRenderer>();
+        services.AddTransient<GameplayWorldRenderer>();
+        services.AddTransient<IRenderer<GameplayScene>, GameplaySceneRenderer>();
+        services.AddTransient<MainMenuBackgroundRenderer>();
+        services.AddTransient<IRenderer<MainMenuScene>, MainMenuSceneRenderer>();
+
+        return services;
+    }
+}

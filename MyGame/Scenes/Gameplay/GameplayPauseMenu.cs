@@ -1,4 +1,5 @@
 using MyGame.Core.Input;
+using MyGame.Infrastructure.Save;
 using MyGame.Scenes.MainMenu;
 
 namespace MyGame.Scenes.Gameplay;
@@ -42,6 +43,68 @@ public sealed class GameplayPauseMenu
             new MenuItem("Replay Last Recording", onReplayLastRecording, canReplayRecording),
             new MenuItem("Back", CloseReplayMenu)
         ];
+    }
+
+    public static GameplayPauseMenu CreateGameplayMenu(
+        ISaveGameService saveGameService,
+        Core.Diagnostics.GameRecorder gameRecorder,
+        Configuration.DiagnosticsSettings diagnosticsSettings,
+        string sceneName,
+        Func<SaveGameData> createSaveData,
+        Action<SaveGameData> applySaveData,
+        Action onRestart,
+        Action onReturnToMainMenu)
+    {
+        GameplayPauseMenu? pauseMenu = null;
+        pauseMenu = new GameplayPauseMenu(
+            onResume: () =>
+            {
+                gameRecorder.ResumeReplay();
+                pauseMenu!.Close();
+            },
+            onSaveGame: () =>
+            {
+                saveGameService.Save(createSaveData());
+                pauseMenu!.SetStatus("Game saved.");
+            },
+            onLoadGame: () =>
+            {
+                var data = saveGameService.Load();
+                if (data is not null && data.SceneName == sceneName)
+                {
+                    applySaveData(data);
+                    pauseMenu!.SetStatus("Game loaded.");
+                    return;
+                }
+
+                pauseMenu!.SetStatus("No gameplay save could be loaded.");
+            },
+            canLoadGame: () => saveGameService.SaveExists(),
+            showReplayMenu: diagnosticsSettings.EnableReplayMenu,
+            recordingToggleText: () => gameRecorder.IsRecording ? "Stop Recording" : "Start Recording",
+            onToggleRecording: () =>
+            {
+                if (gameRecorder.IsRecording)
+                {
+                    gameRecorder.StopRecording();
+                    return;
+                }
+
+                gameRecorder.StartRecording();
+                pauseMenu!.Close();
+            },
+            onReplayLastRecording: () =>
+            {
+                gameRecorder.StartReplayFromBeginning();
+                onRestart();
+            },
+            canReplayRecording: () => gameRecorder.Frames.Count > 0 && !gameRecorder.IsRecording,
+            onReturnToMainMenu: () =>
+            {
+                gameRecorder.StopReplay();
+                onReturnToMainMenu();
+            });
+        return pauseMenu;
     }
 
     public bool IsOpen { get; private set; }
