@@ -49,7 +49,11 @@ public sealed class MainMenuSceneTests
             new StubRenderer(),
             new StubRenderContext(),
             onStartGame: () => state.Started = true,
-            onLoadGame: () => state.Loaded = true,
+            onLoadGame: () =>
+            {
+                state.Loaded = true;
+                return true;
+            },
             canLoadGame: () => false,
             onExitGame: () => state.Exited = true);
         scene.Enter();
@@ -60,6 +64,7 @@ public sealed class MainMenuSceneTests
         scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
 
         Assert.False(state.Loaded);
+        Assert.Equal("No save yet. Start a run and save from the pause menu.", scene.StatusMessage);
     }
 
     [Fact]
@@ -93,6 +98,36 @@ public sealed class MainMenuSceneTests
         Assert.False(scene.IsShowingControls);
     }
 
+    [Fact]
+    public void FooterText_WhenLoadGameIsDisabled_ExplainsWhy()
+    {
+        var scene = new MainMenuScene(
+            new StubInputService(),
+            new StubRenderer(),
+            new StubRenderContext(),
+            onStartGame: () => { },
+            onLoadGame: () => true,
+            canLoadGame: () => false,
+            onExitGame: () => { });
+        scene.Enter();
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var inputService = new MutableInputService();
+        var navigableScene = new MainMenuScene(
+            inputService,
+            new StubRenderer(),
+            new StubRenderContext(),
+            onStartGame: () => { },
+            onLoadGame: () => true,
+            canLoadGame: () => false,
+            onExitGame: () => { });
+        navigableScene.Enter();
+        inputService.SetPressed(GameAction.MoveDown);
+        navigableScene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
+
+        Assert.Equal("No save yet. Start a run and save from the pause menu.", navigableScene.FooterText);
+    }
+
     private static MainMenuScene CreateScene(IInputService inputService, CallbackState state)
     {
         return new MainMenuScene(
@@ -100,7 +135,11 @@ public sealed class MainMenuSceneTests
             new StubRenderer(),
             new StubRenderContext(),
             onStartGame: () => state.Started = true,
-            onLoadGame: () => state.Loaded = true,
+            onLoadGame: () =>
+            {
+                state.Loaded = true;
+                return true;
+            },
             canLoadGame: () => true,
             onExitGame: () => state.Exited = true);
     }

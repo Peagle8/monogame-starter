@@ -50,6 +50,8 @@ public sealed class GameplayPauseMenu
 
     public bool IsShowingReplayMenu { get; private set; }
 
+    public string? StatusMessage { get; private set; }
+
     public int SelectedIndex { get; private set; }
 
     public string SelectedText => _items[SelectedIndex].Text;
@@ -62,6 +64,8 @@ public sealed class GameplayPauseMenu
 
     public IReadOnlyList<MenuItem> ReplayItems => _replayItems;
 
+    public string FooterText => StatusMessage ?? GetFooterText();
+
     public void Open()
     {
         IsOpen = true;
@@ -69,6 +73,7 @@ public sealed class GameplayPauseMenu
         IsShowingReplayMenu = false;
         SelectedIndex = 0;
         ReplaySelectedIndex = 0;
+        StatusMessage = null;
         _skipInputUntilNextUpdate = true;
     }
 
@@ -79,6 +84,7 @@ public sealed class GameplayPauseMenu
         IsShowingReplayMenu = false;
         SelectedIndex = 0;
         ReplaySelectedIndex = 0;
+        StatusMessage = null;
         _skipInputUntilNextUpdate = false;
     }
 
@@ -147,7 +153,16 @@ public sealed class GameplayPauseMenu
             {
                 selectedItem.OnSelected();
             }
+            else if (selectedItem.Text == "Load Game")
+            {
+                StatusMessage = "No save found yet.";
+            }
         }
+    }
+
+    public void SetStatus(string? statusMessage)
+    {
+        StatusMessage = statusMessage;
     }
 
     private void OpenControls()
@@ -193,5 +208,33 @@ public sealed class GameplayPauseMenu
                 selectedItem.OnSelected();
             }
         }
+    }
+
+    private string GetFooterText()
+    {
+        if (IsShowingReplayMenu)
+        {
+            var selectedItem = _replayItems[ReplaySelectedIndex];
+            return selectedItem.Text switch
+            {
+                "Replay Last Recording" when !selectedItem.IsEnabled => "Record a run before playback is available.",
+                "Replay Last Recording" => "Restart gameplay using the last recorded input sequence.",
+                "Back" => "Return to the pause menu.",
+                _ => "Toggle recording diagnostics for this run."
+            };
+        }
+
+        var menuItem = _items[SelectedIndex];
+        return menuItem.Text switch
+        {
+            "Resume" => "Return to gameplay.",
+            "Save Game" => "Write your current progress to the active save file.",
+            "Load Game" when !menuItem.IsEnabled => "No save found yet.",
+            "Load Game" => "Restore the latest saved gameplay state.",
+            "Controls" => "Review the current controls.",
+            "Replay" => "Open replay and recording diagnostics.",
+            "Main Menu" => "Leave this run and return to the title screen.",
+            _ => "Press Enter to select."
+        };
     }
 }

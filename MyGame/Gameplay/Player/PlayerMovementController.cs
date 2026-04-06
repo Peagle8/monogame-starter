@@ -14,6 +14,10 @@ public sealed class PlayerMovementController
         _settings = settings;
     }
 
+    public float ContactKnockbackDistance => _settings.ContactKnockbackDistance;
+
+    public float ContactKnockbackSeconds => _settings.ContactKnockbackSeconds;
+
     public PlayerMovementResult Update(Vector2 position, Direction facing, InputSnapshot input, FrameTime frameTime)
     {
         var movement = Vector2.Zero;

@@ -3,5 +3,8 @@
   "MoveSpeed": 120,
   "ChaseRange": 160,
   "RecoverySeconds": 0.65,
-  "DefeatedVisibleSeconds": 0.8
+  "DefeatedVisibleSeconds": 0.8,
+  "PlayerHitKnockbackDistance": 24,
+  "PlayerHitKnockbackSeconds": 0.12,
+  "PlayerHitPauseSeconds": 0.065
 }

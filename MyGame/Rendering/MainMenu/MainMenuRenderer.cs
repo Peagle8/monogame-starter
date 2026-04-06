@@ -10,6 +10,9 @@ public sealed class MainMenuRenderer : IRenderer<MainMenuScene>
 {
     private static readonly Vector2 TitlePosition = new(260f, 120f);
     private static readonly Vector2 ItemsStartPosition = new(300f, 220f);
+    private static readonly Vector2 FooterPosition = new(220f, 392f);
+    private const float FooterWidth = 360f;
+    private const float FooterLineSpacing = 18f;
     private const float ItemSpacing = 40f;
     private const float ControlsLineSpacing = 22f;
 
@@ -37,6 +40,8 @@ public sealed class MainMenuRenderer : IRenderer<MainMenuScene>
                 VerticalMenuLayout.GetItemPosition(ItemsStartPosition, ItemSpacing, index),
                 VerticalMenuLayout.GetItemColor(index, model.SelectedIndex, model.Items[index].IsEnabled));
         }
+
+        DrawFooter(model.FooterText);
 
         if (model.IsShowingControls)
         {
@@ -80,5 +85,20 @@ public sealed class MainMenuRenderer : IRenderer<MainMenuScene>
             ControlsOverlayText.HintLineTwo,
             ControlsOverlayLayout.GetHintLineTwoPosition(viewportSize),
             new Color(170, 198, 190));
+    }
+
+    private void DrawFooter(string text)
+    {
+        var font = _renderContext.Assets.DebugFont!;
+        var lines = WrappedTextLayout.WrapText(font, text, FooterWidth);
+
+        for (var index = 0; index < lines.Count; index++)
+        {
+            _renderContext.SpriteBatch.DrawString(
+                font,
+                lines[index],
+                new Vector2(FooterPosition.X, FooterPosition.Y + (index * FooterLineSpacing)),
+                new Color(154, 178, 171));
+        }
     }
 }

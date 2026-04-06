@@ -20,9 +20,11 @@ public sealed class WorldRegistrationTests
         services.AddSingleton<JsonFileLoader<PlayerMovementSettings>>();
         services.AddSingleton(new EnemySettings());
         services.AddSingleton(new PlayerAttackSettings());
+        services.AddSingleton<IPlayerAbilityService>(new PlayerAbilityService([PlayerAbility.Dash]));
         services.AddTransient<PlayerAttackController>();
         services.AddSingleton(new PlayerMovementSettings());
         services.AddTransient<PlayerMovementController>();
+        services.AddTransient<PlayerDashController>();
         services.AddTransient<PlayerActor>();
         services.AddTransient(provider => new World(
             provider.GetRequiredService<PlayerActor>(),

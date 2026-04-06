@@ -8,6 +8,8 @@
 - Prefer simple, readable code over abstraction
 - Follow existing folder structure
 - Add unit tests for all new logic
+- A method should never be more than 100 lines. If it approaches 100 lines break it up into smaller methods.
+- No class should be over 500 lines, if it approaches 500 lines break it up into smaller components.
 
 ## Architecture
 

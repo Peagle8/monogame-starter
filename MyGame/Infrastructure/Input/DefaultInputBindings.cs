@@ -14,6 +14,7 @@ public sealed class DefaultInputBindings
             [GameAction.MoveLeft] = [Keys.A, Keys.Left],
             [GameAction.MoveRight] = [Keys.D, Keys.Right],
             [GameAction.Attack] = [Keys.J, Keys.LeftControl],
+            [GameAction.Dash] = [Keys.LeftShift, Keys.RightShift],
             [GameAction.Confirm] = [Keys.Enter, Keys.Space],
             [GameAction.Cancel] = [Keys.Escape, Keys.Back],
             [GameAction.Pause] = [Keys.P, Keys.Escape]
