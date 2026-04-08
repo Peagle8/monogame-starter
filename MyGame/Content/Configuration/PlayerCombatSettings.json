@@ -1,3 +1,5 @@
 {
-  "MaxHealth": 20
+  "MaxHealth": 20,
+  "MaxAbilityPoints": 3.0,
+  "AbilityPointRegenPerSecond": 0.05
 }

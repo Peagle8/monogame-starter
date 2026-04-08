@@ -13,6 +13,8 @@ public sealed class DefaultGamePadBindings
             [GameAction.MoveLeft] = [GamePadControl.DPadLeft, GamePadControl.LeftStickLeft],
             [GameAction.MoveRight] = [GamePadControl.DPadRight, GamePadControl.LeftStickRight],
             [GameAction.Attack] = [GamePadControl.FaceLeft],
+            [GameAction.RangedAttack] = [GamePadControl.RightTrigger],
+            [GameAction.DefenseAbility] = [GamePadControl.FaceTop],
             [GameAction.Dash] = [GamePadControl.RightShoulder],
             [GameAction.Confirm] = [GamePadControl.FaceBottom],
             [GameAction.Cancel] = [GamePadControl.FaceRight, GamePadControl.Back],

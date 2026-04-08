@@ -36,6 +36,8 @@ public sealed class WorldRegistrationTests
         var world = serviceProvider.GetRequiredService<World>();
 
         Assert.Equal(3, world.TreeProps.Count);
+        Assert.Equal(3, world.GrassProps.Count);
+        Assert.Equal(6, world.Props.Count);
     }
 
     [Fact]

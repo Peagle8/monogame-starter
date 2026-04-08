@@ -58,6 +58,7 @@ Design notes:
 2. some abilities should be swappable loadout slots
 3. offensive and defensive abilities should likely be separated into different equip categories
 4. passive abilities should probably use a capacity system instead of a direct button mapping
+5. separate move direction from attack direction long term so combat aim does not depend on movement facing tie-breaks
 
 ## Future Systems To Support This
 

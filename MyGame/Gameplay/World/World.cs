@@ -16,8 +16,13 @@ public sealed class World
     private readonly IEnemyFactory _enemyFactory;
     private readonly IEnemySettingsCatalog _enemySettingsCatalog;
     private readonly PlayerAttackHitResolver _playerAttackHitResolver;
+    private readonly PlayerProjectileResolver _playerProjectileResolver;
+    private readonly WorldObstacleResolver _worldObstacleResolver;
+    private readonly EnemySeparationResolver _enemySeparationResolver;
     private readonly EnemyContactResolver _enemyContactResolver;
-    private readonly List<TreeProp> _treeProps;
+    private readonly List<IWorldProp> _props;
+    private readonly List<PlayerProjectile> _playerProjectiles;
+    private readonly List<WorldToast> _toasts;
     private float _remainingPlayerHitPauseSeconds;
 
     public World(PlayerActor player, EnemySettings enemySettings)
@@ -26,7 +31,10 @@ public sealed class World
             [
                 new TreeProp(new Vector2(120f, 120f), new Point(72, 104)),
                 new TreeProp(new Vector2(560f, 160f), new Point(64, 96)),
-                new TreeProp(new Vector2(620f, 320f), new Point(80, 112))
+                new TreeProp(new Vector2(620f, 320f), new Point(80, 112)),
+                new GrassProp(new Vector2(188f, 180f), new Point(52, 36)),
+                new GrassProp(new Vector2(308f, 132f), new Point(44, 28)),
+                new GrassProp(new Vector2(500f, 360f), new Point(56, 34))
             ],
             [new EnemyActor(enemySettings, new Vector2(520f, 240f))],
             enemySettings,
@@ -34,6 +42,9 @@ public sealed class World
                 enemySettings,
                 EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit))),
             playerAttackHitResolver: new PlayerAttackHitResolver(),
+            playerProjectileResolver: new PlayerProjectileResolver(),
+            worldObstacleResolver: new WorldObstacleResolver(new WorldCombatSettings()),
+            enemySeparationResolver: new EnemySeparationResolver(new WorldCombatSettings()),
             enemyContactResolver: new EnemyContactResolver(new WorldCombatSettings()),
             worldCombatSettings: new WorldCombatSettings())
     {
@@ -41,12 +52,15 @@ public sealed class World
 
     public World(
         PlayerActor player,
-        IEnumerable<TreeProp> treeProps,
+        IEnumerable<IWorldProp> props,
         IEnumerable<EnemyActor> enemies,
         EnemySettings? enemySettings = null,
         IEnemySettingsCatalog? enemySettingsCatalog = null,
         IEnemyFactory? enemyFactory = null,
         PlayerAttackHitResolver? playerAttackHitResolver = null,
+        PlayerProjectileResolver? playerProjectileResolver = null,
+        WorldObstacleResolver? worldObstacleResolver = null,
+        EnemySeparationResolver? enemySeparationResolver = null,
         EnemyContactResolver? enemyContactResolver = null,
         WorldCombatSettings? worldCombatSettings = null)
     {
@@ -58,9 +72,14 @@ public sealed class World
         var resolvedWorldCombatSettings = worldCombatSettings ?? new WorldCombatSettings();
         _enemyFactory = enemyFactory ?? new EnemyFactory(_enemySettingsCatalog);
         _playerAttackHitResolver = playerAttackHitResolver ?? new PlayerAttackHitResolver();
+        _playerProjectileResolver = playerProjectileResolver ?? new PlayerProjectileResolver();
+        _worldObstacleResolver = worldObstacleResolver ?? new WorldObstacleResolver(resolvedWorldCombatSettings);
+        _enemySeparationResolver = enemySeparationResolver ?? new EnemySeparationResolver(resolvedWorldCombatSettings);
         _enemyContactResolver = enemyContactResolver ?? new EnemyContactResolver(resolvedWorldCombatSettings);
-        _treeProps = treeProps.ToList();
+        _props = props.ToList();
         _enemies = enemies.ToList();
+        _playerProjectiles = [];
+        _toasts = [];
     }
 
     public PlayerActor Player { get; }
@@ -69,33 +88,53 @@ public sealed class World
 
     public int DefeatedEnemyCount => _countedDefeatedEnemies.Count;
 
-    public IReadOnlyList<TreeProp> TreeProps => _treeProps;
+    public IReadOnlyList<IWorldProp> Props => _props;
+
+    public IReadOnlyList<TreeProp> TreeProps => _props.OfType<TreeProp>().ToArray();
+
+    public IReadOnlyList<GrassProp> GrassProps => _props.OfType<GrassProp>().ToArray();
+
+    public IReadOnlyList<PlayerProjectile> PlayerProjectiles => _playerProjectiles;
+
+    public IReadOnlyList<WorldToast> Toasts => _toasts;
 
     public void Update(FrameTime frameTime)
     {
         if (_remainingPlayerHitPauseSeconds > 0f)
         {
             _remainingPlayerHitPauseSeconds = Math.Max(0f, _remainingPlayerHitPauseSeconds - frameTime.DeltaSeconds);
+            UpdateToasts(frameTime);
             return;
         }
 
         Player.Update(frameTime);
+        _playerProjectiles.AddRange(Player.ConsumeSpawnedProjectiles());
+        _worldObstacleResolver.ResolvePlayer(Player, _props);
 
         foreach (var enemy in _enemies)
         {
             enemy.Update(Player.Position, frameTime);
         }
 
-        var playerHitEnemy = _playerAttackHitResolver.Resolve(Player, _enemies);
-        TrackDefeatedEnemies();
+        _worldObstacleResolver.Resolve(_enemies, _props);
+        _enemySeparationResolver.Resolve(_enemies);
 
-        if (playerHitEnemy)
+        UpdateProjectiles(frameTime);
+        UpdateToasts(frameTime);
+        var projectileHitEnemy = _playerProjectileResolver.Resolve(_playerProjectiles, _enemies, _props);
+        _playerProjectiles.RemoveAll(projectile => !projectile.IsActive);
+
+        var playerHitEnemy = _playerAttackHitResolver.Resolve(Player, _enemies);
+        TrackDefeatedEnemies(rewardPlayer: true);
+
+        if (playerHitEnemy || projectileHitEnemy)
         {
             _remainingPlayerHitPauseSeconds = _enemySettings.PlayerHitPauseSeconds;
             return;
         }
 
         _enemyContactResolver.Resolve(Player, _enemies, frameTime);
+        _worldObstacleResolver.ResolvePlayer(Player, _props);
     }
 
     public IReadOnlyDictionary<string, string> GetDebugState()
@@ -106,11 +145,15 @@ public sealed class World
             ["EnemyCount"] = _enemies.Count.ToString(),
             ["FirstEnemyState"] = _enemies.FirstOrDefault()?.State.ToString() ?? "<none>",
             ["PlayerAttackActive"] = Player.IsAttacking.ToString(),
+            ["PlayerAbilityPoints"] = $"{Player.CurrentAbilityPoints:0.00}/{Player.MaxAbilityPoints:0.00}",
             ["PlayerDead"] = Player.IsDead.ToString(),
             ["PlayerHealth"] = $"{Player.CurrentHealth}/{Player.MaxHealth}",
             ["PlayerPosition"] = $"{Player.Position.X:0.00}, {Player.Position.Y:0.00}",
             ["PlayerFacing"] = Player.Facing.ToString(),
-            ["TreePropCount"] = _treeProps.Count.ToString()
+            ["GrassPropCount"] = GrassProps.Count.ToString(),
+            ["PropCount"] = _props.Count.ToString(),
+            ["ProjectileCount"] = _playerProjectiles.Count.ToString(),
+            ["TreePropCount"] = TreeProps.Count.ToString()
         };
     }
 
@@ -121,6 +164,7 @@ public sealed class World
             SceneName = sceneName,
             DefeatedEnemyCount = DefeatedEnemyCount,
             Enemies = _enemies.Select(enemy => enemy.CreateSaveData()).ToArray(),
+            PlayerAbilityPoints = Player.CurrentAbilityPoints,
             PlayerHealth = Player.CurrentHealth,
             PlayerPositionX = Player.Position.X,
             PlayerPositionY = Player.Position.Y
@@ -129,29 +173,73 @@ public sealed class World
 
     public void ApplySaveData(SaveGameData data)
     {
-        Player.RestoreState(new Vector2(data.PlayerPositionX, data.PlayerPositionY), data.PlayerHealth);
+        Player.RestoreState(
+            new Vector2(data.PlayerPositionX, data.PlayerPositionY),
+            data.PlayerHealth,
+            data.PlayerAbilityPoints);
         _remainingPlayerHitPauseSeconds = 0f;
         _playerAttackHitResolver.Reset();
         _enemyContactResolver.Reset();
         _countedDefeatedEnemies.Clear();
         _enemies.Clear();
+        _playerProjectiles.Clear();
+        _toasts.Clear();
 
         foreach (var enemyData in data.Enemies)
         {
             _enemies.Add(_enemyFactory.CreateFromSaveData(enemyData));
         }
 
-        TrackDefeatedEnemies();
+        TrackDefeatedEnemies(rewardPlayer: false);
     }
 
-    private void TrackDefeatedEnemies()
+    private void TrackDefeatedEnemies(bool rewardPlayer)
     {
         foreach (var enemy in _enemies)
         {
-            if (enemy.State == EnemyState.Dead)
+            if (enemy.State != EnemyState.Dead || _countedDefeatedEnemies.Contains(enemy))
             {
-                _countedDefeatedEnemies.Add(enemy);
+                continue;
+            }
+
+            _countedDefeatedEnemies.Add(enemy);
+
+            if (rewardPlayer)
+            {
+                var previousAbilityPoints = Player.CurrentAbilityPoints;
+                Player.AddAbilityPoints(1f);
+                var grantedAbilityPoints = Player.CurrentAbilityPoints - previousAbilityPoints;
+                if (grantedAbilityPoints > 0f)
+                {
+                    _toasts.Add(new WorldToast(
+                        $"+{grantedAbilityPoints:0.#} AP",
+                        GetPlayerToastAnchor(),
+                        new Color(128, 214, 255)));
+                }
             }
         }
+    }
+
+    private Vector2 GetPlayerToastAnchor()
+    {
+        return new Vector2(Player.Bounds.Center.X, Player.Bounds.Top - 4f);
+    }
+
+    private void UpdateProjectiles(FrameTime frameTime)
+    {
+        foreach (var projectile in _playerProjectiles)
+        {
+            projectile.Update(frameTime);
+        }
+    }
+
+    private void UpdateToasts(FrameTime frameTime)
+    {
+        foreach (var toast in _toasts)
+        {
+            toast.Update(frameTime);
+        }
+
+        _toasts.RemoveAll(toast => !toast.IsActive);
     }
 }

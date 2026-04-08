@@ -10,17 +10,23 @@ public sealed class GameplayHudLayoutTests
     {
         var bounds = GameplayHudLayout.GetHealthPanelBounds();
 
-        Assert.Equal(new Rectangle(12, 12, 160, 68), bounds);
+        Assert.Equal(new Rectangle(12, 12, 208, 62), bounds);
     }
 
     [Fact]
-    public void GetHealthPipBounds_SpacesPipsEvenly()
+    public void GetHealthBarBounds_PlacesBarInsideHealthPanel()
     {
-        var first = GameplayHudLayout.GetHealthPipBounds(0);
-        var third = GameplayHudLayout.GetHealthPipBounds(2);
+        var bounds = GameplayHudLayout.GetHealthBarBounds();
 
-        Assert.Equal(new Rectangle(24, 54, 16, 16), first);
-        Assert.Equal(new Rectangle(68, 54, 16, 16), third);
+        Assert.Equal(new Rectangle(56, 24, 148, 10), bounds);
+    }
+
+    [Fact]
+    public void GetAbilityPointBarBounds_PlacesBarInsideHealthPanel()
+    {
+        var bounds = GameplayHudLayout.GetAbilityPointBarBounds();
+
+        Assert.Equal(new Rectangle(56, 50, 148, 10), bounds);
     }
 
     [Fact]
@@ -36,6 +42,6 @@ public sealed class GameplayHudLayoutTests
     {
         var position = GameplayHudLayout.GetDebugOverlayPosition();
 
-        Assert.Equal(new Vector2(12f, 92f), position);
+        Assert.Equal(new Vector2(12f, 86f), position);
     }
 }

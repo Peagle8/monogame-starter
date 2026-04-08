@@ -1,21 +1,38 @@
 {
   "SceneName": "Gameplay",
-  "PlayerPositionX": 558.27216,
-  "PlayerPositionY": 601.2486,
-  "PlayerHealth": 5,
-  "DefeatedEnemyCount": 0,
+  "PlayerPositionX": 359.17682,
+  "PlayerPositionY": 272.83548,
+  "PlayerHealth": 19,
+  "PlayerAbilityPoints": 0.2983333,
+  "DefeatedEnemyCount": 4,
   "Enemies": [
     {
-      "Kind": 0,
-      "PositionX": 125.36818,
-      "PositionY": 393.41046,
-      "CurrentHealth": 3
+      "Kind": 1,
+      "AxisPreference": 1,
+      "PositionX": 302.99915,
+      "PositionY": 159.99998,
+      "CurrentHealth": 0
     },
     {
       "Kind": 1,
-      "PositionX": 236.79883,
-      "PositionY": 508.80078,
-      "CurrentHealth": 2
+      "AxisPreference": 2,
+      "PositionX": 622.5997,
+      "PositionY": 432.4004,
+      "CurrentHealth": 0
+    },
+    {
+      "Kind": 1,
+      "AxisPreference": 1,
+      "PositionX": 294.00037,
+      "PositionY": 300.19717,
+      "CurrentHealth": 0
+    },
+    {
+      "Kind": 1,
+      "AxisPreference": 0,
+      "PositionX": 202.39838,
+      "PositionY": 454.4004,
+      "CurrentHealth": 0
     }
   ]
 }

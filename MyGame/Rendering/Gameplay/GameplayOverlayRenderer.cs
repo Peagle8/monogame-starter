@@ -9,8 +9,10 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
 {
     private static readonly Color PanelFillColor = new(9, 17, 24, 220);
     private static readonly Color PanelBorderColor = new(82, 121, 111);
-    private static readonly Color HealthPipColor = new(211, 78, 68);
-    private static readonly Color MissingHealthPipColor = new(73, 50, 52);
+    private static readonly Color HealthBarColor = new(211, 78, 68);
+    private static readonly Color MissingHealthBarColor = new(73, 50, 52);
+    private static readonly Color AbilityPointBarColor = new(74, 186, 236);
+    private static readonly Color MissingAbilityPointBarColor = new(34, 61, 82);
     private static readonly Color DeathPanelFillColor = new(36, 12, 16, 235);
     private static readonly Color DeathPanelBorderColor = new(190, 92, 82);
     private static readonly Color RecordingIndicatorColor = new(220, 82, 82);
@@ -54,18 +56,18 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
     {
         var panelBounds = GameplayHudLayout.GetHealthPanelBounds();
         DrawPanel(panelBounds, PanelFillColor, PanelBorderColor);
-
-        for (var index = 0; index < model.World.Player.MaxHealth; index++)
-        {
-            var color = index < model.World.Player.CurrentHealth
-                ? HealthPipColor
-                : MissingHealthPipColor;
-
-            _renderContext.SpriteBatch.Draw(
-                _renderContext.Assets.Pixel,
-                GameplayHudLayout.GetHealthPipBounds(index),
-                color);
-        }
+        DrawResourceBar(
+            GameplayHudLayout.GetHealthBarBounds(),
+            model.World.Player.CurrentHealth,
+            model.World.Player.MaxHealth,
+            HealthBarColor,
+            MissingHealthBarColor);
+        DrawResourceBar(
+            GameplayHudLayout.GetAbilityPointBarBounds(),
+            model.World.Player.CurrentAbilityPoints,
+            model.World.Player.MaxAbilityPoints,
+            AbilityPointBarColor,
+            MissingAbilityPointBarColor);
     }
 
     private void DrawHudText(GameplayScene model)
@@ -78,15 +80,15 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
 
         _renderContext.SpriteBatch.DrawString(
             font,
-            $"Health: {model.World.Player.CurrentHealth}/{model.World.Player.MaxHealth}",
+            "HP",
             GameplayHudLayout.GetHealthTextPosition(),
             Color.White);
 
         _renderContext.SpriteBatch.DrawString(
             font,
-            $"Crabs: {model.World.DefeatedEnemyCount}",
-            GameplayHudLayout.GetKillCountPosition(),
-            new Color(255, 220, 196));
+            "AP",
+            GameplayHudLayout.GetAbilityPointTextPosition(),
+            new Color(128, 214, 255));
     }
 
     private void DrawDeathPanel(Point viewportSize)
@@ -175,5 +177,20 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Bottom - 2, bounds.Width, 2), borderColor);
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Y, 2, bounds.Height), borderColor);
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.Right - 2, bounds.Y, 2, bounds.Height), borderColor);
+    }
+
+    private void DrawResourceBar(Rectangle bounds, float currentValue, float maxValue, Color fillColor, Color backgroundColor)
+    {
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, bounds, backgroundColor);
+
+        if (maxValue <= 0f || currentValue <= 0f)
+        {
+            return;
+        }
+
+        var fillRatio = MathHelper.Clamp(currentValue / maxValue, 0f, 1f);
+        var fillWidth = Math.Max(1, (int)MathF.Round(bounds.Width * fillRatio));
+        var fillBounds = new Rectangle(bounds.X, bounds.Y, fillWidth, bounds.Height);
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, fillBounds, fillColor);
     }
 }

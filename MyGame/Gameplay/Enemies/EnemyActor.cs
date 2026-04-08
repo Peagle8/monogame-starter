@@ -28,12 +28,15 @@ public sealed class EnemyActor
         _axisPreference = axisPreference;
         _behavior = EnemyBehaviorFactory.Create(settings.Kind, axisPreference, initialDashPauseSeconds);
         Position = position;
+        PreviousPosition = position;
         CurrentHealth = settings.MaxHealth;
         DashDirection = Direction.Left;
         State = EnemyState.Idle;
     }
 
     public Vector2 Position { get; private set; }
+
+    public Vector2 PreviousPosition { get; private set; }
 
     public int CurrentHealth { get; private set; }
 
@@ -47,7 +50,13 @@ public sealed class EnemyActor
 
     public bool CanDealContactDamage =>
         State is not EnemyState.Dead and not EnemyState.Recovering
-        && (Kind != EnemyKind.HornedRabbit || State == EnemyState.Dashing);
+        && (Kind switch
+        {
+            EnemyKind.HornedRabbit => State == EnemyState.Dashing,
+            EnemyKind.Bat => State == EnemyState.Dashing,
+            EnemyKind.Grasshopper => State == EnemyState.Dashing,
+            _ => true
+        });
 
     public Direction DashDirection { get; internal set; }
 
@@ -66,8 +75,13 @@ public sealed class EnemyActor
 
     public Rectangle Bounds => new((int)Position.X, (int)Position.Y, 28, 28);
 
+    public Rectangle ContactBounds => GetContactBounds();
+
+    public Rectangle PreviousBounds => new((int)PreviousPosition.X, (int)PreviousPosition.Y, 28, 28);
+
     public void Update(Vector2 playerPosition, FrameTime frameTime)
     {
+        PreviousPosition = Position;
         _remainingHitFlashSeconds = Math.Max(0f, _remainingHitFlashSeconds - frameTime.DeltaSeconds);
 
         if (CurrentHealth <= 0)
@@ -160,6 +174,7 @@ public sealed class EnemyActor
     public void RestoreState(Vector2 position, int currentHealth)
     {
         Position = position;
+        PreviousPosition = position;
         CurrentHealth = Math.Clamp(currentHealth, 0, MaxHealth);
         IsMoving = false;
         State = CurrentHealth == 0 ? EnemyState.Dead : EnemyState.Idle;
@@ -181,5 +196,17 @@ public sealed class EnemyActor
     {
         State = state;
         IsMoving = isMoving;
+    }
+
+    private Rectangle GetContactBounds()
+    {
+        if (_settings.AttackHitboxPadding <= 0 || !CanDealContactDamage)
+        {
+            return Bounds;
+        }
+
+        var bounds = Bounds;
+        bounds.Inflate(_settings.AttackHitboxPadding, _settings.AttackHitboxPadding);
+        return bounds;
     }
 }

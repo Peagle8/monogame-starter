@@ -2,7 +2,7 @@ namespace MyGame.Configuration;
 
 public sealed class PlayerMovementSettings
 {
-    public float MoveSpeed { get; init; } = 180f;
+    public float MoveSpeed { get; init; } = 144f;
 
     public float DashDistance { get; init; } = 72f;
 

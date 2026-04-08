@@ -2,5 +2,6 @@ namespace MyGame.Gameplay.Player;
 
 public enum PlayerAbility
 {
-    Dash
+    Dash,
+    Fireball
 }

@@ -105,8 +105,14 @@ public static class ServiceCollectionExtensions
             var hornedRabbitSettings = loader.LoadOrDefault(
                 Path.Combine(configDirectory, "HornedRabbitSettings.json"),
                 EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit));
+            var batSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "BatSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.Bat));
+            var grasshopperSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "GrasshopperSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper));
 
-            return new EnemySettingsCatalog(crabSettings, hornedRabbitSettings);
+            return new EnemySettingsCatalog(crabSettings, hornedRabbitSettings, batSettings, grasshopperSettings);
         });
         services.AddSingleton(provider => provider.GetRequiredService<IEnemySettingsCatalog>().Get(EnemyKind.Crab));
 
@@ -120,12 +126,18 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IWorldSpriteRenderer, WorldSpriteRenderer>();
         services.AddTransient<IEnemyKindRenderer, CrabEnemyRenderer>();
         services.AddTransient<IEnemyKindRenderer, HornedRabbitEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, BatEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, GrasshopperEnemyRenderer>();
         services.AddTransient<IRenderer<EnemyActor>, EnemyRenderer>();
         services.AddTransient<IRenderer<PlayerActor>, PlayerRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, GrassEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, TreeEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, EnemyEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, PlayerProjectileRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, PlayerShieldRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerAttackEffectRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, WorldToastRenderer>();
         services.AddTransient<IRenderer<GameplayPauseMenu>, GameplayPauseMenuRenderer>();
         services.AddTransient<GameplayOverlayRenderer>();
         services.AddTransient<MainMenuRenderer>();

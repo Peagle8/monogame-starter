@@ -6,6 +6,7 @@ public static class ControlsOverlayText
     [
         "Move: WASD / arrows / left stick / D-pad",
         "Attack: J / Left Ctrl / X",
+        "Ranged: K / Left Alt / Right Trigger",
         "Dash: Shift / Right Shoulder",
         "Confirm: Enter / Space / A",
         "Back: Esc / B / Back",

@@ -86,6 +86,7 @@ public sealed class GameplaySceneTests
 
         Assert.NotNull(saveGameService.LastSavedData);
         Assert.Equal("Gameplay", saveGameService.LastSavedData!.SceneName);
+        Assert.Equal(3f, saveGameService.LastSavedData.PlayerAbilityPoints);
         Assert.Equal(400f, saveGameService.LastSavedData.PlayerPositionX);
         Assert.Equal(240f, saveGameService.LastSavedData.PlayerPositionY);
         Assert.Equal(20, saveGameService.LastSavedData.PlayerHealth);
@@ -114,6 +115,7 @@ public sealed class GameplaySceneTests
                         CurrentHealth = 0
                     }
                 ],
+                PlayerAbilityPoints = 1.25f,
                 PlayerHealth = 2,
                 PlayerPositionX = 128f,
                 PlayerPositionY = 256f
@@ -132,6 +134,7 @@ public sealed class GameplaySceneTests
 
         Assert.Equal(new Vector2(128f, 256f), scene.World.Player.Position);
         Assert.Equal(2, scene.World.Player.CurrentHealth);
+        Assert.Equal(1.25f, scene.World.Player.CurrentAbilityPoints);
         Assert.Single(scene.World.Enemies);
         Assert.Equal(new Vector2(512f, 288f), scene.World.Enemies[0].Position);
         Assert.Equal(0, scene.World.Enemies[0].CurrentHealth);

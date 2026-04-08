@@ -11,5 +11,7 @@ public sealed class TreePropTests
         var tree = new TreeProp(new Vector2(96f, 144f), new Point(64, 96));
 
         Assert.Equal(new Rectangle(96, 144, 64, 96), tree.Bounds);
+        Assert.True(tree.BlocksMovement);
+        Assert.Equal(new Rectangle(117, 216, 21, 24), tree.CollisionBounds);
     }
 }

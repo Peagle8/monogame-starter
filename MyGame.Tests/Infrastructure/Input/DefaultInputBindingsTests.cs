@@ -16,6 +16,8 @@ public sealed class DefaultInputBindingsTests
         Assert.Equal([Keys.A, Keys.Left], bindings[GameAction.MoveLeft]);
         Assert.Equal([Keys.D, Keys.Right], bindings[GameAction.MoveRight]);
         Assert.Equal([Keys.J, Keys.LeftControl], bindings[GameAction.Attack]);
+        Assert.Equal([Keys.K, Keys.LeftAlt], bindings[GameAction.RangedAttack]);
+        Assert.Equal([Keys.L, Keys.RightControl], bindings[GameAction.DefenseAbility]);
         Assert.Equal([Keys.LeftShift, Keys.RightShift], bindings[GameAction.Dash]);
         Assert.Equal([Keys.Enter, Keys.Space], bindings[GameAction.Confirm]);
         Assert.Equal([Keys.Escape, Keys.Back], bindings[GameAction.Cancel]);

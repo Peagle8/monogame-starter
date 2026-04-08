@@ -10,6 +10,8 @@ public sealed class SaveGameData
 
     public required int PlayerHealth { get; init; }
 
+    public required float PlayerAbilityPoints { get; init; }
+
     public required int DefeatedEnemyCount { get; init; }
 
     public required EnemySaveData[] Enemies { get; init; }

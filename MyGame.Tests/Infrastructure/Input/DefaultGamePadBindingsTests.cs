@@ -15,6 +15,8 @@ public sealed class DefaultGamePadBindingsTests
         Assert.Equal([GamePadControl.DPadLeft, GamePadControl.LeftStickLeft], bindings[GameAction.MoveLeft]);
         Assert.Equal([GamePadControl.DPadRight, GamePadControl.LeftStickRight], bindings[GameAction.MoveRight]);
         Assert.Equal([GamePadControl.FaceLeft], bindings[GameAction.Attack]);
+        Assert.Equal([GamePadControl.RightTrigger], bindings[GameAction.RangedAttack]);
+        Assert.Equal([GamePadControl.FaceTop], bindings[GameAction.DefenseAbility]);
         Assert.Equal([GamePadControl.RightShoulder], bindings[GameAction.Dash]);
         Assert.Equal([GamePadControl.FaceBottom], bindings[GameAction.Confirm]);
         Assert.Equal([GamePadControl.FaceRight, GamePadControl.Back], bindings[GameAction.Cancel]);

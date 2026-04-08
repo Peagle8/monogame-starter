@@ -1,4 +1,8 @@
 {
   "ContactDamage": 1,
-  "ContactDamageCooldownSeconds": 0.5
+  "ContactDamageCooldownSeconds": 0.5,
+  "EnemyObstacleResolutionIterations": 2,
+  "EnemySeparationDistance": 28.0,
+  "EnemySeparationIterations": 2,
+  "PlayerObstacleResolutionIterations": 2
 }

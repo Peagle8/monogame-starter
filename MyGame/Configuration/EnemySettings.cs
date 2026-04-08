@@ -8,7 +8,7 @@ public sealed class EnemySettings
 
     public int MaxHealth { get; init; } = 3;
 
-    public float MoveSpeed { get; init; } = 120f;
+    public float MoveSpeed { get; init; } = 96f;
 
     public float ChaseRange { get; init; } = 160f;
 
@@ -31,4 +31,6 @@ public sealed class EnemySettings
     public float InitialDashPauseMinSeconds { get; init; } = 0f;
 
     public float InitialDashPauseMaxSeconds { get; init; } = 0f;
+
+    public int AttackHitboxPadding { get; init; } = 0;
 }

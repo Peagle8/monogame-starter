@@ -13,6 +13,9 @@ public enum GamePadControl
     FaceBottom,
     FaceRight,
     FaceLeft,
+    FaceTop,
+    LeftTrigger,
+    RightTrigger,
     RightShoulder,
     Start,
     Back

@@ -272,4 +272,127 @@ public sealed class EnemyActorTests
         Assert.Equal(Direction.Down, enemy.DashDirection);
         Assert.Equal(EnemyState.Dashing, enemy.State);
     }
+
+    [Fact]
+    public void Update_WhenBatPlayerInRange_StartsCurvedSwoop()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Bat);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(160f, 160f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.IsMoving);
+        Assert.True(enemy.CanDealContactDamage);
+        Assert.True(enemy.Position.X > 100f);
+        Assert.NotEqual(100f, enemy.Position.Y);
+    }
+
+    [Fact]
+    public void Update_WhenBatSwoopEnds_EntersAimingPause()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Bat);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(
+            new Vector2(160f, 160f),
+            new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds)));
+
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.False(enemy.IsMoving);
+        Assert.False(enemy.CanDealContactDamage);
+    }
+
+    [Fact]
+    public void Update_WhenBatPauseExpires_StartsAnotherSwoop()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Bat);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(
+            new Vector2(160f, 160f),
+            new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds)));
+        enemy.Update(
+            new Vector2(160f, 160f),
+            new FrameTime(TimeSpan.FromSeconds(settings.DashPauseSeconds - 0.01f), TimeSpan.FromSeconds(settings.DashSeconds + settings.DashPauseSeconds - 0.01f)));
+        enemy.Update(
+            new Vector2(160f, 160f),
+            new FrameTime(TimeSpan.FromSeconds(0.02f), TimeSpan.FromSeconds(settings.DashSeconds + settings.DashPauseSeconds + 0.01f)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.CanDealContactDamage);
+    }
+
+    [Fact]
+    public void ContactBounds_WhenBatIsDashing_AreWiderThanBodyBounds()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Bat);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(160f, 160f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(enemy.ContactBounds.Width > enemy.Bounds.Width);
+        Assert.True(enemy.ContactBounds.Height > enemy.Bounds.Height);
+    }
+
+    [Fact]
+    public void Update_WhenGrasshopperPlayerInRange_StartsFirstLeap()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(160f, 140f), new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.IsMoving);
+        Assert.True(enemy.CanDealContactDamage);
+        Assert.True(enemy.Position.X > 100f);
+        Assert.True(enemy.Position.Y > 100f);
+    }
+
+    [Fact]
+    public void Update_WhenGrasshopperFirstLeapEnds_RepeatsLeapInSameDirection()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(160f, 100f), new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds)));
+        var positionAfterFirstLeap = enemy.Position;
+        enemy.Update(new Vector2(160f, 180f), new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(settings.DashSeconds + 0.05)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.Equal(Direction.Right, enemy.DashDirection);
+        Assert.True(enemy.Position.X > positionAfterFirstLeap.X);
+        Assert.Equal(positionAfterFirstLeap.Y, enemy.Position.Y);
+    }
+
+    [Fact]
+    public void Update_WhenGrasshopperThirdLeapStarts_ChangesDirectionBeforePause()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(160f, 100f), new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds)));
+        enemy.Update(new Vector2(160f, 100f), new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds * 2f)));
+        enemy.Update(new Vector2(160f, 180f), new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds((settings.DashSeconds * 2f) + 0.05f)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.Equal(Direction.Down, enemy.DashDirection);
+        Assert.True(enemy.Position.Y > 100f);
+    }
+
+    [Fact]
+    public void Update_WhenGrasshopperThirdLeapEnds_EntersPause()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(160f, 100f), new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds)));
+        enemy.Update(new Vector2(160f, 100f), new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds * 2f)));
+        enemy.Update(new Vector2(160f, 180f), new FrameTime(TimeSpan.FromSeconds(settings.DashSeconds), TimeSpan.FromSeconds(settings.DashSeconds * 3f)));
+
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.False(enemy.IsMoving);
+        Assert.False(enemy.CanDealContactDamage);
+    }
 }

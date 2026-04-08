@@ -31,13 +31,19 @@ public sealed class EnemyContactResolver
                 continue;
             }
 
-            if (!enemy.Bounds.Intersects(player.Bounds))
+            if (!enemy.ContactBounds.Intersects(player.Bounds))
             {
                 continue;
             }
 
-            player.TakeDamage(_settings.ContactDamage);
-            player.ApplyKnockback(GetPlayerKnockbackDirection(player, enemy));
+            var knockbackDirection = GetPlayerKnockbackDirection(player, enemy);
+
+            if (!player.TryAbsorbShieldHit())
+            {
+                player.TakeDamage(_settings.ContactDamage);
+            }
+
+            player.ApplyKnockback(knockbackDirection);
             enemy.BeginRecovery();
             _remainingContactDamageCooldown = _settings.ContactDamageCooldownSeconds;
             break;

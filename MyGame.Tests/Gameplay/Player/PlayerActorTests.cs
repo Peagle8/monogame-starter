@@ -1,6 +1,7 @@
 using MyGame.Configuration;
 using MyGame.Core.Input;
 using MyGame.Gameplay.Player;
+using Microsoft.Xna.Framework;
 
 namespace MyGame.Tests.Gameplay.Player;
 
@@ -19,6 +20,10 @@ public sealed class PlayerActorTests
 
         Assert.Equal(20, player.CurrentHealth);
         Assert.Equal(20, player.MaxHealth);
+        Assert.Equal(3f, player.CurrentAbilityPoints);
+        Assert.Equal(3f, player.MaxAbilityPoints);
+        Assert.False(player.IsShieldActive);
+        Assert.Equal(0, player.ShieldCharges);
         Assert.False(player.IsDead);
     }
 
@@ -41,6 +46,57 @@ public sealed class PlayerActorTests
     }
 
     [Fact]
+    public void Update_RegeneratesAbilityPointsUpToMaximum()
+    {
+        var player = new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0.05f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        Assert.True(player.TrySpendAbilityPoints(1f));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)));
+
+        Assert.Equal(3f, player.CurrentAbilityPoints);
+    }
+
+    [Fact]
+    public void TrySpendAbilityPoints_WhenEnoughPoints_ReducesCurrentAbilityPoints()
+    {
+        var player = new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        var spent = player.TrySpendAbilityPoints(1.5f);
+
+        Assert.True(spent);
+        Assert.Equal(1.5f, player.CurrentAbilityPoints);
+    }
+
+    [Fact]
+    public void TrySpendAbilityPoints_WhenNotEnoughPoints_DoesNotChangeCurrentAbilityPoints()
+    {
+        var player = new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings { MaxAbilityPoints = 2f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        var spent = player.TrySpendAbilityPoints(3f);
+
+        Assert.False(spent);
+        Assert.Equal(2f, player.CurrentAbilityPoints);
+    }
+
+    [Fact]
     public void Update_WhenAttackPressed_StartsPlayerAttack()
     {
         var player = new PlayerActor(
@@ -56,6 +112,169 @@ public sealed class PlayerActorTests
         Assert.True(player.IsAttacking);
         Assert.Equal(1, player.AttackSequence);
         Assert.Equal(new Microsoft.Xna.Framework.Rectangle(400, 272, 32, 22), player.AttackBounds);
+    }
+
+    [Fact]
+    public void Update_WhenAttackingWhileMovingUpAndLeft_PrefersVerticalAttackDirection()
+    {
+        var player = new PlayerActor(
+            new StubInputService(
+                new InputSnapshot(new HashSet<GameAction> { GameAction.MoveUp, GameAction.MoveLeft }),
+                GameAction.Attack),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(new Rectangle(389, 207, 32, 22), player.AttackBounds);
+    }
+
+    [Fact]
+    public void Update_WhenRangedAttackPressed_SpawnsFireball()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.RangedAttack),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var projectiles = player.ConsumeSpawnedProjectiles();
+
+        var projectile = Assert.Single(projectiles);
+        Assert.Equal(PlayerRangedAttackKind.Fireball, projectile.Kind);
+        Assert.Equal(Direction.Down, projectile.Direction);
+        Assert.Equal(1, projectile.Damage);
+        Assert.Equal(new Rectangle(404, 272, 24, 24), projectile.Bounds);
+    }
+
+    [Fact]
+    public void Update_WhenRangedAttackPressedWhileMovingUpAndLeft_PrefersVerticalAttackDirection()
+    {
+        var player = new PlayerActor(
+            new StubInputService(
+                new InputSnapshot(new HashSet<GameAction> { GameAction.MoveUp, GameAction.MoveLeft }),
+                GameAction.RangedAttack),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var projectile = Assert.Single(player.ConsumeSpawnedProjectiles());
+
+        Assert.Equal(Direction.Up, projectile.Direction);
+        Assert.Equal(new Rectangle(393, 205, 24, 24), projectile.Bounds);
+    }
+
+    [Fact]
+    public void Update_WhenRangedAttackIsOnCooldown_DoesNotSpawnSecondFireball()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.RangedAttack),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings { CooldownSeconds = 0.35f }));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        _ = player.ConsumeSpawnedProjectiles();
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
+        var secondProjectiles = player.ConsumeSpawnedProjectiles();
+
+        Assert.Empty(secondProjectiles);
+    }
+
+    [Fact]
+    public void Update_WhenDefenseAbilityPressed_ActivatesShieldAndSpendsAbilityPoints()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(player.IsShieldActive);
+        Assert.Equal(3, player.ShieldCharges);
+        Assert.Equal(0f, player.CurrentAbilityPoints);
+    }
+
+    [Fact]
+    public void Update_WhenDefenseAbilityPressedWithoutEnoughAbilityPoints_DoesNotActivateShield()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 2f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.False(player.IsShieldActive);
+        Assert.Equal(0, player.ShieldCharges);
+        Assert.Equal(2f, player.CurrentAbilityPoints);
+    }
+
+    [Fact]
+    public void TryAbsorbShieldHit_WhenShieldIsActive_ConsumesShieldCharge()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.IsShieldActive);
+        Assert.Equal(2, player.ShieldCharges);
+    }
+
+    [Fact]
+    public void TryAbsorbShieldHit_WhenFinalShieldChargeIsConsumed_BreaksShield()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.TryAbsorbShieldHit());
+
+        Assert.False(player.IsShieldActive);
+        Assert.Equal(0, player.ShieldCharges);
     }
 
     [Fact]
@@ -159,7 +378,7 @@ public sealed class PlayerActorTests
 
         public bool IsJustPressed(GameAction action)
         {
-            return _justPressedActions.Contains(action);
+            return _justPressedActions.Remove(action);
         }
 
         public bool IsJustReleased(GameAction action)

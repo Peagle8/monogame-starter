@@ -35,6 +35,7 @@ public sealed class JsonSaveGameServiceTests : IDisposable
                     CurrentHealth = 0
                 }
             ],
+            PlayerAbilityPoints = 1.5f,
             PlayerHealth = 3,
             PlayerPositionX = 123.5f,
             PlayerPositionY = 456.25f
@@ -46,6 +47,7 @@ public sealed class JsonSaveGameServiceTests : IDisposable
         Assert.NotNull(loaded);
         Assert.Equal(expected.SceneName, loaded!.SceneName);
         Assert.Equal(expected.DefeatedEnemyCount, loaded.DefeatedEnemyCount);
+        Assert.Equal(expected.PlayerAbilityPoints, loaded.PlayerAbilityPoints);
         Assert.Equal(expected.PlayerHealth, loaded.PlayerHealth);
         Assert.Equal(expected.PlayerPositionX, loaded.PlayerPositionX);
         Assert.Equal(expected.PlayerPositionY, loaded.PlayerPositionY);
@@ -88,6 +90,7 @@ public sealed class JsonSaveGameServiceTests : IDisposable
             SceneName = "Gameplay",
             DefeatedEnemyCount = 0,
             Enemies = [],
+            PlayerAbilityPoints = 3f,
             PlayerHealth = 5,
             PlayerPositionX = 10f,
             PlayerPositionY = 20f

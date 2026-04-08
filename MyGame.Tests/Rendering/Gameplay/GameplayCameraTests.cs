@@ -13,6 +13,8 @@ public sealed class GameplayCameraTests
             viewportSize: new Point(800, 480),
             playerSize: new Point(32, 32));
 
-        Assert.Equal(new Vector2(16f, 16f), camera.WorldTopLeft);
+        Assert.Equal(1.15f, camera.Zoom);
+        Assert.Equal(68.17392f, camera.WorldTopLeft.X, 3);
+        Assert.Equal(47.30435f, camera.WorldTopLeft.Y, 3);
     }
 }

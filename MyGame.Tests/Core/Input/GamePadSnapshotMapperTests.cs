@@ -11,19 +11,22 @@ public sealed class GamePadSnapshotMapperTests
         {
             [GameAction.MoveRight] = [GamePadControl.DPadRight, GamePadControl.LeftStickRight],
             [GameAction.Attack] = [GamePadControl.FaceLeft],
+            [GameAction.DefenseAbility] = [GamePadControl.FaceTop],
             [GameAction.Confirm] = [GamePadControl.FaceBottom]
         });
 
         var snapshot = new GamePadSnapshot(new HashSet<GamePadControl>
         {
             GamePadControl.LeftStickRight,
-            GamePadControl.FaceLeft
+            GamePadControl.FaceLeft,
+            GamePadControl.FaceTop
         });
 
         var inputSnapshot = mapper.Map(snapshot);
 
         Assert.True(inputSnapshot.IsPressed(GameAction.MoveRight));
         Assert.True(inputSnapshot.IsPressed(GameAction.Attack));
+        Assert.True(inputSnapshot.IsPressed(GameAction.DefenseAbility));
         Assert.False(inputSnapshot.IsPressed(GameAction.Confirm));
     }
 }

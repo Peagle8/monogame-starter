@@ -1,6 +1,6 @@
 {
   "MaxHealth": 3,
-  "MoveSpeed": 120,
+  "MoveSpeed": 96,
   "ChaseRange": 160,
   "RecoverySeconds": 0.65,
   "DefeatedVisibleSeconds": 0.8,

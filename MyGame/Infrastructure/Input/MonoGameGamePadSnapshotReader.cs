@@ -31,6 +31,9 @@ public sealed class MonoGameGamePadSnapshotReader
         AddIfPressed(pressedControls, GamePadControl.FaceBottom, state.Buttons.A == ButtonState.Pressed);
         AddIfPressed(pressedControls, GamePadControl.FaceRight, state.Buttons.B == ButtonState.Pressed);
         AddIfPressed(pressedControls, GamePadControl.FaceLeft, state.Buttons.X == ButtonState.Pressed);
+        AddIfPressed(pressedControls, GamePadControl.FaceTop, state.Buttons.Y == ButtonState.Pressed);
+        AddIfPressed(pressedControls, GamePadControl.LeftTrigger, state.Triggers.Left >= StickThreshold);
+        AddIfPressed(pressedControls, GamePadControl.RightTrigger, state.Triggers.Right >= StickThreshold);
         AddIfPressed(pressedControls, GamePadControl.RightShoulder, state.Buttons.RightShoulder == ButtonState.Pressed);
         AddIfPressed(pressedControls, GamePadControl.Start, state.Buttons.Start == ButtonState.Pressed);
         AddIfPressed(pressedControls, GamePadControl.Back, state.Buttons.Back == ButtonState.Pressed);

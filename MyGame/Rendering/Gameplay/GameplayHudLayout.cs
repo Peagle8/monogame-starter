@@ -5,13 +5,9 @@ namespace MyGame.Rendering.Gameplay;
 public static class GameplayHudLayout
 {
     private const int HealthPanelMargin = 12;
-    private const int HealthPanelWidth = 160;
-    private const int HealthPanelHeight = 68;
+    private const int HealthPanelWidth = 208;
+    private const int HealthPanelHeight = 62;
     private const int DebugOverlayGap = 12;
-    private const int HealthPipSize = 16;
-    private const int HealthPipSpacing = 6;
-    private const int HealthPipStartX = 12;
-    private const int HealthPipY = 42;
     private const int DeathPanelWidth = 420;
     private const int DeathPanelHeight = 132;
 
@@ -20,14 +16,28 @@ public static class GameplayHudLayout
         return new Rectangle(HealthPanelMargin, HealthPanelMargin, HealthPanelWidth, HealthPanelHeight);
     }
 
-    public static Rectangle GetHealthPipBounds(int index)
+    public static Vector2 GetHealthTextPosition()
     {
         var panelBounds = GetHealthPanelBounds();
-        return new Rectangle(
-            panelBounds.X + HealthPipStartX + (index * (HealthPipSize + HealthPipSpacing)),
-            panelBounds.Y + HealthPipY,
-            HealthPipSize,
-            HealthPipSize);
+        return new Vector2(panelBounds.X + 12f, panelBounds.Y + 8f);
+    }
+
+    public static Rectangle GetHealthBarBounds()
+    {
+        var panelBounds = GetHealthPanelBounds();
+        return new Rectangle(panelBounds.X + 44, panelBounds.Y + 12, 148, 10);
+    }
+
+    public static Vector2 GetAbilityPointTextPosition()
+    {
+        var panelBounds = GetHealthPanelBounds();
+        return new Vector2(panelBounds.X + 12f, panelBounds.Y + 34f);
+    }
+
+    public static Rectangle GetAbilityPointBarBounds()
+    {
+        var panelBounds = GetHealthPanelBounds();
+        return new Rectangle(panelBounds.X + 44, panelBounds.Y + 38, 148, 10);
     }
 
     public static Rectangle GetDeathPanelBounds(Point viewportSize)
@@ -37,18 +47,6 @@ public static class GameplayHudLayout
             (viewportSize.Y - DeathPanelHeight) / 2,
             DeathPanelWidth,
             DeathPanelHeight);
-    }
-
-    public static Vector2 GetHealthTextPosition()
-    {
-        var panelBounds = GetHealthPanelBounds();
-        return new Vector2(panelBounds.X + 12f, panelBounds.Y + 2f);
-    }
-
-    public static Vector2 GetKillCountPosition()
-    {
-        var panelBounds = GetHealthPanelBounds();
-        return new Vector2(panelBounds.X + 12f, panelBounds.Y + 22f);
     }
 
     public static Vector2 GetDeathTitlePosition(Point viewportSize)
