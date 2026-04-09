@@ -13,13 +13,16 @@ public sealed class DefaultInputBindings
             [GameAction.MoveDown] = [Keys.S, Keys.Down],
             [GameAction.MoveLeft] = [Keys.A, Keys.Left],
             [GameAction.MoveRight] = [Keys.D, Keys.Right],
+            [GameAction.Interact] = [Keys.E],
             [GameAction.Attack] = [Keys.J, Keys.LeftControl],
             [GameAction.RangedAttack] = [Keys.K, Keys.LeftAlt],
             [GameAction.DefenseAbility] = [Keys.L, Keys.RightControl],
             [GameAction.Dash] = [Keys.LeftShift, Keys.RightShift],
             [GameAction.Confirm] = [Keys.Enter, Keys.Space],
             [GameAction.Cancel] = [Keys.Escape, Keys.Back],
-            [GameAction.Pause] = [Keys.P, Keys.Escape]
+            [GameAction.Pause] = [Keys.P, Keys.Escape],
+            [GameAction.PreviousTab] = [Keys.Q],
+            [GameAction.NextTab] = [Keys.R]
         };
     }
 }

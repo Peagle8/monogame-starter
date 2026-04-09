@@ -24,11 +24,16 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
 
     private readonly IRenderContext _renderContext;
     private readonly IRenderer<GameplayPauseMenu> _pauseMenuRenderer;
+    private readonly IRenderer<GameplayScene> _shopDialogueRenderer;
 
-    public GameplayOverlayRenderer(IRenderContext renderContext, IRenderer<GameplayPauseMenu> pauseMenuRenderer)
+    public GameplayOverlayRenderer(
+        IRenderContext renderContext,
+        IRenderer<GameplayPauseMenu> pauseMenuRenderer,
+        ShopDialogueRenderer shopDialogueRenderer)
     {
         _renderContext = renderContext;
         _pauseMenuRenderer = pauseMenuRenderer;
+        _shopDialogueRenderer = shopDialogueRenderer;
     }
 
     public void Draw(GameplayScene model, FrameTime frameTime)
@@ -49,6 +54,7 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
             }
         }
 
+        _shopDialogueRenderer.Draw(model, frameTime);
         _pauseMenuRenderer.Draw(model.PauseMenu, frameTime);
     }
 

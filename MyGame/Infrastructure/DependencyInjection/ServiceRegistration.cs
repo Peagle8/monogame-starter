@@ -44,7 +44,7 @@ public static class ServiceRegistration
         services.AddTransient<PlayerDashController>();
         services.AddTransient<PlayerActor>();
         services.AddTransient<GameplayLevelBuilder>();
-        services.AddTransient(provider => provider.GetRequiredService<GameplayLevelBuilder>().BuildDefaultLevel(
+        services.AddTransient(provider => provider.GetRequiredService<GameplayLevelBuilder>().BuildOverworld(
             provider.GetRequiredService<PlayerActor>()));
         return services.BuildServiceProvider();
     }

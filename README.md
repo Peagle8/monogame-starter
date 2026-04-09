@@ -1,101 +1,133 @@
 # MonoGame Starter Skeleton
 
-This project is a small 2D MonoGame game built with a simple rule:
-keep MonoGame at the edges and keep gameplay logic in plain C# where possible.
+This project is a small top-down action game prototype built in MonoGame with one strong architectural rule:
+keep MonoGame types at the edges and keep gameplay rules in plain C# wherever practical.
 
-## Current State
+The current branch is no longer just a bare skeleton. It now has a playable combat sandbox, a small interior transition experiment, and the first pass at NPC shop interaction.
+
+## Current Snapshot
 
 The game currently includes:
 
-- scene flow with a main menu, gameplay scene, and pause menu
-- a `World` object that owns gameplay state instead of the scene doing everything
-- a controllable player with movement, facing, health, death, and restart flow
-- a first enemy type: a crab with chase, recovery, hit flash, defeat linger, and simple combat
-- player attack input and hit resolution
-- JSON-backed tuning for player movement and enemy stats
-- save/load through the menus
-- save data that currently restores:
-  - scene name
-  - player position
-  - player health
-  - enemy positions
-  - enemy health/dead state
-  - defeated enemy count
-- a debug overlay plus replay/record diagnostics support
-- fast unit tests for gameplay and infrastructure logic
+- main menu, gameplay, pause menu, save/load flow, and return-to-menu flow
+- an overworld plus a shop interior connected by scene transitions
+- a reusable `World` simulation model that owns gameplay state
+- player movement, facing, health, death, dash, melee attack, ranged attack, and shield ability
+- multiple enemy types:
+  - crab
+  - horned rabbit
+  - bat
+  - grasshopper
+- enemy contact damage, separation, obstacle collision, defeat tracking, and ability-point rewards
+- replay and recording diagnostics
+- animated shopkeeper talk indicator, proximity prompt, and a first-pass buy/sell dialogue modal
+- JSON-backed configuration for player, enemies, diagnostics, and world combat tuning
+- fast unit tests around gameplay rules, rendering layout helpers, input, saves, and scene behavior
 
 ## Controls
 
 - move: `WASD`, arrow keys, left stick, or D-pad
+- interact: `E` or `B`
 - attack: `J`, `Left Ctrl`, or `X`
+- ranged attack: `K`, `Left Alt`, or `Right Trigger`
+- defense ability: `L` or `Y`
 - dash: `Shift` or `Right Shoulder`
+- switch shop tabs: `Q` / `R` or `Left Shoulder` / `Right Shoulder`
 - confirm: `Enter`, `Space`, or `A`
 - cancel/back: `Esc`, `B`, or `Back`
 - pause: `Esc`, `P`, or `Start`
 
-`Load Game` is disabled in menus until a save file exists.
+`Load Game` stays disabled until a save exists.
+
+## What You Can Do Right Now
+
+- start a run from the main menu
+- explore the overworld
+- fight several enemy types with melee, dash, ranged attacks, and shield play
+- enter the shop through the overworld door
+- approach the counter to open the current buy/sell dialogue shell
+- save from the pause menu and load the latest save
+- record and replay runs through the diagnostics menu
 
 ## Project Shape
 
 - `MyGame`
-  - MonoGame host, scenes, rendering, input, diagnostics, save/load, and gameplay code
+  - MonoGame host, scenes, rendering, gameplay, input, diagnostics, and save/load code
 - `MyGame.Tests`
-  - fast tests for gameplay rules, state transitions, save/load, and layout logic
+  - fast tests for gameplay rules, transitions, config, input, save/load, and layout behavior
 - `docs`
   - design notes and longer-term direction
+- `TODO.md`
+  - near-term implementation notes and design thoughts captured during active discovery
 
 ## Architecture Notes
 
-- `GameRoot` stays intentionally small and mostly wires services and scenes together.
-- `SceneManager` handles scene changes and forwards update/draw calls.
-- `World` owns active gameplay simulation state.
-- `IInputService` maps hardware input to `GameAction`.
-- `IPlayerAbilityService` gates unlockable actions like dash without pushing progression rules into input code.
-- gameplay tuning is loaded from JSON config objects rather than hidden magic numbers
-- save/load uses explicit DTOs instead of serializing live runtime objects directly
+- `GameRoot` wires up services and scene flow.
+- `SceneManager` owns the active scene and handles scene changes.
+- `GameplayScene` wraps a `World` and handles pause flow, rendering, and shop UI state.
+- `World` owns simulation state such as player, enemies, props, projectiles, toasts, and scene transitions.
+- gameplay interaction rules live in focused classes like:
+  - `PlayerAttackHitResolver`
+  - `PlayerProjectileResolver`
+  - `WorldObstacleResolver`
+  - `EnemyContactResolver`
+  - `EnemySeparationResolver`
+- `GameplayLevelBuilder` currently assembles the overworld and shop interior layouts
+- input is normalized through `IInputService` and `GameAction`
+- gameplay tuning is loaded from JSON config objects instead of being buried in runtime code
+- save/load uses DTOs rather than serializing live game objects directly
 
-See `docs/GameDesign.md` for the current higher-level design direction.
+This is still an active prototype, so some systems are intentionally lightweight while the overall game spine is being discovered.
 
-## What Is Working
+## Shop And Interior Experiment
 
-- launch into the main menu
-- start a gameplay run
-- move the player around the world
-- fight a crab enemy
-- die and restart
-- pause and access save/load/controls
-- load from the main menu after a save exists
+The shop is the current test bed for a few future-facing systems:
 
-## What Still Needs Work
+- entering sub-structures through a scene transition
+- preserving important player state across room changes
+- NPC interaction prompts and dialogue shell UI
+- buy/sell tabs that will later connect to wares and inventory
 
-Near-term priorities:
+The current implementation is intentionally modest, but it is meant to establish patterns we can later reuse for caves, dungeons, castles, and other interiors.
 
-1. add multiple save slots
-2. improve save UX further now that single-save flow works
-3. add controller support so combat iteration is comfortable and easier to judge
-4. focus hard on combat feel, enemy interactions, and the core "is this fun?" loop
-5. keep extracting clean gameplay services where `World` is still doing too much directly
+## Save And Replay Notes
 
-High-level roadmap after the current agenda:
+Current save/load support restores the active gameplay scene and core world state, including:
 
-1. deepen combat before investing heavily in presentation
-2. build multiple world "areas" with clearer progression
-3. gate each area with a boss before the next area opens
-4. transition between areas by having the player exit along a path and load into the next area
-5. expand enemies, bosses, and area-specific content once the core combat loop is fun
+- scene name
+- player position
+- player health
+- player ability points
+- enemy positions
+- enemy health / dead state
+- defeated enemy count
 
-Presentation philosophy:
+The replay menu is currently available through the pause menu when diagnostics are enabled.
 
-1. placeholder visuals are fine for now
-2. gameplay feel and combat fun come before a major graphics pass
-3. art polish should follow once the core loop and progression are proving out
+## Running The Project
 
-## Running Tests
+Build the game project with:
 
-Use:
+```powershell
+dotnet build MyGame\MyGame.csproj --no-restore
+```
+
+Run tests with:
 
 ```powershell
 dotnet test MyGame.Tests\MyGame.Tests.csproj --no-restore
 ```
 
-That is the recommended fast path for this repo.
+That test command is the recommended fast path for this repo.
+
+## Direction
+
+Near-term work is focused on:
+
+1. continuing to improve combat feel and encounter pressure
+2. turning the shop dialogue shell into a real shop system
+3. adding player inventory so buy/sell interactions can become real
+4. continuing to test interior transitions before expanding them into a larger scene network
+5. growing the gameplay spine gradually instead of overbuilding too early
+
+See `docs/GameDesign.md` for broader design direction, and `TODO.md` for the current working list of follow-ups.

@@ -23,7 +23,9 @@ public sealed class World
     private readonly List<IWorldProp> _props;
     private readonly List<PlayerProjectile> _playerProjectiles;
     private readonly List<WorldToast> _toasts;
+    private readonly List<WorldSceneTransition> _sceneTransitions;
     private float _remainingPlayerHitPauseSeconds;
+    private WorldSceneTransition? _pendingSceneTransition;
 
     public World(PlayerActor player, EnemySettings enemySettings)
         : this(
@@ -46,7 +48,8 @@ public sealed class World
             worldObstacleResolver: new WorldObstacleResolver(new WorldCombatSettings()),
             enemySeparationResolver: new EnemySeparationResolver(new WorldCombatSettings()),
             enemyContactResolver: new EnemyContactResolver(new WorldCombatSettings()),
-            worldCombatSettings: new WorldCombatSettings())
+            worldCombatSettings: new WorldCombatSettings(),
+            sceneTransitions: [])
     {
     }
 
@@ -62,7 +65,8 @@ public sealed class World
         WorldObstacleResolver? worldObstacleResolver = null,
         EnemySeparationResolver? enemySeparationResolver = null,
         EnemyContactResolver? enemyContactResolver = null,
-        WorldCombatSettings? worldCombatSettings = null)
+        WorldCombatSettings? worldCombatSettings = null,
+        IEnumerable<WorldSceneTransition>? sceneTransitions = null)
     {
         Player = player;
         _enemySettings = enemySettings ?? new EnemySettings();
@@ -80,6 +84,7 @@ public sealed class World
         _enemies = enemies.ToList();
         _playerProjectiles = [];
         _toasts = [];
+        _sceneTransitions = sceneTransitions?.ToList() ?? [];
     }
 
     public PlayerActor Player { get; }
@@ -97,6 +102,12 @@ public sealed class World
     public IReadOnlyList<PlayerProjectile> PlayerProjectiles => _playerProjectiles;
 
     public IReadOnlyList<WorldToast> Toasts => _toasts;
+
+    public IReadOnlyList<TProp> GetProps<TProp>()
+        where TProp : class, IWorldProp
+    {
+        return _props.OfType<TProp>().ToArray();
+    }
 
     public void Update(FrameTime frameTime)
     {
@@ -135,6 +146,14 @@ public sealed class World
 
         _enemyContactResolver.Resolve(Player, _enemies, frameTime);
         _worldObstacleResolver.ResolvePlayer(Player, _props);
+        QueueSceneTransitionIfTriggered();
+    }
+
+    public WorldSceneTransition? ConsumePendingSceneTransition()
+    {
+        var pendingTransition = _pendingSceneTransition;
+        _pendingSceneTransition = null;
+        return pendingTransition;
     }
 
     public IReadOnlyDictionary<string, string> GetDebugState()
@@ -184,6 +203,7 @@ public sealed class World
         _enemies.Clear();
         _playerProjectiles.Clear();
         _toasts.Clear();
+        _pendingSceneTransition = null;
 
         foreach (var enemyData in data.Enemies)
         {
@@ -241,5 +261,22 @@ public sealed class World
         }
 
         _toasts.RemoveAll(toast => !toast.IsActive);
+    }
+
+    private void QueueSceneTransitionIfTriggered()
+    {
+        if (_pendingSceneTransition is not null)
+        {
+            return;
+        }
+
+        foreach (var transition in _sceneTransitions)
+        {
+            if (Player.Bounds.Intersects(transition.TriggerBounds))
+            {
+                _pendingSceneTransition = transition;
+                return;
+            }
+        }
     }
 }

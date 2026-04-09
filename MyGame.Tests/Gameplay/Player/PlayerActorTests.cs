@@ -278,6 +278,39 @@ public sealed class PlayerActorTests
     }
 
     [Fact]
+    public void ApplyTransitionState_PreservesActiveShieldAndCharges()
+    {
+        var sourcePlayer = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        sourcePlayer.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.True(sourcePlayer.TryAbsorbShieldHit());
+
+        var targetPlayer = new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+
+        targetPlayer.ApplyTransitionState(new Vector2(128f, 196f), sourcePlayer.CreateTransitionState());
+
+        Assert.Equal(new Vector2(128f, 196f), targetPlayer.Position);
+        Assert.True(targetPlayer.IsShieldActive);
+        Assert.Equal(2, targetPlayer.ShieldCharges);
+        Assert.Equal(sourcePlayer.CurrentAbilityPoints, targetPlayer.CurrentAbilityPoints);
+    }
+
+    [Fact]
     public void ApplyKnockback_MovesPlayerImmediatelyAndStartsRecoil()
     {
         var player = new PlayerActor(

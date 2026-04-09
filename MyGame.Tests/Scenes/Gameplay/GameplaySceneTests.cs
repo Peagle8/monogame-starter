@@ -8,6 +8,7 @@ using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Props;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Save;
 using MyGame.Scenes.Gameplay;
@@ -275,6 +276,40 @@ public sealed class GameplaySceneTests
     }
 
     [Fact]
+    public void Update_WhenWorldRequestsSceneTransition_InvokesTransitionCallback()
+    {
+        var requestedTransition = default(WorldSceneTransition);
+        var world = CreateTransitionWorld(new Rectangle(400, 240, 24, 24));
+        var scene = CreateScene(
+            new StubInputService(),
+            new CallbackState(),
+            world: world,
+            onSceneTransition: transition => requestedTransition = transition);
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.NotNull(requestedTransition);
+        Assert.Equal(GameplaySceneNames.ShopInterior, requestedTransition!.TargetSceneName);
+        Assert.Equal(new Vector2(384f, 304f), requestedTransition.TargetPlayerPosition);
+    }
+
+    [Fact]
+    public void Update_WhenShopDialogueIsOpen_DoesNotAdvanceWorldSimulation()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateShopWorld(inputService);
+        var scene = CreateScene(inputService, new CallbackState(), world: world);
+        var initialPosition = scene.World.Player.Position;
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.True(scene.ShopDialogue.IsOpen);
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1.1)));
+
+        Assert.Equal(initialPosition, scene.World.Player.Position);
+    }
+
+    [Fact]
     public void Constructor_WhenReplayMenuDisabled_HidesReplayEntry()
     {
         var scene = CreateScene(
@@ -291,11 +326,13 @@ public sealed class GameplaySceneTests
         ISaveGameService? saveGameService = null,
         World? world = null,
         GameRecorder? gameRecorder = null,
-        DiagnosticsSettings? diagnosticsSettings = null)
+        DiagnosticsSettings? diagnosticsSettings = null,
+        Action<WorldSceneTransition>? onSceneTransition = null)
     {
         world ??= CreateWorld(inputService);
 
         return new GameplayScene(
+            GameplaySceneNames.Overworld,
             inputService,
             world,
             new StubSceneRenderer(),
@@ -304,7 +341,8 @@ public sealed class GameplaySceneTests
             gameRecorder ?? new GameRecorder(),
             diagnosticsSettings ?? new DiagnosticsSettings(),
             onRestart: () => state.Restarted = true,
-            onReturnToMainMenu: () => state.ReturnedToMainMenu = true);
+            onReturnToMainMenu: () => state.ReturnedToMainMenu = true,
+            onSceneTransition: onSceneTransition ?? (_ => { }));
     }
 
     private static World CreateWorld(IInputService inputService)
@@ -319,6 +357,49 @@ public sealed class GameplaySceneTests
             new PlayerAbilityService([PlayerAbility.Dash]),
             attackController);
         return new World(player, new EnemySettings());
+    }
+
+    private static World CreateTransitionWorld(Rectangle triggerBounds)
+    {
+        var inputService = new StubInputService();
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        return new World(
+            player,
+            [],
+            [],
+            sceneTransitions:
+            [
+                new WorldSceneTransition(
+                    triggerBounds,
+                    GameplaySceneNames.ShopInterior,
+                    new Vector2(384f, 304f))
+            ]);
+    }
+
+    private static World CreateShopWorld(IInputService inputService)
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(384f, 264f), player.MaxHealth);
+
+        return new World(
+            player,
+            [new CounterProp(new Vector2(352f, 232f), new Point(96, 24))],
+            []);
     }
 
     private sealed class CallbackState

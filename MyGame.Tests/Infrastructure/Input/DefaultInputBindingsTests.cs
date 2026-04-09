@@ -15,6 +15,7 @@ public sealed class DefaultInputBindingsTests
         Assert.Equal([Keys.S, Keys.Down], bindings[GameAction.MoveDown]);
         Assert.Equal([Keys.A, Keys.Left], bindings[GameAction.MoveLeft]);
         Assert.Equal([Keys.D, Keys.Right], bindings[GameAction.MoveRight]);
+        Assert.Equal([Keys.E], bindings[GameAction.Interact]);
         Assert.Equal([Keys.J, Keys.LeftControl], bindings[GameAction.Attack]);
         Assert.Equal([Keys.K, Keys.LeftAlt], bindings[GameAction.RangedAttack]);
         Assert.Equal([Keys.L, Keys.RightControl], bindings[GameAction.DefenseAbility]);
@@ -22,5 +23,7 @@ public sealed class DefaultInputBindingsTests
         Assert.Equal([Keys.Enter, Keys.Space], bindings[GameAction.Confirm]);
         Assert.Equal([Keys.Escape, Keys.Back], bindings[GameAction.Cancel]);
         Assert.Equal([Keys.P, Keys.Escape], bindings[GameAction.Pause]);
+        Assert.Equal([Keys.Q], bindings[GameAction.PreviousTab]);
+        Assert.Equal([Keys.R], bindings[GameAction.NextTab]);
     }
 }

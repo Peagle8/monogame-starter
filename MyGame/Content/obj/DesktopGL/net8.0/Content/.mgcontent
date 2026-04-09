@@ -4,7 +4,7 @@
   <Platform>DesktopGL</Platform>
   <Config />
   <SourceFiles>
-    <File>c:/Users/sean_/Documents/Game work/monogame-starter-skeleton/monogame-starter/MyGame/Content/DebugFont.spritefont</File>
+    <File>C:/Users/sean_/Documents/Game work/monogame-starter-skeleton/monogame-starter/MyGame/Content/DebugFont.spritefont</File>
   </SourceFiles>
   <DestFiles>
     <File xsi:nil="true" />

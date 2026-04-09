@@ -8,6 +8,7 @@ using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
+using MyGame.Gameplay.Player;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.DependencyInjection;
 using MyGame.Infrastructure.Logging;
@@ -31,6 +32,8 @@ public sealed class GameRoot : Game
     private IAssetCatalog? _assetCatalog;
     private DebugOverlay? _debugOverlay;
     private GameRecorder? _gameRecorder;
+    private GameplayScene? _overworldScene;
+    private GameplayScene? _shopInteriorScene;
 
     public GameRoot()
     {
@@ -58,24 +61,95 @@ public sealed class GameRoot : Game
             _inputService!,
             _serviceProvider.GetServices<IRenderer<MainMenuScene>>().OfType<MainMenuSceneRenderer>().Single(),
             _serviceProvider.GetRequiredService<IRenderContext>(),
-            onStartGame: () => _sceneManager!.ChangeScene(CreateGameplayScene()),
+            onStartGame: StartNewGame,
             onLoadGame: LoadGameplayFromSave,
             canLoadGame: () => _serviceProvider.GetRequiredService<ISaveGameService>().SaveExists(),
             onExitGame: Exit);
     }
 
-    private GameplayScene CreateGameplayScene()
+    private void StartNewGame()
+    {
+        StartNewGame(GameplaySceneNames.Overworld);
+    }
+
+    private void StartNewGame(string initialSceneName)
+    {
+        CreateGameplayScenes();
+        _sceneManager!.ChangeScene(GetGameplayScene(initialSceneName));
+    }
+
+    private void CreateGameplayScenes()
+    {
+        var builder = _serviceProvider.GetRequiredService<GameplayLevelBuilder>();
+        var renderer = _serviceProvider.GetServices<IRenderer<GameplayScene>>().OfType<GameplaySceneRenderer>().Single();
+        var renderContext = _serviceProvider.GetRequiredService<IRenderContext>();
+        var saveGameService = _serviceProvider.GetRequiredService<ISaveGameService>();
+        var gameRecorder = _serviceProvider.GetRequiredService<GameRecorder>();
+        var diagnosticsSettings = _serviceProvider.GetRequiredService<DiagnosticsSettings>();
+
+        _overworldScene = CreateGameplayScene(
+            GameplaySceneNames.Overworld,
+            builder.BuildOverworld(_serviceProvider.GetRequiredService<PlayerActor>()),
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings);
+        // TODO: there is no way this should be here...  when we have lots of scenes imagine loading them all up in a nightmare giant sequence here
+        _shopInteriorScene = CreateGameplayScene(
+            GameplaySceneNames.ShopInterior,
+            builder.BuildShopInterior(_serviceProvider.GetRequiredService<PlayerActor>()),
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings);
+    }
+
+    private GameplayScene CreateGameplayScene(
+        string sceneName,
+        World world,
+        IRenderer<GameplayScene> renderer,
+        IRenderContext renderContext,
+        ISaveGameService saveGameService,
+        GameRecorder gameRecorder,
+        DiagnosticsSettings diagnosticsSettings)
     {
         return new GameplayScene(
+            sceneName,
             _inputService!,
-            _serviceProvider.GetRequiredService<World>(),
-            _serviceProvider.GetServices<IRenderer<GameplayScene>>().OfType<GameplaySceneRenderer>().Single(),
-            _serviceProvider.GetRequiredService<IRenderContext>(),
-            _serviceProvider.GetRequiredService<ISaveGameService>(),
-            _serviceProvider.GetRequiredService<GameRecorder>(),
-            _serviceProvider.GetRequiredService<DiagnosticsSettings>(),
-            onRestart: () => _sceneManager!.ChangeScene(CreateGameplayScene()),
-            onReturnToMainMenu: () => _sceneManager!.ChangeScene(CreateMainMenuScene()));
+            world,
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings,
+            onRestart: () => StartNewGame(sceneName),
+            onReturnToMainMenu: () => _sceneManager!.ChangeScene(CreateMainMenuScene()),
+            onSceneTransition: HandleGameplaySceneTransition);
+    }
+
+    private void HandleGameplaySceneTransition(WorldSceneTransition transition)
+    {
+        var sourceScene = (_sceneManager?.CurrentSceneName == GameplaySceneNames.ShopInterior)
+            ? _shopInteriorScene
+            : _overworldScene;
+        var targetScene = GetGameplayScene(transition.TargetSceneName);
+        var sourcePlayer = sourceScene!.World.Player;
+        var transitionState = sourcePlayer.CreateTransitionState();
+
+        targetScene.World.Player.ApplyTransitionState(transition.TargetPlayerPosition, transitionState);
+        _sceneManager!.ChangeScene(targetScene);
+    }
+
+    private GameplayScene GetGameplayScene(string sceneName)
+    {
+        return sceneName switch
+        {
+            GameplaySceneNames.ShopInterior => _shopInteriorScene ?? throw new InvalidOperationException("Shop scene is unavailable."),
+            GameplaySceneNames.Overworld => _overworldScene ?? throw new InvalidOperationException("Overworld scene is unavailable."),
+            _ => throw new InvalidOperationException($"Unknown gameplay scene '{sceneName}'.")
+        };
     }
 
     private bool LoadGameplayFromSave()
@@ -83,12 +157,19 @@ public sealed class GameRoot : Game
         var saveGameService = _serviceProvider.GetRequiredService<ISaveGameService>();
         var saveData = saveGameService.Load();
 
-        if (saveData is null || saveData.SceneName != "Gameplay")
+        if (saveData is null)
         {
             return false;
         }
 
-        var scene = CreateGameplayScene();
+        if (saveData.SceneName != GameplaySceneNames.Overworld
+            && saveData.SceneName != GameplaySceneNames.ShopInterior)
+        {
+            return false;
+        }
+
+        CreateGameplayScenes();
+        var scene = GetGameplayScene(saveData.SceneName);
         scene.World.ApplySaveData(saveData);
         _sceneManager!.ChangeScene(scene);
         return true;

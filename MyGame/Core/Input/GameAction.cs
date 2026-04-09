@@ -6,11 +6,14 @@ public enum GameAction
     MoveDown,
     MoveLeft,
     MoveRight,
+    Interact,
     Attack,
     RangedAttack,
     DefenseAbility,
     Dash,
     Confirm,
     Cancel,
-    Pause
+    Pause,
+    PreviousTab,
+    NextTab
 }

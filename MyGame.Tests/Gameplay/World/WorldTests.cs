@@ -5,6 +5,7 @@ using MyGame.Core.Input;
 using MyGame.Gameplay.Enemies;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.Props;
+using MyGame.Gameplay.World;
 
 namespace MyGame.Tests.Gameplay.World;
 
@@ -420,6 +421,50 @@ public sealed class WorldTests
         world.Update(new FrameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1)));
 
         Assert.Equal(new Vector2(580f, 240f), world.Player.Position);
+    }
+
+    [Fact]
+    public void Update_WhenPlayerTouchesSceneTransition_QueuesPendingTransition()
+    {
+        var player = CreatePlayer();
+        var expectedTransition = new WorldSceneTransition(
+            new Rectangle(400, 240, 24, 24),
+            "ShopInterior",
+            new Vector2(384f, 304f));
+        var world = new global::MyGame.Gameplay.World.World(
+            player,
+            [],
+            [],
+            sceneTransitions: [expectedTransition]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(expectedTransition.TargetSceneName, transition!.TargetSceneName);
+        Assert.Equal(expectedTransition.TargetPlayerPosition, transition.TargetPlayerPosition);
+    }
+
+    [Fact]
+    public void ConsumePendingSceneTransition_ClearsQueuedTransition()
+    {
+        var player = CreatePlayer();
+        var world = new global::MyGame.Gameplay.World.World(
+            player,
+            [],
+            [],
+            sceneTransitions:
+            [
+                new WorldSceneTransition(
+                    new Rectangle(400, 240, 24, 24),
+                    "ShopInterior",
+                    new Vector2(384f, 304f))
+            ]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.NotNull(world.ConsumePendingSceneTransition());
+        Assert.Null(world.ConsumePendingSceneTransition());
     }
 
     [Fact]

@@ -14,6 +14,7 @@ public sealed class DefaultGamePadBindingsTests
         Assert.Equal([GamePadControl.DPadDown, GamePadControl.LeftStickDown], bindings[GameAction.MoveDown]);
         Assert.Equal([GamePadControl.DPadLeft, GamePadControl.LeftStickLeft], bindings[GameAction.MoveLeft]);
         Assert.Equal([GamePadControl.DPadRight, GamePadControl.LeftStickRight], bindings[GameAction.MoveRight]);
+        Assert.Equal([GamePadControl.FaceRight], bindings[GameAction.Interact]);
         Assert.Equal([GamePadControl.FaceLeft], bindings[GameAction.Attack]);
         Assert.Equal([GamePadControl.RightTrigger], bindings[GameAction.RangedAttack]);
         Assert.Equal([GamePadControl.FaceTop], bindings[GameAction.DefenseAbility]);
@@ -21,5 +22,7 @@ public sealed class DefaultGamePadBindingsTests
         Assert.Equal([GamePadControl.FaceBottom], bindings[GameAction.Confirm]);
         Assert.Equal([GamePadControl.FaceRight, GamePadControl.Back], bindings[GameAction.Cancel]);
         Assert.Equal([GamePadControl.Start], bindings[GameAction.Pause]);
+        Assert.Equal([GamePadControl.LeftShoulder], bindings[GameAction.PreviousTab]);
+        Assert.Equal([GamePadControl.RightShoulder], bindings[GameAction.NextTab]);
     }
 }

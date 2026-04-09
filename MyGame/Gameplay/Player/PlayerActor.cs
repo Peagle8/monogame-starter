@@ -178,19 +178,42 @@ public sealed class PlayerActor
         RestoreState(position, currentHealth, MaxAbilityPoints);
     }
 
-    public void RestoreState(Vector2 position, int currentHealth, float currentAbilityPoints)
+    public PlayerTransitionState CreateTransitionState()
+    {
+        return new PlayerTransitionState(
+            CurrentHealth,
+            CurrentAbilityPoints,
+            Facing,
+            _defenseAbilityState,
+            _rangedAttackState);
+    }
+
+    public void ApplyTransitionState(Vector2 position, PlayerTransitionState state)
     {
         Position = position;
         PreviousPosition = position;
-        CurrentHealth = Math.Clamp(currentHealth, 0, MaxHealth);
-        CurrentAbilityPoints = MathHelper.Clamp(currentAbilityPoints, 0f, MaxAbilityPoints);
+        Facing = state.Facing;
+        CurrentHealth = Math.Clamp(state.CurrentHealth, 0, MaxHealth);
+        CurrentAbilityPoints = MathHelper.Clamp(state.CurrentAbilityPoints, 0f, MaxAbilityPoints);
         IsMoving = false;
         _attackState = PlayerAttackState.Idle;
-        _defenseAbilityState = PlayerDefenseAbilityState.Default;
-        _rangedAttackState = PlayerRangedAttackState.Default;
+        _defenseAbilityState = state.DefenseAbilityState;
+        _rangedAttackState = state.RangedAttackState;
         _dashState = PlayerDashState.Idle;
         _knockbackMotion.Reset();
         _spawnedProjectiles.Clear();
+    }
+
+    public void RestoreState(Vector2 position, int currentHealth, float currentAbilityPoints)
+    {
+        ApplyTransitionState(
+            position,
+            new PlayerTransitionState(
+                currentHealth,
+                currentAbilityPoints,
+                Facing,
+                PlayerDefenseAbilityState.Default,
+                PlayerRangedAttackState.Default));
     }
 
     public void AddAbilityPoints(float amount)

@@ -7,6 +7,8 @@ using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
+using MyGame.Gameplay.Props;
+using MyGame.Gameplay.Shops;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Save;
 using MyGame.Rendering.Gameplay;
@@ -15,14 +17,18 @@ namespace MyGame.Scenes.Gameplay;
 
 public sealed class GameplayScene : IScene
 {
+    private readonly string _name;
     private readonly Action _onRestart;
     private readonly Action _onReturnToMainMenu;
+    private readonly Action<WorldSceneTransition> _onSceneTransition;
     private readonly IInputService _inputService;
     private readonly IRenderer<GameplayScene> _renderer;
     private readonly IRenderContext _renderContext;
     private readonly ISaveGameService _saveGameService;
     private readonly GameRecorder _gameRecorder;
     private readonly GameplayPauseMenu _pauseMenu;
+    private readonly ShopDialogueController _shopDialogueController = new();
+    private ShopDialogueState _shopDialogueState = ShopDialogueState.Default;
 
     public GameplayScene(
         IInputService inputService,
@@ -34,9 +40,38 @@ public sealed class GameplayScene : IScene
         DiagnosticsSettings diagnosticsSettings,
         Action onRestart,
         Action onReturnToMainMenu)
+        : this(
+            GameplaySceneNames.Overworld,
+            inputService,
+            world,
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings,
+            onRestart,
+            onReturnToMainMenu,
+            _ => { })
     {
+    }
+
+    public GameplayScene(
+        string name,
+        IInputService inputService,
+        World world,
+        IRenderer<GameplayScene> renderer,
+        IRenderContext renderContext,
+        ISaveGameService saveGameService,
+        GameRecorder gameRecorder,
+        DiagnosticsSettings diagnosticsSettings,
+        Action onRestart,
+        Action onReturnToMainMenu,
+        Action<WorldSceneTransition> onSceneTransition)
+    {
+        _name = name;
         _onRestart = onRestart;
         _onReturnToMainMenu = onReturnToMainMenu;
+        _onSceneTransition = onSceneTransition;
         _inputService = inputService;
         World = world;
         _renderer = renderer;
@@ -54,7 +89,7 @@ public sealed class GameplayScene : IScene
             ReturnToMainMenu);
     }
 
-    public string Name => "Gameplay";
+    public string Name => _name;
 
     public World World { get; }
 
@@ -67,6 +102,8 @@ public sealed class GameplayScene : IScene
     public bool IsReplaying => _gameRecorder.IsReplaying;
 
     public bool IsReplayPaused => _gameRecorder.IsReplayPaused;
+
+    public ShopDialogueState ShopDialogue => _shopDialogueState;
 
     public void Enter()
     {
@@ -96,7 +133,20 @@ public sealed class GameplayScene : IScene
             return;
         }
 
+        if (_shopDialogueState.IsOpen)
+        {
+            UpdateShopDialogue();
+            return;
+        }
+
         World.Update(frameTime);
+        UpdateShopDialogue();
+
+        var pendingTransition = World.ConsumePendingSceneTransition();
+        if (pendingTransition is not null)
+        {
+            _onSceneTransition(pendingTransition);
+        }
     }
 
     public void Draw(FrameTime frameTime, SpriteBatch spriteBatch, IAssetCatalog assetCatalog)
@@ -123,7 +173,10 @@ public sealed class GameplayScene : IScene
             ["PauseMenuFooterText"] = _pauseMenu.FooterText,
             ["RecorderRecording"] = _gameRecorder.IsRecording.ToString(),
             ["RecorderReplaying"] = _gameRecorder.IsReplaying.ToString(),
-            ["RecorderReplayPaused"] = _gameRecorder.IsReplayPaused.ToString()
+            ["RecorderReplayPaused"] = _gameRecorder.IsReplayPaused.ToString(),
+            ["ShopDialogueOpen"] = _shopDialogueState.IsOpen.ToString(),
+            ["ShopDialoguePromptVisible"] = _shopDialogueState.IsPromptVisible.ToString(),
+            ["ShopDialogueTab"] = _shopDialogueState.ActiveTab.ToString()
         };
 
         return debugState;
@@ -147,5 +200,18 @@ public sealed class GameplayScene : IScene
     private void ReturnToMainMenu()
     {
         _onReturnToMainMenu();
+    }
+
+    private void UpdateShopDialogue()
+    {
+        var counterBounds = World.GetProps<CounterProp>().FirstOrDefault()?.Bounds;
+        _shopDialogueState = _shopDialogueController.Update(
+            _shopDialogueState,
+            World.Player.Bounds,
+            counterBounds,
+            _inputService.IsJustPressed(GameAction.Interact),
+            _inputService.IsJustPressed(GameAction.Cancel),
+            _inputService.IsJustPressed(GameAction.PreviousTab),
+            _inputService.IsJustPressed(GameAction.NextTab));
     }
 }
