@@ -25,7 +25,9 @@ public sealed class PlayerProjectileResolver
 
             foreach (var enemy in enemies)
             {
-                if (enemy.State == EnemyState.Dead || !projectile.Bounds.Intersects(enemy.Bounds))
+                if (enemy.State == EnemyState.Dead
+                    || enemy.IsBossStageTransitioning
+                    || !projectile.Bounds.Intersects(enemy.Bounds))
                 {
                     continue;
                 }

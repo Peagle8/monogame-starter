@@ -28,7 +28,7 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(inputService);
 
         Assert.Equal(1, pauseMenu.SelectedIndex);
-        Assert.Equal("Save Game", pauseMenu.SelectedText);
+        Assert.Equal("Inventory", pauseMenu.SelectedText);
     }
 
     [Fact]
@@ -54,10 +54,54 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService());
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
 
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         Assert.True(loadInvoked);
+    }
+
+    [Fact]
+    public void Update_ConfirmOnInventory_OpensInventoryMenu()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.True(pauseMenu.IsShowingInventoryMenu);
+        Assert.Equal("Weapons", pauseMenu.InventoryTab.ToString());
+    }
+
+    [Fact]
+    public void Update_WhenInventoryMenuOpen_NextTabAdvancesInventoryTab()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+
+        Assert.Equal("Armor", pauseMenu.InventoryTab.ToString());
+    }
+
+    [Fact]
+    public void Update_WhenInventoryMenuOpen_CancelReturnsToPauseMenu()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        pauseMenu.Update(new StubInputService(GameAction.Cancel));
+
+        Assert.True(pauseMenu.IsOpen);
+        Assert.False(pauseMenu.IsShowingInventoryMenu);
     }
 
     [Fact]
@@ -66,6 +110,7 @@ public sealed class GameplayPauseMenuTests
         var pauseMenu = CreatePauseMenu();
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -81,6 +126,7 @@ public sealed class GameplayPauseMenuTests
         var pauseMenu = CreatePauseMenu();
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -129,6 +175,7 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
 
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
 
@@ -144,6 +191,7 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService());
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
 
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
 
@@ -157,6 +205,7 @@ public sealed class GameplayPauseMenuTests
         var pauseMenu = CreatePauseMenu();
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -179,6 +228,7 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
 
@@ -193,6 +243,7 @@ public sealed class GameplayPauseMenuTests
         var pauseMenu = CreatePauseMenu();
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -224,6 +275,7 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         pauseMenu.Update(new StubInputService(GameAction.Confirm));
@@ -237,6 +289,7 @@ public sealed class GameplayPauseMenuTests
         var pauseMenu = CreatePauseMenu(canLoadGame: () => false);
         pauseMenu.Open();
         pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
         pauseMenu.Update(new StubInputService(GameAction.MoveDown));
 

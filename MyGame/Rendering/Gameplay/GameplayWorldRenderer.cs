@@ -39,7 +39,7 @@ public sealed class GameplayWorldRenderer : IRenderer<GameplayScene>
                     TileSize,
                     TileSize);
 
-                _worldRectangleRenderer.Draw(worldTileBounds, CheckerboardFloorPalette.GetTileColor(column, row));
+                _worldRectangleRenderer.Draw(worldTileBounds, CheckerboardFloorPalette.GetTileColor(column, row, model.Name));
             }
         }
     }

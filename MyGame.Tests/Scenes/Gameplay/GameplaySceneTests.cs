@@ -83,6 +83,7 @@ public sealed class GameplaySceneTests
         scene.PauseMenu.Open();
         scene.PauseMenu.Update(new StubInputService());
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         Assert.NotNull(saveGameService.LastSavedData);
@@ -131,6 +132,7 @@ public sealed class GameplaySceneTests
         scene.PauseMenu.Update(new StubInputService());
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         Assert.Equal(new Vector2(128f, 256f), scene.World.Player.Position);
@@ -156,6 +158,7 @@ public sealed class GameplaySceneTests
         scene.PauseMenu.Update(new StubInputService());
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
 
         Assert.Equal("No save found yet.", scene.PauseMenu.StatusMessage);
@@ -178,6 +181,7 @@ public sealed class GameplaySceneTests
 
         scene.PauseMenu.Open();
         scene.PauseMenu.Update(new StubInputService());
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -247,6 +251,7 @@ public sealed class GameplaySceneTests
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
         scene.PauseMenu.Update(new StubInputService(GameAction.Confirm));
 
@@ -263,6 +268,7 @@ public sealed class GameplaySceneTests
 
         scene.PauseMenu.Open();
         scene.PauseMenu.Update(new StubInputService());
+        scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
         scene.PauseMenu.Update(new StubInputService(GameAction.MoveDown));
@@ -291,6 +297,22 @@ public sealed class GameplaySceneTests
         Assert.NotNull(requestedTransition);
         Assert.Equal(GameplaySceneNames.ShopInterior, requestedTransition!.TargetSceneName);
         Assert.Equal(new Vector2(384f, 304f), requestedTransition.TargetPlayerPosition);
+    }
+
+    [Fact]
+    public void Update_WhenWorldTransitionIsBlocked_DoesNotInvokeTransitionCallback()
+    {
+        var requestedTransition = default(WorldSceneTransition);
+        var world = CreateBlockedTransitionWorld(new Rectangle(400, 240, 24, 24));
+        var scene = CreateScene(
+            new StubInputService(),
+            new CallbackState(),
+            world: world,
+            onSceneTransition: transition => requestedTransition = transition);
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Null(requestedTransition);
     }
 
     [Fact]
@@ -381,6 +403,35 @@ public sealed class GameplaySceneTests
                     triggerBounds,
                     GameplaySceneNames.ShopInterior,
                     new Vector2(384f, 304f))
+            ]);
+    }
+
+    private static World CreateBlockedTransitionWorld(Rectangle triggerBounds)
+    {
+        var inputService = new StubInputService();
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        var miniboss = new EnemyActor(
+            EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss),
+            new Vector2(560f, 240f));
+
+        return new World(
+            player,
+            [],
+            [miniboss],
+            sceneTransitions:
+            [
+                new WorldSceneTransition(
+                    triggerBounds,
+                    GameplaySceneNames.ShopInterior,
+                    new Vector2(384f, 304f),
+                    canTrigger: world => !world.HasLivingEnemy(EnemyKind.BatMiniBoss))
             ]);
     }
 

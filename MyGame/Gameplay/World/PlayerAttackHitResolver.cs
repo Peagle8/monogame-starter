@@ -19,7 +19,7 @@ public sealed class PlayerAttackHitResolver
 
         foreach (var enemy in enemies)
         {
-            if (enemy.State == EnemyState.Dead)
+            if (enemy.State == EnemyState.Dead || enemy.IsBossStageTransitioning)
             {
                 continue;
             }

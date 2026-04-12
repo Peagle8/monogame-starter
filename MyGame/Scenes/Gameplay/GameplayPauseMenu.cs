@@ -1,4 +1,5 @@
 using MyGame.Core.Input;
+using MyGame.Gameplay.Inventory;
 using MyGame.Infrastructure.Save;
 using MyGame.Scenes.MainMenu;
 
@@ -25,6 +26,7 @@ public sealed class GameplayPauseMenu
         _items =
         [
             new MenuItem("Resume", onResume),
+            new MenuItem("Inventory", OpenInventoryMenu),
             new MenuItem("Save Game", onSaveGame),
             new MenuItem("Load Game", onLoadGame, canLoadGame),
             new MenuItem("Controls", OpenControls),
@@ -111,6 +113,8 @@ public sealed class GameplayPauseMenu
 
     public bool IsShowingControls { get; private set; }
 
+    public bool IsShowingInventoryMenu { get; private set; }
+
     public bool IsShowingReplayMenu { get; private set; }
 
     public string? StatusMessage { get; private set; }
@@ -127,13 +131,17 @@ public sealed class GameplayPauseMenu
 
     public IReadOnlyList<MenuItem> ReplayItems => _replayItems;
 
+    public PlayerInventoryTab InventoryTab { get; private set; } = PlayerInventoryTab.Weapons;
+
     public string FooterText => StatusMessage ?? GetFooterText();
 
     public void Open()
     {
         IsOpen = true;
         IsShowingControls = false;
+        IsShowingInventoryMenu = false;
         IsShowingReplayMenu = false;
+        InventoryTab = PlayerInventoryTab.Weapons;
         SelectedIndex = 0;
         ReplaySelectedIndex = 0;
         StatusMessage = null;
@@ -144,7 +152,9 @@ public sealed class GameplayPauseMenu
     {
         IsOpen = false;
         IsShowingControls = false;
+        IsShowingInventoryMenu = false;
         IsShowingReplayMenu = false;
+        InventoryTab = PlayerInventoryTab.Weapons;
         SelectedIndex = 0;
         ReplaySelectedIndex = 0;
         StatusMessage = null;
@@ -184,6 +194,12 @@ public sealed class GameplayPauseMenu
                 IsShowingControls = false;
             }
 
+            return;
+        }
+
+        if (IsShowingInventoryMenu)
+        {
+            UpdateInventoryMenu(inputService);
             return;
         }
 
@@ -233,6 +249,12 @@ public sealed class GameplayPauseMenu
         IsShowingControls = true;
     }
 
+    private void OpenInventoryMenu()
+    {
+        IsShowingInventoryMenu = true;
+        InventoryTab = PlayerInventoryTab.Weapons;
+    }
+
     private void OpenReplayMenu()
     {
         IsShowingReplayMenu = true;
@@ -243,6 +265,31 @@ public sealed class GameplayPauseMenu
     {
         IsShowingReplayMenu = false;
         ReplaySelectedIndex = 0;
+    }
+
+    private void CloseInventoryMenu()
+    {
+        IsShowingInventoryMenu = false;
+        InventoryTab = PlayerInventoryTab.Weapons;
+    }
+
+    private void UpdateInventoryMenu(IInputService inputService)
+    {
+        if (inputService.IsJustPressed(GameAction.Cancel) || inputService.IsJustPressed(GameAction.Pause))
+        {
+            CloseInventoryMenu();
+            return;
+        }
+
+        if (inputService.IsJustPressed(GameAction.PreviousTab))
+        {
+            InventoryTab = PreviousInventoryTab(InventoryTab);
+        }
+
+        if (inputService.IsJustPressed(GameAction.NextTab))
+        {
+            InventoryTab = NextInventoryTab(InventoryTab);
+        }
     }
 
     private void UpdateReplayMenu(IInputService inputService)
@@ -287,10 +334,23 @@ public sealed class GameplayPauseMenu
             };
         }
 
+        if (IsShowingInventoryMenu)
+        {
+            return InventoryTab switch
+            {
+                PlayerInventoryTab.Weapons => "Equip and compare your currently owned weapons.",
+                PlayerInventoryTab.Armor => "Review armor pieces once defensive gear is added.",
+                PlayerInventoryTab.Items => "Consumables and key items will appear here later.",
+                PlayerInventoryTab.Abilities => "Track unlocked abilities and future upgrades here.",
+                _ => "Browse your inventory tabs."
+            };
+        }
+
         var menuItem = _items[SelectedIndex];
         return menuItem.Text switch
         {
             "Resume" => "Return to gameplay.",
+            "Inventory" => "Open your inventory and browse equipment, items, and abilities.",
             "Save Game" => "Write your current progress to the active save file.",
             "Load Game" when !menuItem.IsEnabled => "No save found yet.",
             "Load Game" => "Restore the latest saved gameplay state.",
@@ -298,6 +358,28 @@ public sealed class GameplayPauseMenu
             "Replay" => "Open replay and recording diagnostics.",
             "Main Menu" => "Leave this run and return to the title screen.",
             _ => "Press Enter to select."
+        };
+    }
+
+    private static PlayerInventoryTab PreviousInventoryTab(PlayerInventoryTab tab)
+    {
+        return tab switch
+        {
+            PlayerInventoryTab.Weapons => PlayerInventoryTab.Abilities,
+            PlayerInventoryTab.Armor => PlayerInventoryTab.Weapons,
+            PlayerInventoryTab.Items => PlayerInventoryTab.Armor,
+            _ => PlayerInventoryTab.Items
+        };
+    }
+
+    private static PlayerInventoryTab NextInventoryTab(PlayerInventoryTab tab)
+    {
+        return tab switch
+        {
+            PlayerInventoryTab.Weapons => PlayerInventoryTab.Armor,
+            PlayerInventoryTab.Armor => PlayerInventoryTab.Items,
+            PlayerInventoryTab.Items => PlayerInventoryTab.Abilities,
+            _ => PlayerInventoryTab.Weapons
         };
     }
 }

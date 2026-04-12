@@ -25,9 +25,7 @@ public sealed class PlayerDefenseAbilityController
 
         if (currentState.IsActive)
         {
-            return new PlayerDefenseAbilityUpdateResult(
-                currentState with { IsActive = false, RemainingCharges = 0 },
-                Activated: false);
+            return new PlayerDefenseAbilityUpdateResult(currentState, Activated: false);
         }
 
         if (!canActivateEquippedAbility)

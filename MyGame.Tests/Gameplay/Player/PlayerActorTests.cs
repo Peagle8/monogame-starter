@@ -237,6 +237,33 @@ public sealed class PlayerActorTests
     }
 
     [Fact]
+    public void Update_WhenShieldIsAlreadyActive_RepeatDefensePressDoesNotDeactivateOrReactivateIt()
+    {
+        var inputService = new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility);
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings { MaxAbilityPoints = 6f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.True(player.IsShieldActive);
+        Assert.Equal(3, player.ShieldCharges);
+        Assert.Equal(3f, player.CurrentAbilityPoints);
+
+        inputService.SetJustPressedActions(GameAction.DefenseAbility);
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
+
+        Assert.True(player.IsShieldActive);
+        Assert.Equal(3, player.ShieldCharges);
+        Assert.Equal(3f, player.CurrentAbilityPoints);
+    }
+
+    [Fact]
     public void TryAbsorbShieldHit_WhenShieldIsActive_ConsumesShieldCharge()
     {
         var player = new PlayerActor(
@@ -379,9 +406,51 @@ public sealed class PlayerActorTests
         Assert.Equal(new Microsoft.Xna.Framework.Vector2(400f, 240f), player.Position);
     }
 
+    [Fact]
+    public void ApplyStun_PreventsMovementUntilDurationExpires()
+    {
+        var player = new PlayerActor(
+            new StubInputService(new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight })),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        player.ApplyStun(2f);
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1)));
+
+        Assert.True(player.IsStunned);
+        Assert.Equal(new Vector2(400f, 240f), player.Position);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.1)));
+
+        Assert.False(player.IsStunned);
+    }
+
+    [Fact]
+    public void ApplyStun_WhenExpired_AllowsMovementAgain()
+    {
+        var inputService = new StubInputService(new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight }));
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings { MoveSpeed = 180f }),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        player.ApplyStun(0.5f);
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(0.5)));
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(1.0)));
+
+        Assert.False(player.IsStunned);
+        Assert.Equal(new Vector2(490f, 240f), player.Position);
+    }
+
     private sealed class StubInputService : IInputService
     {
-        private readonly HashSet<GameAction> _justPressedActions;
+        private HashSet<GameAction> _justPressedActions;
         private readonly InputSnapshot _current;
 
         public StubInputService(params GameAction[] justPressedActions)
@@ -417,6 +486,11 @@ public sealed class PlayerActorTests
         public bool IsJustReleased(GameAction action)
         {
             return false;
+        }
+
+        public void SetJustPressedActions(params GameAction[] justPressedActions)
+        {
+            _justPressedActions = justPressedActions.ToHashSet();
         }
     }
 }

@@ -32,7 +32,7 @@ public sealed class EnemyFactory : IEnemyFactory
     public EnemyActor Create(EnemyKind kind, Vector2 position, EnemyAxisPreference axisPreference = EnemyAxisPreference.None)
     {
         var settings = _enemySettingsCatalog.Get(kind);
-        var initialDashPauseSeconds = kind is EnemyKind.HornedRabbit or EnemyKind.Bat or EnemyKind.Grasshopper
+        var initialDashPauseSeconds = kind is EnemyKind.HornedRabbit or EnemyKind.HornedRabbitElite or EnemyKind.Bat or EnemyKind.Grasshopper
             ? Random.Shared.NextSingle() * (settings.InitialDashPauseMaxSeconds - settings.InitialDashPauseMinSeconds)
                 + settings.InitialDashPauseMinSeconds
             : 0f;

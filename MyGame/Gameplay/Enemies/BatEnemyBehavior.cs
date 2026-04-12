@@ -23,7 +23,7 @@ internal sealed class BatEnemyBehavior : IEnemyBehavior
         _remainingPauseSeconds = _initialDashPauseSeconds;
     }
 
-    public void Update(EnemyActor enemy, Vector2 playerPosition, FrameTime frameTime)
+    public void Update(EnemyActor enemy, Vector2 playerPosition, Rectangle playerBounds, FrameTime frameTime)
     {
         var toPlayer = playerPosition - enemy.Position;
         var distanceToPlayer = toPlayer.Length();

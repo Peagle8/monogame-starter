@@ -33,4 +33,18 @@ public sealed class EnemySettings
     public float InitialDashPauseMaxSeconds { get; init; } = 0f;
 
     public int AttackHitboxPadding { get; init; } = 0;
+
+    public int BoundsWidth { get; init; } = 28;
+
+    public int BoundsHeight { get; init; } = 28;
+
+    public int SpecialAttackDamage { get; init; } = 0;
+
+    public float SpecialAttackRange { get; init; } = 0f;
+
+    public float SpecialAttackPauseSeconds { get; init; } = 0f;
+
+    public float SpecialAttackStunSeconds { get; init; } = 0f;
+
+    public float SpecialAttackConeHalfAngleDegrees { get; init; } = 35f;
 }

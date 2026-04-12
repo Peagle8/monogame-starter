@@ -32,8 +32,7 @@ public sealed class GameRoot : Game
     private IAssetCatalog? _assetCatalog;
     private DebugOverlay? _debugOverlay;
     private GameRecorder? _gameRecorder;
-    private GameplayScene? _overworldScene;
-    private GameplayScene? _shopInteriorScene;
+    private readonly Dictionary<string, GameplayScene> _gameplayScenes = [];
 
     public GameRoot()
     {
@@ -80,6 +79,7 @@ public sealed class GameRoot : Game
 
     private void CreateGameplayScenes()
     {
+        _gameplayScenes.Clear();
         var builder = _serviceProvider.GetRequiredService<GameplayLevelBuilder>();
         var renderer = _serviceProvider.GetServices<IRenderer<GameplayScene>>().OfType<GameplaySceneRenderer>().Single();
         var renderContext = _serviceProvider.GetRequiredService<IRenderContext>();
@@ -87,23 +87,62 @@ public sealed class GameRoot : Game
         var gameRecorder = _serviceProvider.GetRequiredService<GameRecorder>();
         var diagnosticsSettings = _serviceProvider.GetRequiredService<DiagnosticsSettings>();
 
-        _overworldScene = CreateGameplayScene(
+        AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.Overworld,
             builder.BuildOverworld(_serviceProvider.GetRequiredService<PlayerActor>()),
             renderer,
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings);
-        // TODO: there is no way this should be here...  when we have lots of scenes imagine loading them all up in a nightmare giant sequence here
-        _shopInteriorScene = CreateGameplayScene(
+            diagnosticsSettings));
+        AddGameplayScene(CreateGameplayScene(
+            GameplaySceneNames.WildernessNorth,
+            builder.BuildWildernessNorth(_serviceProvider.GetRequiredService<PlayerActor>()),
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings));
+        AddGameplayScene(CreateGameplayScene(
+            GameplaySceneNames.WildernessSouth,
+            builder.BuildWildernessSouth(_serviceProvider.GetRequiredService<PlayerActor>()),
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings));
+        AddGameplayScene(CreateGameplayScene(
+            GameplaySceneNames.WildernessEast,
+            builder.BuildWildernessEast(_serviceProvider.GetRequiredService<PlayerActor>()),
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings));
+        AddGameplayScene(CreateGameplayScene(
+            GameplaySceneNames.WildernessWest,
+            builder.BuildWildernessWest(_serviceProvider.GetRequiredService<PlayerActor>()),
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings));
+        AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.ShopInterior,
             builder.BuildShopInterior(_serviceProvider.GetRequiredService<PlayerActor>()),
             renderer,
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings);
+            diagnosticsSettings));
+        AddGameplayScene(CreateGameplayScene(
+            GameplaySceneNames.Arena,
+            builder.BuildArena(_serviceProvider.GetRequiredService<PlayerActor>()),
+            renderer,
+            renderContext,
+            saveGameService,
+            gameRecorder,
+            diagnosticsSettings));
     }
 
     private GameplayScene CreateGameplayScene(
@@ -129,27 +168,28 @@ public sealed class GameRoot : Game
             onSceneTransition: HandleGameplaySceneTransition);
     }
 
+    private void AddGameplayScene(GameplayScene scene)
+    {
+        _gameplayScenes[scene.Name] = scene;
+    }
+
     private void HandleGameplaySceneTransition(WorldSceneTransition transition)
     {
-        var sourceScene = (_sceneManager?.CurrentSceneName == GameplaySceneNames.ShopInterior)
-            ? _shopInteriorScene
-            : _overworldScene;
+        var sourceScene = GetGameplayScene(_sceneManager?.CurrentSceneName ?? GameplaySceneNames.Overworld);
         var targetScene = GetGameplayScene(transition.TargetSceneName);
         var sourcePlayer = sourceScene!.World.Player;
         var transitionState = sourcePlayer.CreateTransitionState();
 
         targetScene.World.Player.ApplyTransitionState(transition.TargetPlayerPosition, transitionState);
+        targetScene.World.SuppressIntersectingSceneTransitions();
         _sceneManager!.ChangeScene(targetScene);
     }
 
     private GameplayScene GetGameplayScene(string sceneName)
     {
-        return sceneName switch
-        {
-            GameplaySceneNames.ShopInterior => _shopInteriorScene ?? throw new InvalidOperationException("Shop scene is unavailable."),
-            GameplaySceneNames.Overworld => _overworldScene ?? throw new InvalidOperationException("Overworld scene is unavailable."),
-            _ => throw new InvalidOperationException($"Unknown gameplay scene '{sceneName}'.")
-        };
+        return _gameplayScenes.TryGetValue(sceneName, out var scene)
+            ? scene
+            : throw new InvalidOperationException($"Unknown gameplay scene '{sceneName}'.");
     }
 
     private bool LoadGameplayFromSave()
@@ -163,7 +203,12 @@ public sealed class GameRoot : Game
         }
 
         if (saveData.SceneName != GameplaySceneNames.Overworld
-            && saveData.SceneName != GameplaySceneNames.ShopInterior)
+            && saveData.SceneName != GameplaySceneNames.ShopInterior
+            && saveData.SceneName != GameplaySceneNames.Arena
+            && saveData.SceneName != GameplaySceneNames.WildernessNorth
+            && saveData.SceneName != GameplaySceneNames.WildernessSouth
+            && saveData.SceneName != GameplaySceneNames.WildernessEast
+            && saveData.SceneName != GameplaySceneNames.WildernessWest)
         {
             return false;
         }

@@ -1,98 +1,105 @@
 # TODO
 
-This file tracks the current near-term implementation priorities and the working gameplay ideas we want to preserve while the project is still moving quickly.
+This file tracks the next implementation chunks in a form that is easy to hand off, build, test, and review.
 
-## Next Up
+## Current Build Queue
 
-1. add 1-2 more enemy types with clearly different combat pressure patterns
-2. tune combat feel against mixed encounters instead of only single-crab fights
-3. use those encounters to judge whether dash and future abilities are actually fun
-4. add the next player combat ability only after the sandbox is broad enough to evaluate it properly
-5. start early area progression once combat variety is in a better place
+1. `Town interaction shell`
+   Add the first reusable NPC interaction flow in the town hub, including prompt detection, dialogue shell plumbing, and at least one quest-style NPC plus one lore-style NPC.
+2. `Inventory model V1`
+   Add a real player inventory data model behind the current pause-menu inventory shell so weapons, armor, items, and abilities can hold actual entries.
+3. `Shop system V1`
+   Connect shops to inventory and currency with simple wares, buy flow, sell flow, and save-friendly inventory changes.
+4. `Dungeon entrance and floor plumbing V1`
+   Add the first dungeon entrance from town, floor transition plumbing, and a simple floor-state model that can later grow into the 100-floor structure.
+5. `Arena reward loop V1`
+   Decide and implement the first pass of arena rewards beyond inter-wave recovery, likely XP, gold, or crafting materials.
 
-## Scene And Structure Notes
+## Recently Completed
 
-1. keep experimenting with scene transitions a little longer before abstracting too early
-2. revisit the current `GameRoot` gameplay scene setup once we have many more transitions or sub-scenes
-3. break individual level and interior layouts out of `GameplayLevelBuilder` into focused builders or scene-definition types before that class becomes crowded
-4. design a cleaner transition registry or scene-link model before a single area grows to something like 20 transitions
-5. preserve the current experiment as proof that small interior spaces can reuse the gameplay stack cleanly
+1. `Overworld V1 scene network`
+   Town hub, four wilderness scenes, cardinal gate transitions, central district layout, placeholder houses, town walls, and mountain-bounded wilderness are now in.
+2. `Arena combat prototype room`
+   The arena is now a dedicated interior scene with locked/unlocked exits, screen-sized bounds, and multi-wave encounter support.
+3. `Pause-menu inventory shell`
+   The pause menu now includes an inventory entry with a tabbed modal for weapons, armor, items, and abilities.
+4. `Enemy roster expansion pass`
+   Added bat miniboss, horned rabbit elite, and a 3-stage horned rabbit boss with arena-tested behavior.
+5. `Arena wave framework`
+   Arena waves now support banners, inter-wave delays, configurable full-heal between waves, and staged boss progression.
 
-## Shop System Spine
+## World Structure Chunks
 
-1. add shopkeeper dialogue as the next layer on top of the current room and transition flow
-2. add wares and a simple shop inventory model after dialogue exists
-3. add buy and sell interactions one step at a time so economy rules stay testable
-4. use the shop as the first pass for building reusable NPC interaction patterns
-5. keep building these systems incrementally so they become the backbone for later world interactions
+1. `Town district layout pass`
+   Shape the town into a readable street grid with placeholder houses, roads, wall gates, and a central district reserved for dungeon, arena, and three shops.
+2. `Wilderness layout pass`
+   Give each wilderness scene a distinct first-pass layout, mountain bounds, and placeholder encounter space while keeping the footprint intentionally compact.
+3. `Dungeon and arena exterior pass`
+   Replace placeholder central-district markers with more intentional exterior entrances and cleaner approach paths.
+4. `Interior and sub-area registry cleanup`
+   Break scene definitions out of `GameplayLevelBuilder` once the number of areas grows enough to justify dedicated builders or scene-definition types.
 
-## Inventory Follow-Up
+## Arena And Encounter Chunks
 
-1. add a player inventory system after the first dialogue and shop interaction pass
-2. decide how items, quantities, and currencies should be represented in save-friendly data
-3. connect inventory to shop buy and sell flows once the basic storage model exists
-4. keep the inventory rules simple at first so the shop UI can iterate without a lot of rewrites
+1. `Arena enemy slice selector V1`
+   Let the arena offer encounters based on unlocked dungeon slices, starting with the first 10-floor slice.
+2. `Arena reward loop V1`
+   Decide and implement the first pass of arena rewards, likely XP, gold, or crafting materials.
+3. `Encounter composition pass`
+   Keep using the arena as the controlled test bed for enemy mixes, wave pacing, and combat readability.
+4. `Enemy roster expansion`
+   Add 1-2 more enemies with clearly different pressure patterns before expanding the dungeon ecosystem too broadly.
+5. `Boss progression template`
+   Establish a repeatable pattern for minion, mini-boss, and boss relationships within one themed enemy ecosystem.
 
-## Interior Presentation Direction
+## Town, NPC, And Dialogue Chunks
 
-1. eventually make the shop interior feel full screen so entering it clearly feels like entering a building
-2. reuse that same presentation pattern for other sub-structures like caves, castles, dungeons, and similar interiors
-3. support transitions that can swap not just layout but also camera framing and room presentation rules
+1. `NPC interaction framework V1`
+   Add reusable NPC prompt, facing, interaction, and state plumbing that works for shops, lore, and quests.
+2. `Quest giver prototype`
+   Add one NPC that can hand out and complete a simple test quest.
+3. `Lore NPC prototype`
+   Add one NPC that exists only for world flavor and conversation.
+4. `Dialogue authoring model`
+   Decide whether dialogue is stored as authored lines, branching nodes, topic pools, or another constrained format.
+5. `Dynamic dialogue experiment`
+   Explore whether LLM-assisted phrasing makes sense for low-stakes flavor dialogue while keeping plot facts and quest rules authored.
 
-## Enemy Priorities
+## Inventory, Economy, And Progression Chunks
 
-1. add a fast, low-health chaser that pressures spacing and movement
-2. add a ranged or lunging enemy that creates directional pressure
-3. later add a sturdier enemy that forces commitment and positioning
-4. build encounter mixes that make the player use movement, timing, and ability choices
-5. add enemy collision or spacing resolution so groups do not pile into unreadable stacks
+1. `Inventory model V1`
+   Add item storage, categories, quantities, and save-friendly inventory state.
+2. `Currency and rewards V1`
+   Add a simple currency or resource model so combat and shops have meaningful outputs.
+3. `Shop system V1`
+   Add wares, prices, purchase rules, sell rules, and inventory mutation tests.
+4. `Equipment and item use V1`
+   Decide what counts as equipable versus consumable and add the first pass of actual item behavior.
+5. `Save whistle rules`
+   Add the first save-whistle implementation and the rule that it cannot be used in a slice's final boss chamber.
 
-## Combat Tuning Priorities
+## Dungeon Progression Chunks
 
-1. keep tuning hit readability, knockback, and hit pause as enemy variety expands
-2. test combat on controller first when making feel decisions
-3. keep placeholder visuals readable enough to judge whether combat feedback is working
-4. avoid overinvesting in final graphics before the combat loop feels consistently fun
+1. `Dungeon floor plumbing V1`
+   Support floor transitions and a floor-state model that can later scale to 100 floors.
+2. `First 10-floor slice prototype`
+   Build one themed floor block with placeholder gimmicks, enemy ecosystem, and a boss chamber.
+3. `Slice unlock integration`
+   Make dungeon progress unlock matching arena encounter sets.
+4. `Boss chamber rules`
+   Define special save, retry, and transition rules for slice-ending bosses.
+5. `Theme and gimmick template`
+   Create the repeatable pattern each 10-floor slice will use for ecosystem, boss, and environmental gimmicks.
 
-## Ability System Direction
+## Combat And Feel Chunks
 
-We want several kinds of abilities:
-
-1. core actions that stay permanently mapped to a button
-2. offensive abilities where only one can be equipped at a time
-3. defensive abilities where only one can be equipped at a time
-4. passive abilities where the player can enable a limited number at once
-
-Progression direction:
-
-1. unlock new abilities over time
-2. support both permanent progression and run-based rewards
-3. allow progression to increase passive capacity over time
-4. later decide whether capacity growth comes from XP, skill points, or another progression currency
-
-## Working Control Schema
-
-Current proposed controller layout:
-
-1. `X` = attack
-2. `A` = parry
-3. `Right Trigger` = dash
-4. `Left Trigger` = ranged attack
-5. `Y` = equipped attack ability
-6. `B` = equipped defensive ability
-
-Design notes:
-
-1. some abilities should be permanently mapped
-2. some abilities should be swappable loadout slots
-3. offensive and defensive abilities should likely be separated into different equip categories
-4. passive abilities should probably use a capacity system instead of a direct button mapping
-5. separate move direction from attack direction long term so combat aim does not depend on movement facing tie-breaks
-
-## Future Systems To Support This
-
-1. player loadout model for equipped offensive, defensive, and passive abilities
-2. unlock model that supports both skill tree progression and roguelike rewards
-3. save data for persistent progression when that system becomes real
-4. debug shortcuts for unlocking abilities during tuning
-5. more enemy behaviors so new abilities can be judged in real encounters
+1. `Combat tuning pass`
+   Keep tuning hit pause, knockback, telegraphs, dash feel, shield / ranged timing, and boss transition readability against mixed encounters.
+2. `Controller-first verification`
+   Continue making combat feel decisions with controller readability as the baseline.
+3. `Enemy readability pass`
+   Improve telegraphs, damage communication, and state clarity while placeholder art is still acceptable.
+4. `Ability gating skeleton`
+   Start moving player abilities behind unlock checks even if they remain unlocked by default during tuning.
+5. `Loadout system V1`
+   Add the first model for equipped offensive, defensive, and passive ability slots.

@@ -111,6 +111,36 @@ public sealed class WorldTests
     }
 
     [Fact]
+    public void Update_WhenEliteRabbitBombExplodesOnPlayer_AppliesKnockback()
+    {
+        var movementSettings = new PlayerMovementSettings
+        {
+            MoveSpeed = 180f,
+            ContactKnockbackDistance = 20f,
+            ContactKnockbackSeconds = 0.2f
+        };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(160f, 100f), player.MaxHealth);
+        var enemy = new EnemyActor(
+            EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite),
+            new Vector2(100f, 100f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(0.55)));
+
+        Assert.Equal(19, world.Player.CurrentHealth);
+        Assert.NotEqual(new Vector2(160f, 100f), world.Player.Position);
+        Assert.True(world.Player.Position.X > 160f);
+    }
+
+    [Fact]
     public void Update_WhenBatSwoopHitboxReachesPlayer_AppliesContactDamage()
     {
         var movementSettings = new PlayerMovementSettings
@@ -164,6 +194,166 @@ public sealed class WorldTests
 
         Assert.Equal(19, world.Player.CurrentHealth);
         Assert.Equal(EnemyState.Recovering, grasshopper.State);
+    }
+
+    [Fact]
+    public void Update_WhenBatMiniBossConeHits_AppliesDoubleDamageAndStun()
+    {
+        var movementSettings = new PlayerMovementSettings
+        {
+            MoveSpeed = 180f,
+            ContactKnockbackDistance = 20f,
+            ContactKnockbackSeconds = 0.2f
+        };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(400f, 240f), player.MaxHealth);
+        var minibossSettings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var miniboss = new EnemyActor(
+            minibossSettings,
+            new Vector2(344f, 228f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [miniboss]);
+        var windupSeconds = minibossSettings.SpecialAttackPauseSeconds + 0.1f;
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(windupSeconds), TimeSpan.FromSeconds(windupSeconds)));
+
+        Assert.Equal(18, world.Player.CurrentHealth);
+        Assert.True(world.Player.IsStunned);
+        Assert.Equal("True", world.GetDebugState()["PlayerStunned"]);
+    }
+
+    [Fact]
+    public void Update_WhenBatMiniBossConeMisses_DoesNotDamagePlayer()
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(new InputSnapshot(new HashSet<GameAction> { GameAction.MoveRight })),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(400f, 320f), player.MaxHealth);
+        var minibossSettings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var miniboss = new EnemyActor(
+            minibossSettings,
+            new Vector2(344f, 228f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [miniboss]);
+        var windupSeconds = minibossSettings.SpecialAttackPauseSeconds + 0.1f;
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(windupSeconds), TimeSpan.FromSeconds(windupSeconds)));
+
+        Assert.Equal(20, world.Player.CurrentHealth);
+        Assert.False(world.Player.IsStunned);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossStageTwoFirstLandingOccurs_SpawnsThreeMinionsIntoWorld()
+    {
+        var player = CreatePlayer();
+        player.RestoreState(new Vector2(560f, 320f), player.MaxHealth);
+        var boss = new EnemyActor(
+            EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss),
+            new Vector2(360f, 180f));
+        boss.TakeDamage(6);
+
+        var world = new global::MyGame.Gameplay.World.World(
+            player,
+            [],
+            [boss],
+            enemySettingsCatalog: new EnemySettingsCatalog(
+                EnemySettingsCatalog.CreateDefault(EnemyKind.Crab),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.Bat),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss)));
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(3.11)));
+
+        Assert.Equal(4, world.Enemies.Count);
+        Assert.Equal(3, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.HornedRabbit));
+        Assert.Contains(world.Enemies, enemy => enemy.Kind == EnemyKind.HornedRabbitBoss);
+    }
+
+    [Fact]
+    public void Update_WhenBossAdvancesStage_PlayerIsLockedAndBossIgnoresFurtherProjectileDamage()
+    {
+        var player = CreateRangedPlayer(GameAction.RangedAttack);
+        player.RestoreState(new Vector2(360f, 180f), player.MaxHealth, player.MaxAbilityPoints);
+        var boss = new EnemyActor(
+            EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss),
+            new Vector2(360f, 180f));
+
+        var world = new global::MyGame.Gameplay.World.World(player, [], [boss]);
+
+        boss.TakeDamage(boss.MaxHealth);
+        var stageTwoHealth = boss.CurrentHealth;
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(2, boss.BossStage);
+        Assert.Equal(stageTwoHealth, boss.CurrentHealth);
+        Assert.True(world.Player.IsStunned);
+        Assert.True(boss.IsBossStageTransitioning);
+    }
+
+    [Fact]
+    public void Update_WhenPlayerIsNearFarEndOfBatMiniBossCone_AppliesStun()
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(450f, 240f), player.MaxHealth);
+        var minibossSettings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var miniboss = new EnemyActor(
+            minibossSettings,
+            new Vector2(344f, 228f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [miniboss]);
+        var windupSeconds = minibossSettings.SpecialAttackPauseSeconds + 0.1f;
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(windupSeconds), TimeSpan.FromSeconds(windupSeconds)));
+
+        Assert.Equal(18, world.Player.CurrentHealth);
+        Assert.True(world.Player.IsStunned);
+    }
+
+    [Fact]
+    public void Update_WhenPlayerIsInsideFinalConeSegment_AppliesStun()
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(488f, 248f), player.MaxHealth);
+        var minibossSettings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var miniboss = new EnemyActor(
+            minibossSettings,
+            new Vector2(344f, 228f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [miniboss]);
+        var windupSeconds = minibossSettings.SpecialAttackPauseSeconds + 0.1f;
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(windupSeconds), TimeSpan.FromSeconds(windupSeconds)));
+
+        Assert.Equal(18, world.Player.CurrentHealth);
+        Assert.True(world.Player.IsStunned);
     }
 
     [Fact]
@@ -446,6 +636,78 @@ public sealed class WorldTests
     }
 
     [Fact]
+    public void Update_WhenSceneTransitionIsBlocked_DoesNotQueuePendingTransition()
+    {
+        var player = CreatePlayer();
+        var minibossSettings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var miniboss = new EnemyActor(minibossSettings, new Vector2(560f, 240f));
+        var transition = new WorldSceneTransition(
+            new Rectangle(400, 240, 24, 24),
+            "ArenaExit",
+            new Vector2(384f, 304f),
+            canTrigger: world => !world.HasLivingEnemy(EnemyKind.BatMiniBoss));
+        var world = new global::MyGame.Gameplay.World.World(
+            player,
+            [],
+            [miniboss],
+            sceneTransitions: [transition]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Null(world.ConsumePendingSceneTransition());
+    }
+
+    [Fact]
+    public void Update_WhenSceneTransitionConditionIsMet_QueuesPendingTransition()
+    {
+        var player = CreatePlayer();
+        var minibossSettings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var miniboss = new EnemyActor(minibossSettings, new Vector2(560f, 240f));
+        miniboss.TakeDamage(miniboss.MaxHealth);
+
+        var expectedTransition = new WorldSceneTransition(
+            new Rectangle(400, 240, 24, 24),
+            "ArenaExit",
+            new Vector2(384f, 304f),
+            canTrigger: world => !world.HasLivingEnemy(EnemyKind.BatMiniBoss));
+        var world = new global::MyGame.Gameplay.World.World(
+            player,
+            [],
+            [miniboss],
+            sceneTransitions: [expectedTransition]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(expectedTransition.TargetSceneName, transition!.TargetSceneName);
+        Assert.Equal(expectedTransition.TargetPlayerPosition, transition.TargetPlayerPosition);
+    }
+
+    [Fact]
+    public void Update_WhenAnyEnemyIsAlive_CanKeepTransitionBlocked()
+    {
+        var player = CreatePlayer();
+        var firstEnemy = new EnemyActor(new EnemySettings(), new Vector2(560f, 240f));
+        var secondEnemy = new EnemyActor(new EnemySettings(), new Vector2(600f, 240f));
+        secondEnemy.TakeDamage(secondEnemy.MaxHealth);
+        var transition = new WorldSceneTransition(
+            new Rectangle(400, 240, 24, 24),
+            "ArenaExit",
+            new Vector2(384f, 304f),
+            canTrigger: world => !world.HasLivingEnemies());
+        var world = new global::MyGame.Gameplay.World.World(
+            player,
+            [],
+            [firstEnemy, secondEnemy],
+            sceneTransitions: [transition]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Null(world.ConsumePendingSceneTransition());
+    }
+
+    [Fact]
     public void ConsumePendingSceneTransition_ClearsQueuedTransition()
     {
         var player = CreatePlayer();
@@ -465,6 +727,35 @@ public sealed class WorldTests
 
         Assert.NotNull(world.ConsumePendingSceneTransition());
         Assert.Null(world.ConsumePendingSceneTransition());
+    }
+
+    [Fact]
+    public void Update_WhenSceneTransitionWasSuppressed_DoesNotQueueUntilPlayerLeavesAndReEnters()
+    {
+        var player = CreatePlayer();
+        var transition = new WorldSceneTransition(
+            new Rectangle(400, 240, 48, 48),
+            "ArenaExit",
+            new Vector2(384f, 304f));
+        var world = new global::MyGame.Gameplay.World.World(
+            player,
+            [],
+            [],
+            sceneTransitions: [transition]);
+
+        world.SuppressIntersectingSceneTransitions();
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.Null(world.ConsumePendingSceneTransition());
+
+        player.RestoreState(new Vector2(340f, 240f), player.MaxHealth);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
+        Assert.Null(world.ConsumePendingSceneTransition());
+
+        player.RestoreState(new Vector2(400f, 240f), player.MaxHealth);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.3)));
+
+        Assert.NotNull(world.ConsumePendingSceneTransition());
     }
 
     [Fact]
@@ -900,20 +1191,21 @@ public sealed class WorldTests
     private sealed class StubInputService : IInputService
     {
         private readonly HashSet<GameAction> _justPressedActions;
+        private InputSnapshot _current;
 
         public StubInputService(InputSnapshot current)
         {
-            Current = current;
+            _current = current;
             _justPressedActions = [];
         }
 
         public StubInputService(InputSnapshot current, params GameAction[] justPressedActions)
         {
-            Current = current;
+            _current = current;
             _justPressedActions = justPressedActions.ToHashSet();
         }
 
-        public InputSnapshot Current { get; }
+        public InputSnapshot Current => _current;
 
         public InputSnapshot Previous => InputSnapshot.Empty;
 
@@ -934,6 +1226,11 @@ public sealed class WorldTests
         public bool IsJustReleased(GameAction action)
         {
             return false;
+        }
+
+        public void SetCurrent(InputSnapshot current)
+        {
+            _current = current;
         }
     }
 

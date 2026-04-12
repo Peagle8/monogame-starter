@@ -16,7 +16,7 @@ internal sealed class HornedRabbitEnemyBehavior : IEnemyBehavior
         _remainingDashPauseSeconds = Math.Max(0f, initialDashPauseSeconds);
     }
 
-    public void Update(EnemyActor enemy, Vector2 playerPosition, FrameTime frameTime)
+    public void Update(EnemyActor enemy, Vector2 playerPosition, Rectangle playerBounds, FrameTime frameTime)
     {
         var toPlayer = playerPosition - enemy.Position;
         var distanceToPlayer = toPlayer.Length();

@@ -8,7 +8,10 @@ internal static class EnemyBehaviorFactory
         {
             EnemyKind.Crab => new CrabEnemyBehavior(),
             EnemyKind.HornedRabbit => new HornedRabbitEnemyBehavior(axisPreference, initialDashPauseSeconds),
+            EnemyKind.HornedRabbitBoss => new HornedRabbitBossEnemyBehavior(),
+            EnemyKind.HornedRabbitElite => new HornedRabbitEliteEnemyBehavior(axisPreference, initialDashPauseSeconds),
             EnemyKind.Bat => new BatEnemyBehavior(initialDashPauseSeconds),
+            EnemyKind.BatMiniBoss => new BatMiniBossEnemyBehavior(),
             EnemyKind.Grasshopper => new GrasshopperEnemyBehavior(initialDashPauseSeconds),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported enemy kind.")
         };

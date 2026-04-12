@@ -46,6 +46,7 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
         if (_renderContext.Assets.DebugFont is not null)
         {
             DrawHudText(model);
+            DrawScreenBanner(model, viewportSize);
             DrawDiagnosticsIndicator(model, viewportSize);
 
             if (model.IsPlayerDead)
@@ -95,6 +96,24 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
             "AP",
             GameplayHudLayout.GetAbilityPointTextPosition(),
             new Color(128, 214, 255));
+    }
+
+    private void DrawScreenBanner(GameplayScene model, Point viewportSize)
+    {
+        var font = _renderContext.Assets.DebugFont;
+        var banner = model.World.ActiveScreenBanner;
+        if (font is null || banner is null)
+        {
+            return;
+        }
+
+        var textSize = font.MeasureString(banner.Text);
+        var position = GameplayHudLayout.GetScreenBannerPosition(viewportSize, textSize);
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            banner.Text,
+            position,
+            new Color(255, 241, 222) * banner.Alpha);
     }
 
     private void DrawDeathPanel(Point viewportSize)

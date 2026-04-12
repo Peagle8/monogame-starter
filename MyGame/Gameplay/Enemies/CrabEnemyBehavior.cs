@@ -5,7 +5,7 @@ namespace MyGame.Gameplay.Enemies;
 
 internal sealed class CrabEnemyBehavior : IEnemyBehavior
 {
-    public void Update(EnemyActor enemy, Vector2 playerPosition, FrameTime frameTime)
+    public void Update(EnemyActor enemy, Vector2 playerPosition, Rectangle playerBounds, FrameTime frameTime)
     {
         var toPlayer = playerPosition - enemy.Position;
         var distanceToPlayer = toPlayer.Length();

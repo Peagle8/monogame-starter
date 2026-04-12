@@ -125,3 +125,4 @@ C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\My
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\bin\Debug\net8.0\Content\Configuration\WorldCombatSettings.json
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\bin\Debug\net8.0\Content\Configuration\BatSettings.json
 C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\bin\Debug\net8.0\Content\Configuration\GrasshopperSettings.json
+C:\Users\sean_\Documents\Game work\monogame-starter-skeleton\monogame-starter\MyGame.Tests\bin\Debug\net8.0\Content\Configuration\BatMiniBossSettings.json

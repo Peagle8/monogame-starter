@@ -4,11 +4,12 @@ namespace MyGame.Gameplay.Props;
 
 public sealed class ShopExteriorProp : IWorldProp
 {
-    public ShopExteriorProp(Vector2 position, Point size, Rectangle doorBounds)
+    public ShopExteriorProp(Vector2 position, Point size, Rectangle doorBounds, string signText = "Shop")
     {
         Position = position;
         Size = size;
         DoorBounds = doorBounds;
+        SignText = signText;
     }
 
     public Vector2 Position { get; }
@@ -16,6 +17,8 @@ public sealed class ShopExteriorProp : IWorldProp
     public Point Size { get; }
 
     public Rectangle DoorBounds { get; }
+
+    public string SignText { get; }
 
     public bool BlocksMovement => false;
 

@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MyGame.Core;
 using MyGame.Core.Rendering;
 using MyGame.Gameplay.Props;
@@ -14,11 +15,14 @@ public sealed class ShopExteriorEntityRenderer : IGameplayEntityRenderer
     private static readonly Color WindowColor = new(125, 196, 218);
     private static readonly Color DoorColor = new(91, 61, 41);
     private static readonly Color SignColor = new(201, 159, 87);
+    private static readonly Color SignTextColor = new(58, 38, 20);
 
+    private readonly IRenderContext _renderContext;
     private readonly IWorldRectangleRenderer _worldRectangleRenderer;
 
-    public ShopExteriorEntityRenderer(IWorldRectangleRenderer worldRectangleRenderer)
+    public ShopExteriorEntityRenderer(IRenderContext renderContext, IWorldRectangleRenderer worldRectangleRenderer)
     {
+        _renderContext = renderContext;
         _worldRectangleRenderer = worldRectangleRenderer;
     }
 
@@ -72,5 +76,32 @@ public sealed class ShopExteriorEntityRenderer : IGameplayEntityRenderer
         _worldRectangleRenderer.Draw(rightWindowBounds, WindowColor);
         _worldRectangleRenderer.Draw(signBounds, SignColor);
         _worldRectangleRenderer.Draw(shop.DoorBounds, DoorColor);
+        DrawSignText(shop.SignText, signBounds);
+    }
+
+    private void DrawSignText(string text, Rectangle signBounds)
+    {
+        var font = _renderContext.Assets.DebugFont;
+        if (font is null || string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        var screenBounds = _renderContext.Camera.WorldToScreen(signBounds);
+        var scale = 0.42f;
+        var textSize = font.MeasureString(text) * scale;
+        var position = new Vector2(
+            screenBounds.Center.X - (textSize.X / 2f),
+            screenBounds.Center.Y - (textSize.Y / 2f) - 1f);
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            text,
+            position,
+            SignTextColor,
+            0f,
+            Vector2.Zero,
+            scale,
+            SpriteEffects.None,
+            0f);
     }
 }

@@ -155,7 +155,8 @@ public sealed class GameplayScene : IScene
         var camera = GameplayCamera.Create(
             World.Player.Position,
             new Point(viewport.Width, viewport.Height),
-            new Point(World.Player.Bounds.Width, World.Player.Bounds.Height));
+            new Point(World.Player.Bounds.Width, World.Player.Bounds.Height),
+            World.WorldBounds);
         _renderContext.Bind(spriteBatch, assetCatalog, camera);
         spriteBatch.Begin();
         _renderer.Draw(this, frameTime);
@@ -169,6 +170,8 @@ public sealed class GameplayScene : IScene
             ["PlayerDead"] = IsPlayerDead.ToString(),
             ["PauseMenuOpen"] = _pauseMenu.IsOpen.ToString(),
             ["PauseMenuSelection"] = _pauseMenu.SelectedText,
+            ["PauseMenuInventoryOpen"] = _pauseMenu.IsShowingInventoryMenu.ToString(),
+            ["PauseMenuInventoryTab"] = _pauseMenu.InventoryTab.ToString(),
             ["ReplayMenuOpen"] = _pauseMenu.IsShowingReplayMenu.ToString(),
             ["PauseMenuFooterText"] = _pauseMenu.FooterText,
             ["RecorderRecording"] = _gameRecorder.IsRecording.ToString(),

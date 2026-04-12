@@ -22,6 +22,7 @@ public sealed class PlayerActor
     private PlayerDefenseAbilityState _defenseAbilityState = PlayerDefenseAbilityState.Default;
     private PlayerRangedAttackState _rangedAttackState = PlayerRangedAttackState.Default;
     private PlayerDashState _dashState = PlayerDashState.Idle;
+    private float _remainingStunSeconds;
 
     public PlayerActor(
         IInputService inputService,
@@ -127,6 +128,8 @@ public sealed class PlayerActor
 
     public bool IsDead => CurrentHealth <= 0;
 
+    public bool IsStunned => _remainingStunSeconds > 0f;
+
     public Rectangle Bounds => new((int)Position.X, (int)Position.Y, 32, 32);
 
     public Rectangle PreviousBounds => new((int)PreviousPosition.X, (int)PreviousPosition.Y, 32, 32);
@@ -139,6 +142,12 @@ public sealed class PlayerActor
         if (_knockbackMotion.IsActive)
         {
             UpdateRecoil(frameTime);
+            return;
+        }
+
+        if (IsStunned)
+        {
+            UpdateStun(frameTime);
             return;
         }
 
@@ -173,6 +182,18 @@ public sealed class PlayerActor
         IsMoving = _knockbackMotion.IsActive;
     }
 
+    public void ApplyStun(float seconds)
+    {
+        if (IsDead || seconds <= 0f)
+        {
+            return;
+        }
+
+        _remainingStunSeconds = Math.Max(_remainingStunSeconds, seconds);
+        _dashState = PlayerDashState.Idle;
+        IsMoving = false;
+    }
+
     public void RestoreState(Vector2 position, int currentHealth)
     {
         RestoreState(position, currentHealth, MaxAbilityPoints);
@@ -200,6 +221,7 @@ public sealed class PlayerActor
         _defenseAbilityState = state.DefenseAbilityState;
         _rangedAttackState = state.RangedAttackState;
         _dashState = PlayerDashState.Idle;
+        _remainingStunSeconds = 0f;
         _knockbackMotion.Reset();
         _spawnedProjectiles.Clear();
     }
@@ -257,6 +279,15 @@ public sealed class PlayerActor
     {
         Position += _knockbackMotion.Update(frameTime.DeltaSeconds);
         IsMoving = true;
+        UpdateAttack(frameTime, attackJustPressed: false);
+        UpdateDefenseAbility(defenseAbilityJustPressed: false);
+        UpdateRangedAttack(frameTime, rangedAttackJustPressed: false);
+    }
+
+    private void UpdateStun(FrameTime frameTime)
+    {
+        _remainingStunSeconds = Math.Max(0f, _remainingStunSeconds - frameTime.DeltaSeconds);
+        IsMoving = false;
         UpdateAttack(frameTime, attackJustPressed: false);
         UpdateDefenseAbility(defenseAbilityJustPressed: false);
         UpdateRangedAttack(frameTime, rangedAttackJustPressed: false);

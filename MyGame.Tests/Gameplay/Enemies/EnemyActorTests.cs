@@ -274,6 +274,245 @@ public sealed class EnemyActorTests
     }
 
     [Fact]
+    public void Update_WhenHornedRabbitBossStartsAttack_LeapsIntoPlayersQuadrant()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(560, 320, 28, 28);
+
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.2), TimeSpan.FromSeconds(1.2)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(1.21)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.2), TimeSpan.FromSeconds(1.41)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.Position.X > 360f);
+        Assert.True(enemy.Position.Y > 180f);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossLands_DropsBombSpread()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(120, 80, 28, 28);
+
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.2), TimeSpan.FromSeconds(1.2)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(1.21)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.6), TimeSpan.FromSeconds(1.81)));
+
+        var bombs = GetBombs(enemy).ToArray();
+
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.Equal(6, bombs.Length);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossStageHealthIsDepleted_AdvancesToNextStage()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(120, 80, 28, 28);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(2, enemy.BossStage);
+        Assert.Equal(3, enemy.BossStageCount);
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossStageChanges_WaitsDuringPowerUpPause()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(560, 320, 28, 28);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.0)));
+
+        Assert.Equal(2, enemy.BossStage);
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.Equal(new Vector2(360f, 180f), enemy.Position);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossStageTwoLandsFirstTime_QueuesThreeMinions()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(560, 320, 28, 28);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(3.11)));
+
+        var pendingSpawns = GetPendingSpawns(enemy).OfType<global::MyGame.Gameplay.World.EnemySpawnDefinition>().ToArray();
+
+        Assert.Equal(3, pendingSpawns.Length);
+        Assert.All(pendingSpawns, spawn => Assert.Equal(EnemyKind.HornedRabbit, spawn.Kind));
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossIsInStageTwo_UsesArenaDashBetweenLeapAttacks()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(560, 320, 28, 28);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(3.11)));
+        var positionAfterLeap = enemy.Position;
+
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(4.21)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(4.22)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(4.32)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.Position.X > positionAfterLeap.X || enemy.Position.Y > positionAfterLeap.Y);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossStageThreeLandsFirstTime_QueuesTwoElites()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(560, 320, 28, 28);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(3.11)));
+        var stageTwoSpawns = GetPendingSpawns(enemy).ToArray();
+        Assert.Equal(3, stageTwoSpawns.Length);
+        ClearPendingSpawns(enemy);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.65), TimeSpan.FromSeconds(2.15)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.16)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.45), TimeSpan.FromSeconds(2.61)));
+
+        var pendingSpawns = GetPendingSpawns(enemy).OfType<global::MyGame.Gameplay.World.EnemySpawnDefinition>().ToArray();
+
+        Assert.Equal(5, pendingSpawns.Length);
+        Assert.Equal(2, pendingSpawns.Count(spawn => spawn.Kind == EnemyKind.HornedRabbitElite));
+        Assert.Equal(3, pendingSpawns.Count(spawn => spawn.Kind == EnemyKind.HornedRabbit));
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossIsInStageThree_StartsNextAttackFaster()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(560, 320, 28, 28);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(3.11)));
+        ClearPendingSpawns(enemy);
+
+        enemy.TakeDamage(6);
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.65), TimeSpan.FromSeconds(2.15)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.16)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.45), TimeSpan.FromSeconds(2.61)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.65), TimeSpan.FromSeconds(3.26)));
+        enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(3.27)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+    }
+
+    [Fact]
+    public void ApplyKnockback_WhenEnemyIsHornedRabbitBoss_DoesNothing()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+
+        enemy.ApplyKnockback(new Vector2(1f, 0f));
+
+        Assert.Equal(new Vector2(360f, 180f), enemy.Position);
+        Assert.Equal(EnemyState.Idle, enemy.State);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitEliteDashes_DropsBombsInItsWake()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(220f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        var bombs = GetBombs(enemy);
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.NotEmpty(bombs);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitEliteBombFuseExpires_BombStartsExploding()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(220f, 100f), new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+        enemy.Update(new Vector2(220f, 100f), new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(0.55)));
+
+        var bombs = GetBombs(enemy);
+
+        Assert.Contains(bombs, bomb => (bool)(bomb.GetType().GetProperty("IsExploding")?.GetValue(bomb) ?? false));
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitElitePlayerIsOffset_DashesDiagonally()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(180f, 180f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.Position.X > 100f);
+        Assert.True(enemy.Position.Y > 100f);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitElitePlayerIsBelow_DoesNotStayInHorizontalLane()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite);
+        var enemy = new EnemyActor(
+            settings,
+            new Vector2(100f, 100f),
+            axisPreference: EnemyAxisPreference.Horizontal);
+
+        enemy.Update(new Vector2(180f, 220f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.Position.X > 100f);
+        Assert.True(enemy.Position.Y > 100f);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitElitePlayerIsArenaFarAway_StillKeepsAggro()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite);
+        var enemy = new EnemyActor(settings, new Vector2(40f, 40f));
+
+        enemy.Update(new Vector2(760f, 420f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+        Assert.True(enemy.IsMoving);
+    }
+
+    [Fact]
     public void Update_WhenBatPlayerInRange_StartsCurvedSwoop()
     {
         var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Bat);
@@ -336,6 +575,67 @@ public sealed class EnemyActorTests
     }
 
     [Fact]
+    public void Update_WhenBatMiniBossPlayerOutsideConeRange_ChasesPlayer()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+        var playerBounds = new Rectangle(300, 100, 32, 32);
+
+        enemy.Update(new Vector2(300f, 100f), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Chasing, enemy.State);
+        Assert.True(enemy.IsMoving);
+        Assert.True(enemy.Position.X > 100f);
+    }
+
+    [Fact]
+    public void Update_WhenBatMiniBossInRange_ShowsConeTelegraphBeforeBlast()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+        var playerBounds = new Rectangle(170, 100, 32, 32);
+
+        enemy.Update(new Vector2(170f, 100f), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.True(enemy.IsSpecialAttackTelegraphVisible);
+    }
+
+    [Fact]
+    public void Update_WhenBatMiniBossTargetIsInRangeButOutsideCone_RepositionsInsteadOfCharging()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+        var playerBounds = new Rectangle(70, 210, 32, 32);
+
+        enemy.Update(new Vector2(70f, 210f), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Chasing, enemy.State);
+        Assert.True(enemy.IsMoving);
+        Assert.False(enemy.IsSpecialAttackTelegraphVisible);
+    }
+
+    [Fact]
+    public void Update_WhenBatMiniBossConeHits_QueuesAttackAndStartsFollowUpSwoop()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+        var playerBounds = new Rectangle(176, 112, 32, 32);
+
+        enemy.Update(
+            new Vector2(176f, 112f),
+            playerBounds,
+            new FrameTime(TimeSpan.FromSeconds(settings.SpecialAttackPauseSeconds - 0.05f), TimeSpan.FromSeconds(settings.SpecialAttackPauseSeconds - 0.05f)));
+        enemy.Update(
+            new Vector2(176f, 112f),
+            playerBounds,
+            new FrameTime(TimeSpan.FromSeconds(0.1f), TimeSpan.FromSeconds(settings.SpecialAttackPauseSeconds + 0.1f)));
+
+        Assert.True(enemy.IsSpecialAttackActive);
+        Assert.Equal(EnemyState.Dashing, enemy.State);
+    }
+
+    [Fact]
     public void Update_WhenGrasshopperPlayerInRange_StartsFirstLeap()
     {
         var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper);
@@ -394,5 +694,33 @@ public sealed class EnemyActorTests
         Assert.Equal(EnemyState.Aiming, enemy.State);
         Assert.False(enemy.IsMoving);
         Assert.False(enemy.CanDealContactDamage);
+    }
+
+    private static IEnumerable<object> GetBombs(EnemyActor enemy)
+    {
+        var bombsField = typeof(EnemyActor).GetField("_bombs", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(bombsField);
+        var bombs = bombsField!.GetValue(enemy);
+        Assert.NotNull(bombs);
+        return Assert.IsAssignableFrom<System.Collections.IEnumerable>(bombs).Cast<object>();
+    }
+
+    private static IEnumerable<object> GetPendingSpawns(EnemyActor enemy)
+    {
+        var pendingSpawnsField = typeof(EnemyActor).GetField("_pendingEnemySpawns", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(pendingSpawnsField);
+        var pendingSpawns = pendingSpawnsField!.GetValue(enemy);
+        Assert.NotNull(pendingSpawns);
+        return Assert.IsAssignableFrom<System.Collections.IEnumerable>(pendingSpawns).Cast<object>();
+    }
+
+    private static void ClearPendingSpawns(EnemyActor enemy)
+    {
+        var pendingSpawnsField = typeof(EnemyActor).GetField("_pendingEnemySpawns", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(pendingSpawnsField);
+        var pendingSpawns = pendingSpawnsField!.GetValue(enemy);
+        var clearMethod = pendingSpawns?.GetType().GetMethod("Clear");
+        Assert.NotNull(clearMethod);
+        clearMethod!.Invoke(pendingSpawns, null);
     }
 }

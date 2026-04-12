@@ -105,14 +105,23 @@ public static class ServiceCollectionExtensions
             var hornedRabbitSettings = loader.LoadOrDefault(
                 Path.Combine(configDirectory, "HornedRabbitSettings.json"),
                 EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit));
+            var hornedRabbitBossSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "HornedRabbitBossSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss));
+            var hornedRabbitEliteSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "HornedRabbitEliteSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitElite));
             var batSettings = loader.LoadOrDefault(
                 Path.Combine(configDirectory, "BatSettings.json"),
                 EnemySettingsCatalog.CreateDefault(EnemyKind.Bat));
+            var batMiniBossSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "BatMiniBossSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss));
             var grasshopperSettings = loader.LoadOrDefault(
                 Path.Combine(configDirectory, "GrasshopperSettings.json"),
                 EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper));
 
-            return new EnemySettingsCatalog(crabSettings, hornedRabbitSettings, batSettings, grasshopperSettings);
+            return new EnemySettingsCatalog(crabSettings, hornedRabbitSettings, hornedRabbitEliteSettings, batSettings, grasshopperSettings, batMiniBossSettings, hornedRabbitBossSettings);
         });
         services.AddSingleton(provider => provider.GetRequiredService<IEnemySettingsCatalog>().Get(EnemyKind.Crab));
 
@@ -126,12 +135,20 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IWorldSpriteRenderer, WorldSpriteRenderer>();
         services.AddTransient<IEnemyKindRenderer, CrabEnemyRenderer>();
         services.AddTransient<IEnemyKindRenderer, HornedRabbitEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, HornedRabbitBossEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, HornedRabbitEliteEnemyRenderer>();
         services.AddTransient<IEnemyKindRenderer, BatEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, BatMiniBossEnemyRenderer>();
         services.AddTransient<IEnemyKindRenderer, GrasshopperEnemyRenderer>();
         services.AddTransient<IRenderer<EnemyActor>, EnemyRenderer>();
         services.AddTransient<IRenderer<PlayerActor>, PlayerRenderer>();
         services.AddTransient<IGameplayEntityRenderer, GrassEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, MountainEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, HouseExteriorEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, ShopExteriorEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, DungeonEntranceEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, ArenaEntranceEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, ArenaBoundaryEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, WallEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, TreeEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, EnemyEntityRenderer>();
@@ -139,6 +156,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IGameplayEntityRenderer, ShopkeeperEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, ShopTalkIndicatorRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerShieldRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, PlayerStunRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerAttackEffectRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, CounterEntityRenderer>();

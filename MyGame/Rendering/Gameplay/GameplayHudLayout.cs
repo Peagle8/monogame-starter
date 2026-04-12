@@ -74,4 +74,11 @@ public static class GameplayHudLayout
             panelBounds.X,
             panelBounds.Bottom + DebugOverlayGap);
     }
+
+    public static Vector2 GetScreenBannerPosition(Point viewportSize, Vector2 textSize)
+    {
+        return new Vector2(
+            (viewportSize.X - textSize.X) * 0.5f,
+            18f);
+    }
 }

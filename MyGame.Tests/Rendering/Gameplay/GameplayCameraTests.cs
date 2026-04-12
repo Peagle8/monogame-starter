@@ -17,4 +17,17 @@ public sealed class GameplayCameraTests
         Assert.Equal(68.17392f, camera.WorldTopLeft.X, 3);
         Assert.Equal(47.30435f, camera.WorldTopLeft.Y, 3);
     }
+
+    [Fact]
+    public void Create_WhenWorldBoundsAreProvided_ClampsViewInsideRoom()
+    {
+        var camera = GameplayCamera.Create(
+            playerPosition: new Vector2(16f, 16f),
+            viewportSize: new Point(800, 480),
+            playerSize: new Point(32, 32),
+            worldBounds: new Rectangle(0, 0, 800, 480));
+
+        Assert.Equal(0f, camera.WorldTopLeft.X);
+        Assert.Equal(0f, camera.WorldTopLeft.Y);
+    }
 }
