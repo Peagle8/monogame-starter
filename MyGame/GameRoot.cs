@@ -179,8 +179,9 @@ public sealed class GameRoot : Game
         var targetScene = GetGameplayScene(transition.TargetSceneName);
         var sourcePlayer = sourceScene!.World.Player;
         var transitionState = sourcePlayer.CreateTransitionState();
+        var targetPosition = transition.ResolveTargetPlayerPosition(sourceScene.World);
 
-        targetScene.World.Player.ApplyTransitionState(transition.TargetPlayerPosition, transitionState);
+        targetScene.World.Player.ApplyTransitionState(targetPosition, transitionState);
         targetScene.World.SuppressIntersectingSceneTransitions();
         _sceneManager!.ChangeScene(targetScene);
     }

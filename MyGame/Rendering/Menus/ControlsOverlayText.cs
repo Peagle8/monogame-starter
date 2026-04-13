@@ -12,7 +12,8 @@ public static class ControlsOverlayText
         "Tabs: Q / R / Left Shoulder / Right Shoulder",
         "Confirm: Enter / Space / A",
         "Back: Esc / B / Back",
-        "Pause: Esc / P / Start"
+        "Pause: Esc / P / Start",
+        "Map: Tab / M / Back"
     ];
 
     public static string HintLineOne => "Press Enter or Esc";

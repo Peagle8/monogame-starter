@@ -216,6 +216,20 @@ public sealed class GameplaySceneTests
     }
 
     [Fact]
+    public void Update_WhenMapPressed_OpensMapAndPausesWorldSimulation()
+    {
+        var inputService = new StubInputService(GameAction.Map);
+        var scene = CreateScene(inputService, new CallbackState());
+        var initialPosition = scene.World.Player.Position;
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1)));
+
+        Assert.True(scene.PauseMenu.IsOpen);
+        Assert.True(scene.PauseMenu.IsShowingMap);
+        Assert.Equal(initialPosition, scene.World.Player.Position);
+    }
+
+    [Fact]
     public void Update_WhenReplayPaused_ResumeContinuesReplay()
     {
         var recorder = new GameRecorder();

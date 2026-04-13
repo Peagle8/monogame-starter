@@ -22,6 +22,7 @@ public sealed class DefaultGamePadBindingsTests
         Assert.Equal([GamePadControl.FaceBottom], bindings[GameAction.Confirm]);
         Assert.Equal([GamePadControl.FaceRight, GamePadControl.Back], bindings[GameAction.Cancel]);
         Assert.Equal([GamePadControl.Start], bindings[GameAction.Pause]);
+        Assert.Equal([GamePadControl.Back], bindings[GameAction.Map]);
         Assert.Equal([GamePadControl.LeftShoulder], bindings[GameAction.PreviousTab]);
         Assert.Equal([GamePadControl.RightShoulder], bindings[GameAction.NextTab]);
     }

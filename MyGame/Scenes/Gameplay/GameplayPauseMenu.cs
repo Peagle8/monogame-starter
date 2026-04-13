@@ -1,5 +1,6 @@
 using MyGame.Core.Input;
 using MyGame.Gameplay.Inventory;
+using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Save;
 using MyGame.Scenes.MainMenu;
 
@@ -9,6 +10,7 @@ public sealed class GameplayPauseMenu
 {
     private readonly List<MenuItem> _items;
     private readonly List<MenuItem> _replayItems;
+    private readonly Func<OverworldMapSnapshot> _createMapSnapshot;
     private bool _skipInputUntilNextUpdate;
 
     public GameplayPauseMenu(
@@ -21,6 +23,8 @@ public sealed class GameplayPauseMenu
         Action onToggleRecording,
         Action onReplayLastRecording,
         Func<bool> canReplayRecording,
+        bool canShowMap,
+        Func<OverworldMapSnapshot> createMapSnapshot,
         Action onReturnToMainMenu)
     {
         _items =
@@ -45,6 +49,9 @@ public sealed class GameplayPauseMenu
             new MenuItem("Replay Last Recording", onReplayLastRecording, canReplayRecording),
             new MenuItem("Back", CloseReplayMenu)
         ];
+
+        CanShowMap = canShowMap;
+        _createMapSnapshot = createMapSnapshot;
     }
 
     public static GameplayPauseMenu CreateGameplayMenu(
@@ -54,6 +61,7 @@ public sealed class GameplayPauseMenu
         string sceneName,
         Func<SaveGameData> createSaveData,
         Action<SaveGameData> applySaveData,
+        Func<OverworldMapSnapshot> createMapSnapshot,
         Action onRestart,
         Action onReturnToMainMenu)
     {
@@ -101,6 +109,8 @@ public sealed class GameplayPauseMenu
                 onRestart();
             },
             canReplayRecording: () => gameRecorder.Frames.Count > 0 && !gameRecorder.IsRecording,
+            canShowMap: OverworldLayoutMetrics.IsOverworldScene(sceneName),
+            createMapSnapshot: createMapSnapshot,
             onReturnToMainMenu: () =>
             {
                 gameRecorder.StopReplay();
@@ -116,6 +126,10 @@ public sealed class GameplayPauseMenu
     public bool IsShowingInventoryMenu { get; private set; }
 
     public bool IsShowingReplayMenu { get; private set; }
+
+    public bool IsShowingMap { get; private set; }
+
+    public bool CanShowMap { get; }
 
     public string? StatusMessage { get; private set; }
 
@@ -135,12 +149,15 @@ public sealed class GameplayPauseMenu
 
     public string FooterText => StatusMessage ?? GetFooterText();
 
+    public OverworldMapSnapshot MapSnapshot => _createMapSnapshot();
+
     public void Open()
     {
         IsOpen = true;
         IsShowingControls = false;
         IsShowingInventoryMenu = false;
         IsShowingReplayMenu = false;
+        IsShowingMap = false;
         InventoryTab = PlayerInventoryTab.Weapons;
         SelectedIndex = 0;
         ReplaySelectedIndex = 0;
@@ -154,6 +171,7 @@ public sealed class GameplayPauseMenu
         IsShowingControls = false;
         IsShowingInventoryMenu = false;
         IsShowingReplayMenu = false;
+        IsShowingMap = false;
         InventoryTab = PlayerInventoryTab.Weapons;
         SelectedIndex = 0;
         ReplaySelectedIndex = 0;
@@ -170,6 +188,23 @@ public sealed class GameplayPauseMenu
         }
 
         Open();
+    }
+
+    public void ToggleMap()
+    {
+        if (!CanShowMap)
+        {
+            return;
+        }
+
+        if (IsOpen && IsShowingMap)
+        {
+            Close();
+            return;
+        }
+
+        Open();
+        IsShowingMap = true;
     }
 
     public void Update(IInputService inputService)
@@ -192,6 +227,18 @@ public sealed class GameplayPauseMenu
                 || inputService.IsJustPressed(GameAction.Pause))
             {
                 IsShowingControls = false;
+            }
+
+            return;
+        }
+
+        if (IsShowingMap)
+        {
+            if (inputService.IsJustPressed(GameAction.Cancel)
+                || inputService.IsJustPressed(GameAction.Pause)
+                || inputService.IsJustPressed(GameAction.Map))
+            {
+                Close();
             }
 
             return;
@@ -332,6 +379,11 @@ public sealed class GameplayPauseMenu
                 "Back" => "Return to the pause menu.",
                 _ => "Toggle recording diagnostics for this run."
             };
+        }
+
+        if (IsShowingMap)
+        {
+            return "Survey the overworld ring and your current position.";
         }
 
         if (IsShowingInventoryMenu)

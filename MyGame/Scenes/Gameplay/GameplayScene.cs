@@ -85,6 +85,7 @@ public sealed class GameplayScene : IScene
             Name,
             () => World.CreateSaveData(Name),
             World.ApplySaveData,
+            () => OverworldMapProjector.Create(Name, World.Player.Position),
             _onRestart,
             ReturnToMainMenu);
     }
@@ -125,6 +126,14 @@ public sealed class GameplayScene : IScene
         {
             _gameRecorder.PauseReplay();
             _pauseMenu.Toggle();
+            return;
+        }
+
+        if (_inputService.IsJustPressed(GameAction.Map) && _pauseMenu.CanShowMap)
+        {
+            _gameRecorder.PauseReplay();
+            _pauseMenu.ToggleMap();
+            return;
         }
 
         if (_pauseMenu.IsOpen)
@@ -173,6 +182,7 @@ public sealed class GameplayScene : IScene
             ["PauseMenuInventoryOpen"] = _pauseMenu.IsShowingInventoryMenu.ToString(),
             ["PauseMenuInventoryTab"] = _pauseMenu.InventoryTab.ToString(),
             ["ReplayMenuOpen"] = _pauseMenu.IsShowingReplayMenu.ToString(),
+            ["MapMenuOpen"] = _pauseMenu.IsShowingMap.ToString(),
             ["PauseMenuFooterText"] = _pauseMenu.FooterText,
             ["RecorderRecording"] = _gameRecorder.IsRecording.ToString(),
             ["RecorderReplaying"] = _gameRecorder.IsReplaying.ToString(),

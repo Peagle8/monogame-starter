@@ -10,6 +10,8 @@ namespace MyGame.Rendering.Gameplay;
 public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
 {
     private static readonly Rectangle PanelBounds = new(220, 68, 360, 344);
+    private static readonly Rectangle MapModalBounds = new(118, 48, 564, 384);
+    private static readonly Rectangle MapContentBounds = new(150, 120, 500, 260);
     private static readonly Rectangle InventoryModalBounds = new(168, 72, 464, 336);
     private static readonly Rectangle InventoryTabBounds = new(200, 132, 400, 40);
     private static readonly Rectangle InventoryContentBounds = new(200, 190, 400, 140);
@@ -24,6 +26,12 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
     private static readonly Color ModalFillColor = new(243, 237, 226, 245);
     private static readonly Color ModalBorderColor = new(23, 23, 27);
     private static readonly Color HeaderColor = new(29, 35, 42);
+    private static readonly Color MapFrameFillColor = new(232, 227, 212);
+    private static readonly Color MapFrameBorderColor = new(45, 52, 59);
+    private static readonly Color MapTownColor = new(192, 146, 88);
+    private static readonly Color MapWildColor = new(118, 145, 96);
+    private static readonly Color MapActiveColor = new(76, 108, 154);
+    private static readonly Color MapPlayerColor = new(215, 78, 62);
     private static readonly Color ActiveTabFillColor = new(53, 81, 112);
     private static readonly Color InactiveTabFillColor = new(201, 194, 182);
     private static readonly Color ActiveTabTextColor = Color.White;
@@ -55,6 +63,12 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
         if (model.IsShowingInventoryMenu)
         {
             DrawInventoryPanel(model);
+            return;
+        }
+
+        if (model.IsShowingMap)
+        {
+            DrawMapPanel(model);
             return;
         }
 
@@ -132,6 +146,35 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
         }
 
         DrawFooter(model.FooterText);
+    }
+
+    private void DrawMapPanel(GameplayPauseMenu model)
+    {
+        var font = _renderContext.Assets.DebugFont!;
+        var viewportBounds = _renderContext.SpriteBatch.GraphicsDevice.Viewport.Bounds;
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, viewportBounds, OverlayColor);
+        DrawPanel(MapModalBounds, ModalFillColor, ModalBorderColor);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "Map",
+            new Vector2(MapModalBounds.X + 32, MapModalBounds.Y + 24),
+            HeaderColor);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "The town sits at the center of the surrounding wilderness ring.",
+            new Vector2(MapModalBounds.X + 32, MapModalBounds.Y + 58),
+            new Color(82, 77, 72));
+
+        DrawPanel(MapContentBounds, MapFrameFillColor, MapFrameBorderColor);
+        DrawOverworldMap(model.MapSnapshot, font);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "Select / Tab / M / Esc to close",
+            new Vector2(MapModalBounds.X + 32, MapModalBounds.Bottom - 34),
+            new Color(82, 77, 72));
     }
 
     private void DrawInventoryPanel(GameplayPauseMenu model)
@@ -251,5 +294,52 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Bottom - 2, bounds.Width, 2), borderColor);
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Y, 2, bounds.Height), borderColor);
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.Right - 2, bounds.Y, 2, bounds.Height), borderColor);
+    }
+
+    private void DrawOverworldMap(MyGame.Gameplay.World.OverworldMapSnapshot snapshot, Microsoft.Xna.Framework.Graphics.SpriteFont font)
+    {
+        foreach (var region in snapshot.Regions)
+        {
+            var bounds = ProjectMapBounds(region.Bounds, snapshot.MapBounds, MapContentBounds);
+            var fillColor = region.SceneName == snapshot.CurrentSceneName
+                ? MapActiveColor
+                : region.IsTown
+                    ? MapTownColor
+                    : MapWildColor;
+
+            DrawPanel(bounds, fillColor, MapFrameBorderColor);
+            DrawCenteredText(font, region.Label, bounds, Color.White);
+        }
+
+        if (!snapshot.HasPlayerMarker)
+        {
+            return;
+        }
+
+        var markerPosition = ProjectMapPoint(snapshot.PlayerMapPosition, snapshot.MapBounds, MapContentBounds);
+        var markerBounds = new Rectangle(
+            (int)MathF.Round(markerPosition.X) - 4,
+            (int)MathF.Round(markerPosition.Y) - 4,
+            8,
+            8);
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, markerBounds, MapPlayerColor);
+    }
+
+    private static Rectangle ProjectMapBounds(Rectangle sourceBounds, Rectangle sourceArea, Rectangle targetArea)
+    {
+        var left = ProjectMapPoint(new Vector2(sourceBounds.Left, sourceBounds.Top), sourceArea, targetArea);
+        var right = ProjectMapPoint(new Vector2(sourceBounds.Right, sourceBounds.Bottom), sourceArea, targetArea);
+        return new Rectangle(
+            (int)MathF.Round(left.X),
+            (int)MathF.Round(left.Y),
+            Math.Max(1, (int)MathF.Round(right.X - left.X)),
+            Math.Max(1, (int)MathF.Round(right.Y - left.Y)));
+    }
+
+    private static Vector2 ProjectMapPoint(Vector2 point, Rectangle sourceArea, Rectangle targetArea)
+    {
+        var x = targetArea.Left + ((point.X - sourceArea.Left) / sourceArea.Width * targetArea.Width);
+        var y = targetArea.Top + ((point.Y - sourceArea.Top) / sourceArea.Height * targetArea.Height);
+        return new Vector2(x, y);
     }
 }

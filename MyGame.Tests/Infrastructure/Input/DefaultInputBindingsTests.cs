@@ -23,6 +23,7 @@ public sealed class DefaultInputBindingsTests
         Assert.Equal([Keys.Enter, Keys.Space], bindings[GameAction.Confirm]);
         Assert.Equal([Keys.Escape, Keys.Back], bindings[GameAction.Cancel]);
         Assert.Equal([Keys.P, Keys.Escape], bindings[GameAction.Pause]);
+        Assert.Equal([Keys.Tab, Keys.M], bindings[GameAction.Map]);
         Assert.Equal([Keys.Q], bindings[GameAction.PreviousTab]);
         Assert.Equal([Keys.R], bindings[GameAction.NextTab]);
     }

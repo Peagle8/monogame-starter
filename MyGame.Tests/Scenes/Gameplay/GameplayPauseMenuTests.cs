@@ -1,4 +1,5 @@
 using MyGame.Core.Input;
+using MyGame.Gameplay.World;
 using MyGame.Scenes.Gameplay;
 
 namespace MyGame.Tests.Scenes.Gameplay;
@@ -164,6 +165,42 @@ public sealed class GameplayPauseMenuTests
     }
 
     [Fact]
+    public void ToggleMap_WhenMapIsAvailable_OpensMapView()
+    {
+        var pauseMenu = CreatePauseMenu();
+
+        pauseMenu.ToggleMap();
+
+        Assert.True(pauseMenu.IsOpen);
+        Assert.True(pauseMenu.IsShowingMap);
+    }
+
+    [Fact]
+    public void Update_WhenMapViewOpen_MapInputClosesMenu()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.ToggleMap();
+        pauseMenu.Update(new StubInputService());
+
+        pauseMenu.Update(new StubInputService(GameAction.Map));
+
+        Assert.False(pauseMenu.IsOpen);
+        Assert.False(pauseMenu.IsShowingMap);
+    }
+
+    [Fact]
+    public void MapSnapshot_ReturnsCurrentProjectedMap()
+    {
+        var pauseMenu = CreatePauseMenu(
+            createMapSnapshot: () => OverworldMapProjector.Create(GameplaySceneNames.WildernessNorth, new Microsoft.Xna.Framework.Vector2(120f, 240f)));
+
+        var snapshot = pauseMenu.MapSnapshot;
+
+        Assert.True(snapshot.HasPlayerMarker);
+        Assert.Equal(GameplaySceneNames.WildernessNorth, snapshot.CurrentSceneName);
+    }
+
+    [Fact]
     public void Update_ConfirmOnMainMenu_InvokesCallback()
     {
         var returnedToMainMenu = false;
@@ -306,6 +343,8 @@ public sealed class GameplayPauseMenuTests
         Action? onToggleRecording = null,
         Action? onReplayLastRecording = null,
         Func<bool>? canReplayRecording = null,
+        bool canShowMap = true,
+        Func<OverworldMapSnapshot>? createMapSnapshot = null,
         Action? onReturnToMainMenu = null)
     {
         return new GameplayPauseMenu(
@@ -318,6 +357,8 @@ public sealed class GameplayPauseMenuTests
             onToggleRecording ?? (() => { }),
             onReplayLastRecording ?? (() => { }),
             canReplayRecording ?? (() => true),
+            canShowMap,
+            createMapSnapshot ?? (() => OverworldMapProjector.Create(GameplaySceneNames.Overworld, new Microsoft.Xna.Framework.Vector2(400f, 240f))),
             onReturnToMainMenu ?? (() => { }));
     }
 
