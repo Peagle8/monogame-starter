@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MyGame.Gameplay.Enemies;
 using MyGame.Gameplay.Player;
+using System.IO;
 
 namespace MyGame.Core.Assets;
 
@@ -13,10 +14,13 @@ public sealed class AssetCatalog : IAssetCatalog
         Pixel = new Texture2D(graphicsDevice, 1, 1);
         Pixel.SetData([Color.White]);
 
+        BatSprite = LoadTextureFromOutput("Content", "BatSpriteSheet.png", graphicsDevice);
         CrabSprite = CreateTexture(graphicsDevice, CrabSpriteSheet.Rows);
         PlayerSprite = CreatePlayerSpriteSheet(graphicsDevice);
         DebugFont = TryLoadFont(contentManager, "DebugFont");
     }
+
+    public Texture2D BatSprite { get; }
 
     public Texture2D CrabSprite { get; }
 
@@ -29,6 +33,32 @@ public sealed class AssetCatalog : IAssetCatalog
     private static Texture2D CreatePlayerSpriteSheet(GraphicsDevice graphicsDevice)
     {
         return CreateTexture(graphicsDevice, PlayerSpriteSheet.Rows);
+    }
+
+    private static Texture2D LoadTextureFromOutput(string relativeDirectory, string fileName, GraphicsDevice graphicsDevice)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, relativeDirectory, fileName);
+        using var stream = File.OpenRead(path);
+        var texture = Texture2D.FromStream(graphicsDevice, stream);
+        ApplyWhiteTransparency(texture);
+        return texture;
+    }
+
+    private static void ApplyWhiteTransparency(Texture2D texture)
+    {
+        var pixels = new Color[texture.Width * texture.Height];
+        texture.GetData(pixels);
+
+        for (var index = 0; index < pixels.Length; index++)
+        {
+            var pixel = pixels[index];
+            if (pixel.A > 0 && pixel.R >= 250 && pixel.G >= 250 && pixel.B >= 250)
+            {
+                pixels[index] = Color.Transparent;
+            }
+        }
+
+        texture.SetData(pixels);
     }
 
     private static Texture2D CreateTexture(GraphicsDevice graphicsDevice, IReadOnlyList<string> rows)

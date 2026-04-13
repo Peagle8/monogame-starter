@@ -8,35 +8,38 @@ namespace MyGame.Rendering.Enemies;
 
 public sealed class BatEnemyRenderer : IEnemyKindRenderer
 {
+    private const int DrawSize = 56;
+    private const int DrawVerticalOffset = 10;
+
     private static readonly Color DefeatedTint = new(96, 74, 88);
     private static readonly Color HitFlashTint = new(255, 240, 220);
-    private static readonly Color WingTint = new(26, 34, 68);
-    private static readonly Color BodyTint = new(12, 12, 18);
-    private static readonly Color EyeTint = new(118, 18, 26);
     private static readonly Color TrailTint = new(40, 54, 96, 110);
 
+    private readonly IRenderContext _renderContext;
     private readonly IWorldRectangleRenderer _worldRectangleRenderer;
+    private readonly IWorldSpriteRenderer _worldSpriteRenderer;
 
-    public BatEnemyRenderer(IWorldRectangleRenderer worldRectangleRenderer)
+    public BatEnemyRenderer(
+        IRenderContext renderContext,
+        IWorldRectangleRenderer worldRectangleRenderer,
+        IWorldSpriteRenderer worldSpriteRenderer)
     {
+        _renderContext = renderContext;
         _worldRectangleRenderer = worldRectangleRenderer;
+        _worldSpriteRenderer = worldSpriteRenderer;
     }
 
     public EnemyKind Kind => EnemyKind.Bat;
 
     public void Draw(EnemyActor enemy, FrameTime frameTime)
     {
-        var bodyColor = enemy.State == EnemyState.Dead
+        var drawColor = enemy.State == EnemyState.Dead
             ? DefeatedTint * Math.Max(enemy.DefeatedVisibilityAlpha, 0.35f)
-            : BodyTint;
-        var wingColor = enemy.State == EnemyState.Dead
-            ? DefeatedTint * Math.Max(enemy.DefeatedVisibilityAlpha, 0.45f)
-            : WingTint;
+            : Color.White;
 
         if (enemy.IsFlashingFromHit)
         {
-            bodyColor = Color.Lerp(bodyColor, HitFlashTint, enemy.HitFlashAlpha);
-            wingColor = Color.Lerp(wingColor, HitFlashTint, enemy.HitFlashAlpha * 0.85f);
+            drawColor = Color.Lerp(drawColor, HitFlashTint, enemy.HitFlashAlpha);
         }
 
         if (enemy.State == EnemyState.Dashing)
@@ -44,23 +47,11 @@ public sealed class BatEnemyRenderer : IEnemyKindRenderer
             _worldRectangleRenderer.Draw(GetTrail(enemy), TrailTint);
         }
 
-        var leftWing = new Rectangle(enemy.Bounds.X + 1, enemy.Bounds.Y + 8, 11, 12);
-        var rightWing = new Rectangle(enemy.Bounds.X + 16, enemy.Bounds.Y + 8, 11, 12);
-        var body = new Rectangle(enemy.Bounds.X + 9, enemy.Bounds.Y + 9, 10, 12);
-        var head = new Rectangle(enemy.Bounds.X + 10, enemy.Bounds.Y + 5, 8, 6);
-        var leftEar = new Rectangle(enemy.Bounds.X + 10, enemy.Bounds.Y + 2, 2, 4);
-        var rightEar = new Rectangle(enemy.Bounds.X + 16, enemy.Bounds.Y + 2, 2, 4);
-        var leftEye = new Rectangle(enemy.Bounds.X + 11, enemy.Bounds.Y + 7, 2, 2);
-        var rightEye = new Rectangle(enemy.Bounds.X + 15, enemy.Bounds.Y + 7, 2, 2);
-
-        _worldRectangleRenderer.Draw(leftWing, wingColor);
-        _worldRectangleRenderer.Draw(rightWing, wingColor);
-        _worldRectangleRenderer.Draw(body, bodyColor);
-        _worldRectangleRenderer.Draw(head, bodyColor * 1.08f);
-        _worldRectangleRenderer.Draw(leftEar, bodyColor);
-        _worldRectangleRenderer.Draw(rightEar, bodyColor);
-        _worldRectangleRenderer.Draw(leftEye, EyeTint);
-        _worldRectangleRenderer.Draw(rightEye, EyeTint);
+        _worldSpriteRenderer.Draw(
+            texture: _renderContext.Assets.BatSprite,
+            worldBounds: GetDrawBounds(enemy.Bounds),
+            sourceRectangle: BatAnimationFrameSelector.GetSourceRectangle(frameTime),
+            color: drawColor);
     }
 
     private static Rectangle GetTrail(EnemyActor enemy)
@@ -73,5 +64,16 @@ public sealed class BatEnemyRenderer : IEnemyKindRenderer
             Direction.Right => new Rectangle(enemy.Bounds.X, enemy.Bounds.Y + 6, 12, 16),
             _ => enemy.Bounds
         };
+    }
+
+    private static Rectangle GetDrawBounds(Rectangle bounds)
+    {
+        var centerX = bounds.X + (bounds.Width / 2);
+        var centerY = bounds.Y + (bounds.Height / 2);
+        return new Rectangle(
+            centerX - (DrawSize / 2),
+            centerY - (DrawSize / 2) - DrawVerticalOffset,
+            DrawSize,
+            DrawSize);
     }
 }

@@ -59,6 +59,8 @@ public sealed class RenderContextTests
 
     private sealed class StubAssetCatalog : IAssetCatalog
     {
+        public Texture2D BatSprite => null!;
+
         public Texture2D CrabSprite => null!;
 
         public Texture2D Pixel => null!;
