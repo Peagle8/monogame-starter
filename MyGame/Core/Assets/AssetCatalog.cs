@@ -14,11 +14,17 @@ public sealed class AssetCatalog : IAssetCatalog
         Pixel = new Texture2D(graphicsDevice, 1, 1);
         Pixel.SetData([Color.White]);
 
+        ArenaBackground = OptionalTextureLoader.TryLoadFromContentOrProject(
+            graphicsDevice,
+            Path.Combine("Content", "ArenaBackground.png"),
+            Path.Combine("MyGame", "Content", "ArenaBackground.png"));
         BatSprite = LoadTextureFromOutput("Content", "BatSpriteSheet.png", graphicsDevice);
         CrabSprite = CreateTexture(graphicsDevice, CrabSpriteSheet.Rows);
         PlayerSprite = CreatePlayerSpriteSheet(graphicsDevice);
         DebugFont = TryLoadFont(contentManager, "DebugFont");
     }
+
+    public Texture2D? ArenaBackground { get; }
 
     public Texture2D BatSprite { get; }
 

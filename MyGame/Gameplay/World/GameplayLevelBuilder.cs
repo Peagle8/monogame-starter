@@ -9,6 +9,8 @@ namespace MyGame.Gameplay.World;
 
 public sealed class GameplayLevelBuilder
 {
+    private const float ArenaScale = 1.2f;
+
     private readonly EnemySettings _defaultEnemySettings;
     private readonly IEnemyFactory _enemyFactory;
     private readonly IEnemySettingsCatalog _enemySettingsCatalog;
@@ -94,13 +96,13 @@ public sealed class GameplayLevelBuilder
     {
         IWorldProp[] props =
         [
-            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point(800, 72)),
-            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point(72, 480)),
-            new ArenaBoundaryProp(new Vector2(728f, 0f), new Point(72, 480)),
-            new ArenaBoundaryProp(new Vector2(0f, 408f), new Point(304, 72)),
-            new ArenaBoundaryProp(new Vector2(496f, 408f), new Point(304, 72)),
-            new ArenaBoundaryProp(new Vector2(304f, 432f), new Point(32, 48)),
-            new ArenaBoundaryProp(new Vector2(464f, 432f), new Point(32, 48))
+            new ArenaBoundaryProp(new Vector2(0f, 0f), ScaleArenaPoint(800, 72)),
+            new ArenaBoundaryProp(new Vector2(0f, 0f), ScaleArenaPoint(72, 480)),
+            new ArenaBoundaryProp(ScaleArenaVector(728f, 0f), ScaleArenaPoint(72, 480)),
+            new ArenaBoundaryProp(new Vector2(0f, ScaleArena(408)), ScaleArenaPoint(304, 72)),
+            new ArenaBoundaryProp(ScaleArenaVector(496f, 408f), ScaleArenaPoint(304, 72)),
+            new ArenaBoundaryProp(ScaleArenaVector(304f, 432f), ScaleArenaPoint(32, 48)),
+            new ArenaBoundaryProp(ScaleArenaVector(464f, 432f), ScaleArenaPoint(32, 48))
         ];
 
         return CreateWorld(
@@ -109,12 +111,12 @@ public sealed class GameplayLevelBuilder
             [],
             [
                 new WorldSceneTransition(
-                    new Rectangle(320, 392, 160, 64),
+                    ScaleArenaRectangle(320, 392, 160, 64),
                     GameplaySceneNames.Overworld,
                     new Vector2(676f, 1144f),
                     world => world.IsObjectiveComplete)
             ],
-            new Rectangle(0, 0, 800, 480),
+            new Rectangle(0, 0, ScaleArena(800), ScaleArena(480)),
             new ArenaEncounterController(
                 _enemyFactory,
                 true,
@@ -165,7 +167,7 @@ public sealed class GameplayLevelBuilder
             new WorldSceneTransition(
                 arenaDoorBounds,
                 GameplaySceneNames.Arena,
-                new Vector2(384f, 392f)),
+                ScaleArenaVector(384f, 392f)),
             new WorldSceneTransition(
                 OverworldLayoutMetrics.TownNorthGateTrigger,
                 GameplaySceneNames.WildernessNorth,
@@ -276,7 +278,7 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitBoss, new Vector2(376f, 180f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitBoss, ScaleArenaVector(376f, 180f), EnemyAxisPreference.None)
         ];
     }
 
@@ -284,10 +286,10 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.BatMiniBoss, new Vector2(372f, 180f)),
-            new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(386f, 132f)),
-            new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(300f, 196f)),
-            new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(472f, 196f))
+            new EnemySpawnDefinition(EnemyKind.BatMiniBoss, ScaleArenaVector(372f, 180f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(386f, 132f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(300f, 196f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(472f, 196f))
         ];
     }
 
@@ -295,9 +297,9 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, new Vector2(164f, 180f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, new Vector2(604f, 180f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, new Vector2(384f, 110f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(164f, 180f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(604f, 180f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(384f, 110f), EnemyAxisPreference.None)
         ];
     }
 
@@ -305,16 +307,16 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            CreateArenaHornedRabbitSpawn(new Vector2(170f, 96f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(376f, 96f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(582f, 96f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(170f, 328f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(376f, 328f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(582f, 328f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(106f, 164f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(106f, 260f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(646f, 164f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(646f, 260f))
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(170f, 96f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(376f, 96f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(582f, 96f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(170f, 328f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(376f, 328f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(582f, 328f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(106f, 164f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(106f, 260f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(646f, 164f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(646f, 260f))
         ];
     }
 
@@ -328,5 +330,30 @@ public sealed class GameplayLevelBuilder
         };
         var movementType = movementTypes[Random.Shared.Next(movementTypes.Length)];
         return new EnemySpawnDefinition(EnemyKind.HornedRabbit, position, movementType);
+    }
+
+    private static int ScaleArena(int value)
+    {
+        return (int)MathF.Round(value * ArenaScale);
+    }
+
+    private static Vector2 ScaleArenaVector(float x, float y)
+    {
+        return new Vector2(x * ArenaScale, y * ArenaScale);
+    }
+
+    private static Vector2 ScaleArenaVector(Vector2 value)
+    {
+        return ScaleArenaVector(value.X, value.Y);
+    }
+
+    private static Point ScaleArenaPoint(int x, int y)
+    {
+        return new Point(ScaleArena(x), ScaleArena(y));
+    }
+
+    private static Rectangle ScaleArenaRectangle(int x, int y, int width, int height)
+    {
+        return new Rectangle(ScaleArena(x), ScaleArena(y), ScaleArena(width), ScaleArena(height));
     }
 }

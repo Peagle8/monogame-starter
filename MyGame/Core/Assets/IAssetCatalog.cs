@@ -6,6 +6,8 @@ public interface IAssetCatalog
 {
     Texture2D BatSprite { get; }
 
+    Texture2D? ArenaBackground { get; }
+
     Texture2D CrabSprite { get; }
 
     Texture2D Pixel { get; }

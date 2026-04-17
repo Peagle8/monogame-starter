@@ -160,6 +160,16 @@ public sealed class GameplayLevelBuilderTests
         Assert.Equal(new Vector2(1848f, 240f), transition.ResolveTargetPlayerPosition(world));
     }
 
+    [Fact]
+    public void BuildArena_CreatesScaledArenaBounds()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildArena(CreatePlayer());
+
+        Assert.Equal(new Rectangle(0, 0, 960, 576), world.WorldBounds);
+        Assert.Equal(7, world.GetProps<ArenaBoundaryProp>().Count);
+    }
+
     private static GameplayLevelBuilder CreateBuilder()
     {
         var catalog = new EnemySettingsCatalog(

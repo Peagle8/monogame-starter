@@ -37,6 +37,7 @@ public sealed class GameRoot : Game
     public GameRoot()
     {
         _graphics = new GraphicsDeviceManager(this);
+        ConfigureFullscreenPresentation();
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
 
@@ -228,7 +229,8 @@ public sealed class GameRoot : Game
 
         _debugOverlay?.SetSpriteBatch(_spriteBatch);
         _debugOverlay?.SetFont(_assetCatalog.DebugFont);
-        _debugOverlay?.SetPosition(Rendering.Gameplay.GameplayHudLayout.GetDebugOverlayPosition());
+        _debugOverlay?.SetPosition(Rendering.Gameplay.GameplayHudLayout.GetDebugOverlayPosition(
+            new Point(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height)));
     }
 
     protected override void Update(GameTime gameTime)
@@ -271,6 +273,8 @@ public sealed class GameRoot : Game
 
         GraphicsDevice.Clear(Color.Black);
 
+        _debugOverlay?.SetPosition(Rendering.Gameplay.GameplayHudLayout.GetDebugOverlayPosition(
+            new Point(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height)));
         _sceneManager.Draw(_frameTime, _spriteBatch, _assetCatalog!);
         _debugOverlay?.Draw();
 
@@ -287,5 +291,15 @@ public sealed class GameRoot : Game
             { IsReplaying: true } => "Replay",
             _ => "Idle"
         };
+    }
+
+    private void ConfigureFullscreenPresentation()
+    {
+        var displayMode = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
+        _graphics.PreferredBackBufferWidth = displayMode.Width;
+        _graphics.PreferredBackBufferHeight = displayMode.Height;
+        _graphics.HardwareModeSwitch = false;
+        _graphics.IsFullScreen = true;
+        _graphics.ApplyChanges();
     }
 }

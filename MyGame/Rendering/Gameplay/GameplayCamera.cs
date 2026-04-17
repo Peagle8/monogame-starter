@@ -13,15 +13,30 @@ public static class GameplayCamera
         Point playerSize,
         Rectangle? worldBounds = null)
     {
+        var zoom = ResolveZoom(viewportSize, worldBounds);
         var focusPosition = playerPosition + new Vector2(playerSize.X / 2f, playerSize.Y / 2f);
-        var worldViewWidth = viewportSize.X / DefaultZoom;
-        var worldViewHeight = viewportSize.Y / DefaultZoom;
+        var worldViewWidth = viewportSize.X / zoom;
+        var worldViewHeight = viewportSize.Y / zoom;
         var unclampedWorldTopLeft = new Vector2(
             focusPosition.X - (worldViewWidth / 2f),
             focusPosition.Y - (worldViewHeight / 2f));
         var worldTopLeft = ClampToWorldBounds(unclampedWorldTopLeft, worldViewWidth, worldViewHeight, worldBounds);
 
-        return new RenderCamera(worldTopLeft, viewportSize, DefaultZoom);
+        return new RenderCamera(worldTopLeft, viewportSize, zoom);
+    }
+
+    private static float ResolveZoom(Point viewportSize, Rectangle? worldBounds)
+    {
+        if (worldBounds is not Rectangle bounds)
+        {
+            return DefaultZoom;
+        }
+
+        var fitZoom = MathF.Min(
+            viewportSize.X / (float)bounds.Width,
+            viewportSize.Y / (float)bounds.Height);
+
+        return MathF.Max(DefaultZoom, fitZoom);
     }
 
     private static Vector2 ClampToWorldBounds(
@@ -46,7 +61,7 @@ public static class GameplayCamera
     {
         if (max <= min)
         {
-            return min;
+            return min + ((max - min) * 0.5f);
         }
 
         return MathHelper.Clamp(value, min, max);

@@ -61,16 +61,18 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
 
     private void DrawHealthHud(GameplayScene model)
     {
-        var panelBounds = GameplayHudLayout.GetHealthPanelBounds();
+        var viewport = _renderContext.SpriteBatch.GraphicsDevice.Viewport;
+        var viewportSize = new Point(viewport.Width, viewport.Height);
+        var panelBounds = GameplayHudLayout.GetHealthPanelBounds(viewportSize);
         DrawPanel(panelBounds, PanelFillColor, PanelBorderColor);
         DrawResourceBar(
-            GameplayHudLayout.GetHealthBarBounds(),
+            GameplayHudLayout.GetHealthBarBounds(viewportSize),
             model.World.Player.CurrentHealth,
             model.World.Player.MaxHealth,
             HealthBarColor,
             MissingHealthBarColor);
         DrawResourceBar(
-            GameplayHudLayout.GetAbilityPointBarBounds(),
+            GameplayHudLayout.GetAbilityPointBarBounds(viewportSize),
             model.World.Player.CurrentAbilityPoints,
             model.World.Player.MaxAbilityPoints,
             AbilityPointBarColor,
@@ -85,16 +87,19 @@ public sealed class GameplayOverlayRenderer : IRenderer<GameplayScene>
             return;
         }
 
+        var viewport = _renderContext.SpriteBatch.GraphicsDevice.Viewport;
+        var viewportSize = new Point(viewport.Width, viewport.Height);
+
         _renderContext.SpriteBatch.DrawString(
             font,
             "HP",
-            GameplayHudLayout.GetHealthTextPosition(),
+            GameplayHudLayout.GetHealthTextPosition(viewportSize),
             Color.White);
 
         _renderContext.SpriteBatch.DrawString(
             font,
             "AP",
-            GameplayHudLayout.GetAbilityPointTextPosition(),
+            GameplayHudLayout.GetAbilityPointTextPosition(viewportSize),
             new Color(128, 214, 255));
     }
 

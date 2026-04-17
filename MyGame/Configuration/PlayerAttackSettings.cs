@@ -4,9 +4,9 @@ public sealed class PlayerAttackSettings
 {
     public int Damage { get; init; } = 1;
 
-    public float ActiveSeconds { get; init; } = 0.18f;
+    public float ActiveSeconds { get; init; } = 0.144f;
 
-    public float CooldownSeconds { get; init; } = 0.35f;
+    public float CooldownSeconds { get; init; } = 0.28f;
 
-    public int Range { get; init; } = 22;
+    public int Range { get; init; } = 30;
 }
