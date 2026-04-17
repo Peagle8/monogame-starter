@@ -1,17 +1,13 @@
 using Microsoft.Xna.Framework;
 using MyGame.Core;
 using MyGame.Core.Rendering;
-using MyGame.Scenes.MainMenu;
 using MyGame.Rendering.Menus;
+using MyGame.Scenes.MainMenu;
 
 namespace MyGame.Rendering.MainMenu;
 
 public sealed class MainMenuRenderer : IRenderer<MainMenuScene>
 {
-    private static readonly Vector2 TitlePosition = new(260f, 120f);
-    private static readonly Vector2 ItemsStartPosition = new(300f, 220f);
-    private static readonly Vector2 FooterPosition = new(220f, 392f);
-    private const float FooterWidth = 360f;
     private const float FooterLineSpacing = 18f;
     private const float ItemSpacing = 40f;
     private const float ControlsLineSpacing = 22f;
@@ -30,29 +26,34 @@ public sealed class MainMenuRenderer : IRenderer<MainMenuScene>
             return;
         }
 
-        _renderContext.SpriteBatch.DrawString(_renderContext.Assets.DebugFont, model.Title, TitlePosition, Color.White);
+        var viewport = _renderContext.SpriteBatch.GraphicsDevice.Viewport;
+        var viewportSize = new Point(viewport.Width, viewport.Height);
+
+        _renderContext.SpriteBatch.DrawString(
+            _renderContext.Assets.DebugFont,
+            model.Title,
+            MainMenuLayout.GetTitlePosition(viewportSize),
+            Color.White);
 
         for (var index = 0; index < model.Items.Count; index++)
         {
             _renderContext.SpriteBatch.DrawString(
                 _renderContext.Assets.DebugFont,
                 model.Items[index].Text,
-                VerticalMenuLayout.GetItemPosition(ItemsStartPosition, ItemSpacing, index),
+                VerticalMenuLayout.GetItemPosition(MainMenuLayout.GetItemsStartPosition(viewportSize), ItemSpacing, index),
                 VerticalMenuLayout.GetItemColor(index, model.SelectedIndex, model.Items[index].IsEnabled));
         }
 
-        DrawFooter(model.FooterText);
+        DrawFooter(model.FooterText, viewportSize);
 
         if (model.IsShowingControls)
         {
-            DrawControlsPanel();
+            DrawControlsPanel(viewportSize);
         }
     }
 
-    private void DrawControlsPanel()
+    private void DrawControlsPanel(Point viewportSize)
     {
-        var viewport = _renderContext.SpriteBatch.GraphicsDevice.Viewport;
-        var viewportSize = new Point(viewport.Width, viewport.Height);
         var panelBounds = ControlsOverlayLayout.GetPanelBounds(viewportSize);
 
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, panelBounds, Color.Black * 0.88f);
@@ -87,17 +88,18 @@ public sealed class MainMenuRenderer : IRenderer<MainMenuScene>
             new Color(170, 198, 190));
     }
 
-    private void DrawFooter(string text)
+    private void DrawFooter(string text, Point viewportSize)
     {
         var font = _renderContext.Assets.DebugFont!;
-        var lines = WrappedTextLayout.WrapText(font, text, FooterWidth);
+        var lines = WrappedTextLayout.WrapText(font, text, MainMenuLayout.GetFooterWidth(viewportSize));
+        var footerPosition = MainMenuLayout.GetFooterPosition(viewportSize);
 
         for (var index = 0; index < lines.Count; index++)
         {
             _renderContext.SpriteBatch.DrawString(
                 font,
                 lines[index],
-                new Vector2(FooterPosition.X, FooterPosition.Y + (index * FooterLineSpacing)),
+                new Vector2(footerPosition.X, footerPosition.Y + (index * FooterLineSpacing)),
                 new Color(154, 178, 171));
         }
     }

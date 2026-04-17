@@ -9,14 +9,6 @@ namespace MyGame.Rendering.Gameplay;
 
 public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
 {
-    private static readonly Rectangle PanelBounds = new(220, 68, 360, 344);
-    private static readonly Rectangle InventoryModalBounds = new(168, 72, 464, 336);
-    private static readonly Rectangle InventoryTabBounds = new(200, 132, 400, 40);
-    private static readonly Rectangle InventoryContentBounds = new(200, 190, 400, 140);
-    private static readonly Vector2 TitlePosition = new(330f, 104f);
-    private static readonly Vector2 ItemsStartPosition = new(300f, 168f);
-    private static readonly Vector2 FooterPosition = new(252f, 374f);
-    private const float FooterWidth = 296f;
     private const float FooterLineSpacing = 18f;
     private const float ItemSpacing = 34f;
     private const float ControlsLineSpacing = 24f;
@@ -24,6 +16,12 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
     private static readonly Color ModalFillColor = new(243, 237, 226, 245);
     private static readonly Color ModalBorderColor = new(23, 23, 27);
     private static readonly Color HeaderColor = new(29, 35, 42);
+    private static readonly Color MapFrameFillColor = new(232, 227, 212);
+    private static readonly Color MapFrameBorderColor = new(45, 52, 59);
+    private static readonly Color MapTownColor = new(192, 146, 88);
+    private static readonly Color MapWildColor = new(118, 145, 96);
+    private static readonly Color MapActiveColor = new(76, 108, 154);
+    private static readonly Color MapPlayerColor = new(215, 78, 62);
     private static readonly Color ActiveTabFillColor = new(53, 81, 112);
     private static readonly Color InactiveTabFillColor = new(201, 194, 182);
     private static readonly Color ActiveTabTextColor = Color.White;
@@ -44,45 +42,59 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
         }
 
         var viewportBounds = _renderContext.SpriteBatch.GraphicsDevice.Viewport.Bounds;
+        var viewportSize = new Point(viewportBounds.Width, viewportBounds.Height);
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, viewportBounds, Color.Black * 0.55f);
 
         if (model.IsShowingControls)
         {
-            DrawControlsPanel();
+            DrawControlsPanel(viewportSize);
             return;
         }
 
         if (model.IsShowingInventoryMenu)
         {
-            DrawInventoryPanel(model);
+            DrawInventoryPanel(model, viewportBounds, viewportSize);
+            return;
+        }
+
+        if (model.IsShowingMap)
+        {
+            DrawMapPanel(model, viewportBounds, viewportSize);
             return;
         }
 
         if (model.IsShowingReplayMenu)
         {
-            DrawReplayPanel(model);
+            DrawReplayPanel(model, viewportSize);
             return;
         }
 
-        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, PanelBounds, Color.Black * 0.85f);
-        _renderContext.SpriteBatch.DrawString(_renderContext.Assets.DebugFont, "Paused", TitlePosition, Color.White);
+        DrawMainPausePanel(model, viewportSize);
+    }
+
+    private void DrawMainPausePanel(GameplayPauseMenu model, Point viewportSize)
+    {
+        var panelBounds = GameplayPauseMenuLayout.GetMenuPanelBounds(viewportSize);
+        var titlePosition = GameplayPauseMenuLayout.GetMenuTitlePosition(panelBounds);
+        var itemsStartPosition = GameplayPauseMenuLayout.GetMenuItemsStartPosition(panelBounds);
+
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, panelBounds, Color.Black * 0.85f);
+        _renderContext.SpriteBatch.DrawString(_renderContext.Assets.DebugFont!, "Paused", titlePosition, Color.White);
 
         for (var index = 0; index < model.Items.Count; index++)
         {
             _renderContext.SpriteBatch.DrawString(
-                _renderContext.Assets.DebugFont,
+                _renderContext.Assets.DebugFont!,
                 model.Items[index].Text,
-                VerticalMenuLayout.GetItemPosition(ItemsStartPosition, ItemSpacing, index),
+                VerticalMenuLayout.GetItemPosition(itemsStartPosition, ItemSpacing, index),
                 VerticalMenuLayout.GetItemColor(index, model.SelectedIndex, model.Items[index].IsEnabled));
         }
 
-        DrawFooter(model.FooterText);
+        DrawFooter(model.FooterText, panelBounds);
     }
 
-    private void DrawControlsPanel()
+    private void DrawControlsPanel(Point viewportSize)
     {
-        var viewport = _renderContext.SpriteBatch.GraphicsDevice.Viewport;
-        var viewportSize = new Point(viewport.Width, viewport.Height);
         var panelBounds = ControlsOverlayLayout.GetPanelBounds(viewportSize);
 
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, panelBounds, Color.Black * 0.9f);
@@ -117,85 +129,124 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
             new Color(170, 198, 190));
     }
 
-    private void DrawReplayPanel(GameplayPauseMenu model)
+    private void DrawReplayPanel(GameplayPauseMenu model, Point viewportSize)
     {
-        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, PanelBounds, Color.Black * 0.88f);
-        _renderContext.SpriteBatch.DrawString(_renderContext.Assets.DebugFont!, "Replay", TitlePosition, Color.White);
+        var panelBounds = GameplayPauseMenuLayout.GetMenuPanelBounds(viewportSize);
+        var titlePosition = GameplayPauseMenuLayout.GetMenuTitlePosition(panelBounds);
+        var itemsStartPosition = GameplayPauseMenuLayout.GetMenuItemsStartPosition(panelBounds);
+
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, panelBounds, Color.Black * 0.88f);
+        _renderContext.SpriteBatch.DrawString(_renderContext.Assets.DebugFont!, "Replay", titlePosition, Color.White);
 
         for (var index = 0; index < model.ReplayItems.Count; index++)
         {
             _renderContext.SpriteBatch.DrawString(
                 _renderContext.Assets.DebugFont!,
                 model.ReplayItems[index].Text,
-                VerticalMenuLayout.GetItemPosition(ItemsStartPosition, ItemSpacing, index),
+                VerticalMenuLayout.GetItemPosition(itemsStartPosition, ItemSpacing, index),
                 VerticalMenuLayout.GetItemColor(index, model.ReplaySelectedIndex, model.ReplayItems[index].IsEnabled));
         }
 
-        DrawFooter(model.FooterText);
+        DrawFooter(model.FooterText, panelBounds);
     }
 
-    private void DrawInventoryPanel(GameplayPauseMenu model)
+    private void DrawMapPanel(GameplayPauseMenu model, Rectangle viewportBounds, Point viewportSize)
     {
         var font = _renderContext.Assets.DebugFont!;
-        var viewportBounds = _renderContext.SpriteBatch.GraphicsDevice.Viewport.Bounds;
+        var modalBounds = GameplayPauseMenuLayout.GetMapModalBounds(viewportSize);
+        var mapContentBounds = GameplayPauseMenuLayout.GetMapContentBounds(modalBounds);
+
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, viewportBounds, OverlayColor);
-        DrawPanel(InventoryModalBounds, ModalFillColor, ModalBorderColor);
+        DrawPanel(modalBounds, ModalFillColor, ModalBorderColor);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "Map",
+            new Vector2(modalBounds.X + 32, modalBounds.Y + 24),
+            HeaderColor);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "The town sits at the center of the surrounding wilderness ring.",
+            new Vector2(modalBounds.X + 32, modalBounds.Y + 58),
+            new Color(82, 77, 72));
+
+        DrawPanel(mapContentBounds, MapFrameFillColor, MapFrameBorderColor);
+        DrawOverworldMap(model.MapSnapshot, font, mapContentBounds);
+
+        _renderContext.SpriteBatch.DrawString(
+            font,
+            "Select / Tab / M / Esc to close",
+            new Vector2(modalBounds.X + 32, modalBounds.Bottom - 34),
+            new Color(82, 77, 72));
+    }
+
+    private void DrawInventoryPanel(GameplayPauseMenu model, Rectangle viewportBounds, Point viewportSize)
+    {
+        var font = _renderContext.Assets.DebugFont!;
+        var modalBounds = GameplayPauseMenuLayout.GetInventoryModalBounds(viewportSize);
+        var tabBounds = GameplayPauseMenuLayout.GetInventoryTabBounds(modalBounds);
+        var contentBounds = GameplayPauseMenuLayout.GetInventoryContentBounds(modalBounds);
+
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, viewportBounds, OverlayColor);
+        DrawPanel(modalBounds, ModalFillColor, ModalBorderColor);
 
         _renderContext.SpriteBatch.DrawString(
             font,
             "Inventory",
-            new Vector2(InventoryModalBounds.X + 32, InventoryModalBounds.Y + 28),
+            new Vector2(modalBounds.X + 32, modalBounds.Y + 28),
             HeaderColor);
 
         _renderContext.SpriteBatch.DrawString(
             font,
             "Browse your current equipment and progression tabs.",
-            new Vector2(InventoryModalBounds.X + 32, InventoryModalBounds.Y + 62),
+            new Vector2(modalBounds.X + 32, modalBounds.Y + 62),
             new Color(82, 77, 72));
 
-        DrawInventoryTabs(font, model.InventoryTab);
-        DrawInventoryBody(font, model.InventoryTab);
+        DrawInventoryTabs(font, model.InventoryTab, tabBounds);
+        DrawInventoryBody(font, model.InventoryTab, contentBounds);
 
         _renderContext.SpriteBatch.DrawString(
             font,
             "LB / RB or Q / R to switch tabs",
-            new Vector2(InventoryModalBounds.X + 32, InventoryModalBounds.Bottom - 56),
+            new Vector2(modalBounds.X + 32, modalBounds.Bottom - 56),
             new Color(82, 77, 72));
 
         _renderContext.SpriteBatch.DrawString(
             font,
             "B / Esc to return",
-            new Vector2(InventoryModalBounds.X + 32, InventoryModalBounds.Bottom - 30),
+            new Vector2(modalBounds.X + 32, modalBounds.Bottom - 30),
             new Color(82, 77, 72));
     }
 
-    private void DrawFooter(string text)
+    private void DrawFooter(string text, Rectangle panelBounds)
     {
         var font = _renderContext.Assets.DebugFont!;
-        var lines = WrappedTextLayout.WrapText(font, text, FooterWidth);
+        var lines = WrappedTextLayout.WrapText(font, text, GameplayPauseMenuLayout.GetFooterWidth(panelBounds));
+        var footerPosition = GameplayPauseMenuLayout.GetFooterPosition(panelBounds);
 
         for (var index = 0; index < lines.Count; index++)
         {
             _renderContext.SpriteBatch.DrawString(
                 font,
                 lines[index],
-                new Vector2(FooterPosition.X, FooterPosition.Y + (index * FooterLineSpacing)),
+                new Vector2(footerPosition.X, footerPosition.Y + (index * FooterLineSpacing)),
                 new Color(154, 178, 171));
         }
     }
 
-    private void DrawInventoryTabs(Microsoft.Xna.Framework.Graphics.SpriteFont font, PlayerInventoryTab activeTab)
+    private void DrawInventoryTabs(Microsoft.Xna.Framework.Graphics.SpriteFont font, PlayerInventoryTab activeTab, Rectangle tabBounds)
     {
-        var tabWidth = InventoryTabBounds.Width / 4;
-        DrawTab(font, new Rectangle(InventoryTabBounds.X, InventoryTabBounds.Y, tabWidth, InventoryTabBounds.Height), "Weapons", activeTab == PlayerInventoryTab.Weapons);
-        DrawTab(font, new Rectangle(InventoryTabBounds.X + tabWidth, InventoryTabBounds.Y, tabWidth, InventoryTabBounds.Height), "Armor", activeTab == PlayerInventoryTab.Armor);
-        DrawTab(font, new Rectangle(InventoryTabBounds.X + (tabWidth * 2), InventoryTabBounds.Y, tabWidth, InventoryTabBounds.Height), "Items", activeTab == PlayerInventoryTab.Items);
-        DrawTab(font, new Rectangle(InventoryTabBounds.X + (tabWidth * 3), InventoryTabBounds.Y, tabWidth, InventoryTabBounds.Height), "Abilities", activeTab == PlayerInventoryTab.Abilities);
+        var tabWidth = tabBounds.Width / 4;
+        DrawTab(font, new Rectangle(tabBounds.X, tabBounds.Y, tabWidth, tabBounds.Height), "Weapons", activeTab == PlayerInventoryTab.Weapons);
+        DrawTab(font, new Rectangle(tabBounds.X + tabWidth, tabBounds.Y, tabWidth, tabBounds.Height), "Armor", activeTab == PlayerInventoryTab.Armor);
+        DrawTab(font, new Rectangle(tabBounds.X + (tabWidth * 2), tabBounds.Y, tabWidth, tabBounds.Height), "Items", activeTab == PlayerInventoryTab.Items);
+        DrawTab(font, new Rectangle(tabBounds.X + (tabWidth * 3), tabBounds.Y, tabWidth, tabBounds.Height), "Abilities", activeTab == PlayerInventoryTab.Abilities);
     }
 
-    private void DrawInventoryBody(Microsoft.Xna.Framework.Graphics.SpriteFont font, PlayerInventoryTab activeTab)
+    private void DrawInventoryBody(Microsoft.Xna.Framework.Graphics.SpriteFont font, PlayerInventoryTab activeTab, Rectangle contentBounds)
     {
-        DrawPanel(InventoryContentBounds, new Color(255, 252, 246), new Color(57, 53, 51));
+        DrawPanel(contentBounds, new Color(255, 252, 246), new Color(57, 53, 51));
 
         var heading = activeTab switch
         {
@@ -216,7 +267,7 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
         _renderContext.SpriteBatch.DrawString(
             font,
             heading,
-            new Vector2(InventoryContentBounds.X + 18, InventoryContentBounds.Y + 18),
+            new Vector2(contentBounds.X + 18, contentBounds.Y + 18),
             HeaderColor);
 
         for (var index = 0; index < bodyLines.Length; index++)
@@ -224,7 +275,7 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
             _renderContext.SpriteBatch.DrawString(
                 font,
                 bodyLines[index],
-                new Vector2(InventoryContentBounds.X + 18, InventoryContentBounds.Y + 56 + (index * 28)),
+                new Vector2(contentBounds.X + 18, contentBounds.Y + 56 + (index * 28)),
                 new Color(68, 66, 62));
         }
     }
@@ -251,5 +302,52 @@ public sealed class GameplayPauseMenuRenderer : IRenderer<GameplayPauseMenu>
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Bottom - 2, bounds.Width, 2), borderColor);
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.X, bounds.Y, 2, bounds.Height), borderColor);
         _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, new Rectangle(bounds.Right - 2, bounds.Y, 2, bounds.Height), borderColor);
+    }
+
+    private void DrawOverworldMap(MyGame.Gameplay.World.OverworldMapSnapshot snapshot, Microsoft.Xna.Framework.Graphics.SpriteFont font, Rectangle mapContentBounds)
+    {
+        foreach (var region in snapshot.Regions)
+        {
+            var bounds = ProjectMapBounds(region.Bounds, snapshot.MapBounds, mapContentBounds);
+            var fillColor = region.SceneName == snapshot.CurrentSceneName
+                ? MapActiveColor
+                : region.IsTown
+                    ? MapTownColor
+                    : MapWildColor;
+
+            DrawPanel(bounds, fillColor, MapFrameBorderColor);
+            DrawCenteredText(font, region.Label, bounds, Color.White);
+        }
+
+        if (!snapshot.HasPlayerMarker)
+        {
+            return;
+        }
+
+        var markerPosition = ProjectMapPoint(snapshot.PlayerMapPosition, snapshot.MapBounds, mapContentBounds);
+        var markerBounds = new Rectangle(
+            (int)MathF.Round(markerPosition.X) - 4,
+            (int)MathF.Round(markerPosition.Y) - 4,
+            8,
+            8);
+        _renderContext.SpriteBatch.Draw(_renderContext.Assets.Pixel, markerBounds, MapPlayerColor);
+    }
+
+    private static Rectangle ProjectMapBounds(Rectangle sourceBounds, Rectangle sourceArea, Rectangle targetArea)
+    {
+        var left = ProjectMapPoint(new Vector2(sourceBounds.Left, sourceBounds.Top), sourceArea, targetArea);
+        var right = ProjectMapPoint(new Vector2(sourceBounds.Right, sourceBounds.Bottom), sourceArea, targetArea);
+        return new Rectangle(
+            (int)MathF.Round(left.X),
+            (int)MathF.Round(left.Y),
+            Math.Max(1, (int)MathF.Round(right.X - left.X)),
+            Math.Max(1, (int)MathF.Round(right.Y - left.Y)));
+    }
+
+    private static Vector2 ProjectMapPoint(Vector2 point, Rectangle sourceArea, Rectangle targetArea)
+    {
+        var x = targetArea.Left + ((point.X - sourceArea.Left) / sourceArea.Width * targetArea.Width);
+        var y = targetArea.Top + ((point.Y - sourceArea.Top) / sourceArea.Height * targetArea.Height);
+        return new Vector2(x, y);
     }
 }

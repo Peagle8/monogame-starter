@@ -33,4 +33,12 @@ public sealed class ControlsOverlayLayoutTests
 
         Assert.True(hintStart.Y - linesStart.Y >= 130f);
     }
+
+    [Fact]
+    public void GetPanelBounds_GrowsForFullscreenViewport()
+    {
+        var bounds = ControlsOverlayLayout.GetPanelBounds(new Point(1920, 1080));
+
+        Assert.Equal(new Rectangle(557, 232, 806, 616), bounds);
+    }
 }

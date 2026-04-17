@@ -70,6 +70,106 @@ public sealed class GameplayLevelBuilderTests
         Assert.Equal(GameplaySceneNames.Overworld, transition!.TargetSceneName);
     }
 
+    [Fact]
+    public void BuildWildernessNorth_WhenPlayerTouchesWestEdge_QueuesWestWildernessTransition()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildWildernessNorth(CreatePlayer());
+        world.Player.RestoreState(new Vector2(8f, 240f), world.Player.MaxHealth);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(GameplaySceneNames.WildernessWest, transition!.TargetSceneName);
+        Assert.Equal(new Vector2(240f, 72f), transition.ResolveTargetPlayerPosition(world));
+    }
+
+    [Fact]
+    public void BuildWildernessWest_WhenPlayerTouchesSouthEdge_QueuesSouthWildernessTransition()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildWildernessWest(CreatePlayer());
+        world.Player.RestoreState(new Vector2(240f, 1900f), world.Player.MaxHealth);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(GameplaySceneNames.WildernessSouth, transition!.TargetSceneName);
+        Assert.Equal(new Vector2(72f, 720f), transition.ResolveTargetPlayerPosition(world));
+    }
+
+    [Fact]
+    public void BuildWildernessSouth_WhenPlayerTouchesEastEdge_QueuesEastWildernessTransition()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildWildernessSouth(CreatePlayer());
+        world.Player.RestoreState(new Vector2(1888f, 240f), world.Player.MaxHealth);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(GameplaySceneNames.WildernessEast, transition!.TargetSceneName);
+        Assert.Equal(new Vector2(240f, 1848f), transition.ResolveTargetPlayerPosition(world));
+    }
+
+    [Fact]
+    public void BuildWildernessEast_WhenPlayerTouchesNorthEdge_QueuesNorthWildernessTransition()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildWildernessEast(CreatePlayer());
+        world.Player.RestoreState(new Vector2(720f, 8f), world.Player.MaxHealth);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(GameplaySceneNames.WildernessNorth, transition!.TargetSceneName);
+        Assert.Equal(new Vector2(1848f, 240f), transition.ResolveTargetPlayerPosition(world));
+    }
+
+    [Fact]
+    public void BuildWildernessWest_WhenPlayerTouchesNorthEdge_QueuesNorthWildernessTransition()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildWildernessWest(CreatePlayer());
+        world.Player.RestoreState(new Vector2(720f, 8f), world.Player.MaxHealth);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(GameplaySceneNames.WildernessNorth, transition!.TargetSceneName);
+        Assert.Equal(new Vector2(72f, 720f), transition.ResolveTargetPlayerPosition(world));
+    }
+
+    [Fact]
+    public void BuildWildernessEast_WhenPlayerTouchesSouthEdge_QueuesSouthWildernessTransition()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildWildernessEast(CreatePlayer());
+        world.Player.RestoreState(new Vector2(240f, 1900f), world.Player.MaxHealth);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var transition = world.ConsumePendingSceneTransition();
+
+        Assert.NotNull(transition);
+        Assert.Equal(GameplaySceneNames.WildernessSouth, transition!.TargetSceneName);
+        Assert.Equal(new Vector2(1848f, 240f), transition.ResolveTargetPlayerPosition(world));
+    }
+
+    [Fact]
+    public void BuildArena_CreatesScaledArenaBounds()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildArena(CreatePlayer());
+
+        Assert.Equal(new Rectangle(0, 0, 960, 576), world.WorldBounds);
+        Assert.Equal(7, world.GetProps<ArenaBoundaryProp>().Count);
+    }
+
     private static GameplayLevelBuilder CreateBuilder()
     {
         var catalog = new EnemySettingsCatalog(

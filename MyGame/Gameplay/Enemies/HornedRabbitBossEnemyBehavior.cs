@@ -20,7 +20,7 @@ internal sealed class HornedRabbitBossEnemyBehavior : IEnemyBehavior
     private const float StageTwoDashSpeedMultiplier = 1.15f;
     private const float StageThreeLeapSpeedMultiplier = 1.25f;
     private const float StageThreeDashSpeedMultiplier = 1.45f;
-    private static readonly Rectangle ArenaPlayArea = new(96, 88, 608, 304);
+    private static readonly Rectangle ArenaPlayArea = new(115, 106, 730, 365);
 
     private Vector2 _movementTarget;
     private Rectangle _targetQuadrant;

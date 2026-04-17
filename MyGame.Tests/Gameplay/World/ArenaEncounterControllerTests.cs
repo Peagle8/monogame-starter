@@ -151,7 +151,7 @@ public sealed class ArenaEncounterControllerTests
             new PlayerDashController(new PlayerMovementSettings()),
             new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
-        player.RestoreState(new Vector2(384f, 392f), player.MaxHealth);
+        player.RestoreState(new Vector2(461f, 470.4f), player.MaxHealth);
 
         var controller = new ArenaEncounterController(
             new StubEnemyFactory(),

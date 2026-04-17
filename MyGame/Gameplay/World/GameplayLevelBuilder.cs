@@ -9,19 +9,7 @@ namespace MyGame.Gameplay.World;
 
 public sealed class GameplayLevelBuilder
 {
-    private const int TownSize = 1920;
-    private const int TownWallThickness = 80;
-    private const int TownGateWidth = 176;
-    private const int WildernessShortSize = 960;
-    private const int WildernessLongSize = 1920;
-    private const int MountainThickness = 156;
-
-    private static readonly Rectangle TownBounds = new(0, 0, TownSize, TownSize);
-    private static readonly Rectangle TownCentralDistrictBounds = new(576, 576, 768, 768);
-    private static readonly Rectangle TownNorthGateTrigger = new((TownSize - TownGateWidth) / 2, TownWallThickness, TownGateWidth, 44);
-    private static readonly Rectangle TownSouthGateTrigger = new((TownSize - TownGateWidth) / 2, TownSize - TownWallThickness - 44, TownGateWidth, 44);
-    private static readonly Rectangle TownWestGateTrigger = new(TownWallThickness, (TownSize - TownGateWidth) / 2, 44, TownGateWidth);
-    private static readonly Rectangle TownEastGateTrigger = new(TownSize - TownWallThickness - 44, (TownSize - TownGateWidth) / 2, 44, TownGateWidth);
+    private const float ArenaScale = 1.2f;
 
     private readonly EnemySettings _defaultEnemySettings;
     private readonly IEnemyFactory _enemyFactory;
@@ -76,7 +64,7 @@ public sealed class GameplayLevelBuilder
             props,
             [],
             BuildTownTransitions(shopDoorBounds, arenaDoorBounds),
-            TownBounds);
+            OverworldLayoutMetrics.TownBounds);
     }
 
     public World BuildShopInterior(PlayerActor player)
@@ -106,19 +94,15 @@ public sealed class GameplayLevelBuilder
 
     public World BuildArena(PlayerActor player)
     {
-        var waveOneSpawns = BuildArenaWaveOneSpawns();
-        var waveTwoSpawns = BuildArenaWaveTwoSpawns();
-        var waveThreeSpawns = BuildArenaWaveThreeSpawns();
-        var waveFourSpawns = BuildArenaWaveFourSpawns();
         IWorldProp[] props =
         [
-            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point(800, 72)),
-            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point(72, 480)),
-            new ArenaBoundaryProp(new Vector2(728f, 0f), new Point(72, 480)),
-            new ArenaBoundaryProp(new Vector2(0f, 408f), new Point(304, 72)),
-            new ArenaBoundaryProp(new Vector2(496f, 408f), new Point(304, 72)),
-            new ArenaBoundaryProp(new Vector2(304f, 432f), new Point(32, 48)),
-            new ArenaBoundaryProp(new Vector2(464f, 432f), new Point(32, 48))
+            new ArenaBoundaryProp(new Vector2(0f, 0f), ScaleArenaPoint(800, 72)),
+            new ArenaBoundaryProp(new Vector2(0f, 0f), ScaleArenaPoint(72, 480)),
+            new ArenaBoundaryProp(ScaleArenaVector(728f, 0f), ScaleArenaPoint(72, 480)),
+            new ArenaBoundaryProp(new Vector2(0f, ScaleArena(408)), ScaleArenaPoint(304, 72)),
+            new ArenaBoundaryProp(ScaleArenaVector(496f, 408f), ScaleArenaPoint(304, 72)),
+            new ArenaBoundaryProp(ScaleArenaVector(304f, 432f), ScaleArenaPoint(32, 48)),
+            new ArenaBoundaryProp(ScaleArenaVector(464f, 432f), ScaleArenaPoint(32, 48))
         ];
 
         return CreateWorld(
@@ -127,76 +111,52 @@ public sealed class GameplayLevelBuilder
             [],
             [
                 new WorldSceneTransition(
-                    new Rectangle(320, 392, 160, 64),
+                    ScaleArenaRectangle(320, 392, 160, 64),
                     GameplaySceneNames.Overworld,
                     new Vector2(676f, 1144f),
                     world => world.IsObjectiveComplete)
             ],
-            new Rectangle(0, 0, 800, 480),
-            new ArenaEncounterController(_enemyFactory, true, waveOneSpawns, waveTwoSpawns, waveThreeSpawns, waveFourSpawns));
+            new Rectangle(0, 0, ScaleArena(800), ScaleArena(480)),
+            new ArenaEncounterController(
+                _enemyFactory,
+                true,
+                BuildArenaWaveOneSpawns(),
+                BuildArenaWaveTwoSpawns(),
+                BuildArenaWaveThreeSpawns(),
+                BuildArenaWaveFourSpawns()));
     }
 
     public World BuildWildernessNorth(PlayerActor player)
     {
-        return BuildVerticalWilderness(
-            player,
-            new Rectangle(0, 0, WildernessLongSize, WildernessShortSize),
-            new Rectangle((WildernessLongSize - TownGateWidth) / 2, WildernessShortSize - 76, TownGateWidth, 44),
-            new Vector2(TownNorthGateTrigger.X, 144f),
-            [
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(540f, 240f), EnemyAxisPreference.Horizontal),
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(1320f, 260f), EnemyAxisPreference.Vertical),
-                new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(820f, 180f), EnemyAxisPreference.None),
-                new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(1040f, 420f), EnemyAxisPreference.None)
-            ]);
+        return BuildWilderness(player, WildernessSceneDefinitionFactory.CreateNorth());
     }
 
     public World BuildWildernessSouth(PlayerActor player)
     {
-        return BuildVerticalWilderness(
-            player,
-            new Rectangle(0, 0, WildernessLongSize, WildernessShortSize),
-            new Rectangle((WildernessLongSize - TownGateWidth) / 2, 32, TownGateWidth, 44),
-            new Vector2(TownSouthGateTrigger.X, TownSize - 188f),
-            [
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(460f, 520f), EnemyAxisPreference.Horizontal),
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(1410f, 500f), EnemyAxisPreference.Vertical),
-                new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(920f, 330f), EnemyAxisPreference.None),
-                new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(760f, 620f), EnemyAxisPreference.None)
-            ]);
+        return BuildWilderness(player, WildernessSceneDefinitionFactory.CreateSouth());
     }
 
     public World BuildWildernessWest(PlayerActor player)
     {
-        return BuildHorizontalWilderness(
-            player,
-            new Rectangle(0, 0, WildernessShortSize, WildernessLongSize),
-            new Rectangle(WildernessShortSize - 76, (WildernessLongSize - TownGateWidth) / 2, 44, TownGateWidth),
-            new Vector2(144f, TownWestGateTrigger.Y),
-            [
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(260f, 540f), EnemyAxisPreference.Horizontal),
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(240f, 1360f), EnemyAxisPreference.Vertical),
-                new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(420f, 860f), EnemyAxisPreference.None),
-                new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(560f, 1120f), EnemyAxisPreference.None)
-            ]);
+        return BuildWilderness(player, WildernessSceneDefinitionFactory.CreateWest());
     }
 
     public World BuildWildernessEast(PlayerActor player)
     {
-        return BuildHorizontalWilderness(
-            player,
-            new Rectangle(0, 0, WildernessShortSize, WildernessLongSize),
-            new Rectangle(32, (WildernessLongSize - TownGateWidth) / 2, 44, TownGateWidth),
-            new Vector2(TownSize - 188f, TownEastGateTrigger.Y),
-            [
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(620f, 620f), EnemyAxisPreference.Horizontal),
-                new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(600f, 1320f), EnemyAxisPreference.Vertical),
-                new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(440f, 980f), EnemyAxisPreference.None),
-                new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(250f, 760f), EnemyAxisPreference.None)
-            ]);
+        return BuildWilderness(player, WildernessSceneDefinitionFactory.CreateEast());
     }
 
-    private IEnumerable<WorldSceneTransition> BuildTownTransitions(Rectangle shopDoorBounds, Rectangle arenaDoorBounds)
+    private World BuildWilderness(PlayerActor player, WildernessSceneDefinition definition)
+    {
+        return CreateWorld(
+            player,
+            definition.Props,
+            definition.Spawns.Select(_enemyFactory.Create),
+            definition.SceneTransitions,
+            definition.Bounds);
+    }
+
+    private static IEnumerable<WorldSceneTransition> BuildTownTransitions(Rectangle shopDoorBounds, Rectangle arenaDoorBounds)
     {
         return
         [
@@ -207,138 +167,42 @@ public sealed class GameplayLevelBuilder
             new WorldSceneTransition(
                 arenaDoorBounds,
                 GameplaySceneNames.Arena,
-                new Vector2(384f, 392f)),
+                ScaleArenaVector(384f, 392f)),
             new WorldSceneTransition(
-                TownNorthGateTrigger,
+                OverworldLayoutMetrics.TownNorthGateTrigger,
                 GameplaySceneNames.WildernessNorth,
-                new Vector2(TownNorthGateTrigger.X, WildernessShortSize - 160f)),
+                new Vector2(OverworldLayoutMetrics.TownNorthGateTrigger.X, OverworldLayoutMetrics.WildernessShortSize - 160f)),
             new WorldSceneTransition(
-                TownSouthGateTrigger,
+                OverworldLayoutMetrics.TownSouthGateTrigger,
                 GameplaySceneNames.WildernessSouth,
-                new Vector2(TownSouthGateTrigger.X, 144f)),
+                new Vector2(OverworldLayoutMetrics.TownSouthGateTrigger.X, 144f)),
             new WorldSceneTransition(
-                TownWestGateTrigger,
+                OverworldLayoutMetrics.TownWestGateTrigger,
                 GameplaySceneNames.WildernessWest,
-                new Vector2(WildernessShortSize - 160f, TownWestGateTrigger.Y)),
+                new Vector2(OverworldLayoutMetrics.WildernessShortSize - 160f, OverworldLayoutMetrics.TownWestGateTrigger.Y)),
             new WorldSceneTransition(
-                TownEastGateTrigger,
+                OverworldLayoutMetrics.TownEastGateTrigger,
                 GameplaySceneNames.WildernessEast,
-                new Vector2(144f, TownEastGateTrigger.Y))
+                new Vector2(144f, OverworldLayoutMetrics.TownEastGateTrigger.Y))
         ];
     }
 
-    private World BuildVerticalWilderness(
-        PlayerActor player,
-        Rectangle bounds,
-        Rectangle gateTrigger,
-        Vector2 townReturnPosition,
-        IEnumerable<EnemySpawnDefinition> spawns)
-    {
-        var props = CreateVerticalWildernessProps(bounds, gateTrigger);
-        return CreateWorld(
-            player,
-            props,
-            spawns.Select(_enemyFactory.Create),
-            [
-                new WorldSceneTransition(
-                    gateTrigger,
-                    GameplaySceneNames.Overworld,
-                    townReturnPosition)
-            ],
-            bounds);
-    }
-
-    private World BuildHorizontalWilderness(
-        PlayerActor player,
-        Rectangle bounds,
-        Rectangle gateTrigger,
-        Vector2 townReturnPosition,
-        IEnumerable<EnemySpawnDefinition> spawns)
-    {
-        var props = CreateHorizontalWildernessProps(bounds, gateTrigger);
-        return CreateWorld(
-            player,
-            props,
-            spawns.Select(_enemyFactory.Create),
-            [
-                new WorldSceneTransition(
-                    gateTrigger,
-                    GameplaySceneNames.Overworld,
-                    townReturnPosition)
-            ],
-            bounds);
-    }
-
-    private IEnumerable<IWorldProp> CreateVerticalWildernessProps(Rectangle bounds, Rectangle gateTrigger)
-    {
-        var props = new List<IWorldProp>
-        {
-            new MountainProp(new Vector2(bounds.Left, bounds.Top), new Point(MountainThickness, bounds.Height)),
-            new MountainProp(new Vector2(bounds.Right - MountainThickness, bounds.Top), new Point(MountainThickness, bounds.Height))
-        };
-
-        if (gateTrigger.Y < bounds.Center.Y)
-        {
-            props.Add(new MountainProp(new Vector2(bounds.Left, bounds.Bottom - MountainThickness), new Point(bounds.Width, MountainThickness)));
-            AddTopMountainWithGate(props, bounds, gateTrigger);
-        }
-        else
-        {
-            props.Add(new MountainProp(new Vector2(bounds.Left, bounds.Top), new Point(bounds.Width, MountainThickness)));
-            AddBottomMountainWithGate(props, bounds, gateTrigger);
-        }
-
-        AddWildernessDecor(props, bounds);
-        return props;
-    }
-
-    private IEnumerable<IWorldProp> CreateHorizontalWildernessProps(Rectangle bounds, Rectangle gateTrigger)
-    {
-        var props = new List<IWorldProp>
-        {
-            new MountainProp(new Vector2(bounds.Left, bounds.Top), new Point(bounds.Width, MountainThickness)),
-            new MountainProp(new Vector2(bounds.Left, bounds.Bottom - MountainThickness), new Point(bounds.Width, MountainThickness))
-        };
-
-        if (gateTrigger.X < bounds.Center.X)
-        {
-            props.Add(new MountainProp(new Vector2(bounds.Right - MountainThickness, bounds.Top), new Point(MountainThickness, bounds.Height)));
-            AddLeftMountainWithGate(props, bounds, gateTrigger);
-        }
-        else
-        {
-            props.Add(new MountainProp(new Vector2(bounds.Left, bounds.Top), new Point(MountainThickness, bounds.Height)));
-            AddRightMountainWithGate(props, bounds, gateTrigger);
-        }
-
-        AddWildernessDecor(props, bounds);
-        return props;
-    }
-
-    private void AddTownWalls(List<IWorldProp> props)
+    private static void AddTownWalls(List<IWorldProp> props)
     {
         props.AddRange(
         [
-            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point((TownBounds.Width - TownGateWidth) / 2, TownWallThickness)),
-            new ArenaBoundaryProp(new Vector2(((TownBounds.Width + TownGateWidth) / 2), 0f), new Point((TownBounds.Width - TownGateWidth) / 2, TownWallThickness)),
-            new ArenaBoundaryProp(new Vector2(0f, TownBounds.Bottom - TownWallThickness), new Point((TownBounds.Width - TownGateWidth) / 2, TownWallThickness)),
-            new ArenaBoundaryProp(new Vector2(((TownBounds.Width + TownGateWidth) / 2), TownBounds.Bottom - TownWallThickness), new Point((TownBounds.Width - TownGateWidth) / 2, TownWallThickness)),
-            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point(TownWallThickness, (TownBounds.Height - TownGateWidth) / 2)),
-            new ArenaBoundaryProp(new Vector2(0f, ((TownBounds.Height + TownGateWidth) / 2)), new Point(TownWallThickness, (TownBounds.Height - TownGateWidth) / 2)),
-            new ArenaBoundaryProp(new Vector2(TownBounds.Right - TownWallThickness, 0f), new Point(TownWallThickness, (TownBounds.Height - TownGateWidth) / 2)),
-            new ArenaBoundaryProp(new Vector2(TownBounds.Right - TownWallThickness, ((TownBounds.Height + TownGateWidth) / 2)), new Point(TownWallThickness, (TownBounds.Height - TownGateWidth) / 2))
+            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point((OverworldLayoutMetrics.TownBounds.Width - OverworldLayoutMetrics.TownGateWidth) / 2, OverworldLayoutMetrics.TownWallThickness)),
+            new ArenaBoundaryProp(new Vector2(((OverworldLayoutMetrics.TownBounds.Width + OverworldLayoutMetrics.TownGateWidth) / 2), 0f), new Point((OverworldLayoutMetrics.TownBounds.Width - OverworldLayoutMetrics.TownGateWidth) / 2, OverworldLayoutMetrics.TownWallThickness)),
+            new ArenaBoundaryProp(new Vector2(0f, OverworldLayoutMetrics.TownBounds.Bottom - OverworldLayoutMetrics.TownWallThickness), new Point((OverworldLayoutMetrics.TownBounds.Width - OverworldLayoutMetrics.TownGateWidth) / 2, OverworldLayoutMetrics.TownWallThickness)),
+            new ArenaBoundaryProp(new Vector2(((OverworldLayoutMetrics.TownBounds.Width + OverworldLayoutMetrics.TownGateWidth) / 2), OverworldLayoutMetrics.TownBounds.Bottom - OverworldLayoutMetrics.TownWallThickness), new Point((OverworldLayoutMetrics.TownBounds.Width - OverworldLayoutMetrics.TownGateWidth) / 2, OverworldLayoutMetrics.TownWallThickness)),
+            new ArenaBoundaryProp(new Vector2(0f, 0f), new Point(OverworldLayoutMetrics.TownWallThickness, (OverworldLayoutMetrics.TownBounds.Height - OverworldLayoutMetrics.TownGateWidth) / 2)),
+            new ArenaBoundaryProp(new Vector2(0f, ((OverworldLayoutMetrics.TownBounds.Height + OverworldLayoutMetrics.TownGateWidth) / 2)), new Point(OverworldLayoutMetrics.TownWallThickness, (OverworldLayoutMetrics.TownBounds.Height - OverworldLayoutMetrics.TownGateWidth) / 2)),
+            new ArenaBoundaryProp(new Vector2(OverworldLayoutMetrics.TownBounds.Right - OverworldLayoutMetrics.TownWallThickness, 0f), new Point(OverworldLayoutMetrics.TownWallThickness, (OverworldLayoutMetrics.TownBounds.Height - OverworldLayoutMetrics.TownGateWidth) / 2)),
+            new ArenaBoundaryProp(new Vector2(OverworldLayoutMetrics.TownBounds.Right - OverworldLayoutMetrics.TownWallThickness, ((OverworldLayoutMetrics.TownBounds.Height + OverworldLayoutMetrics.TownGateWidth) / 2)), new Point(OverworldLayoutMetrics.TownWallThickness, (OverworldLayoutMetrics.TownBounds.Height - OverworldLayoutMetrics.TownGateWidth) / 2))
         ]);
     }
 
-    private void AddTopMountainWithGate(List<IWorldProp> props, Rectangle bounds, Rectangle gateTrigger)
-    {
-        props.Add(new MountainProp(new Vector2(bounds.Left, bounds.Top), new Point(gateTrigger.X, MountainThickness)));
-        props.Add(new MountainProp(
-            new Vector2(gateTrigger.Right, bounds.Top),
-            new Point(bounds.Width - gateTrigger.Right, MountainThickness)));
-    }
-
-    private void AddTownHouses(List<IWorldProp> props)
+    private static void AddTownHouses(List<IWorldProp> props)
     {
         AddHouseStreet(props, 188f);
         AddHouseStreet(props, 428f);
@@ -346,7 +210,7 @@ public sealed class GameplayLevelBuilder
         AddHouseStreet(props, 1536f);
     }
 
-    private void AddTownCentralDistrict(List<IWorldProp> props, Rectangle shopDoorBounds, Rectangle arenaDoorBounds)
+    private static void AddTownCentralDistrict(List<IWorldProp> props, Rectangle shopDoorBounds, Rectangle arenaDoorBounds)
     {
         props.AddRange(
         [
@@ -358,7 +222,7 @@ public sealed class GameplayLevelBuilder
         ]);
     }
 
-    private void AddTownDecor(List<IWorldProp> props)
+    private static void AddTownDecor(List<IWorldProp> props)
     {
         props.AddRange(
         [
@@ -373,7 +237,7 @@ public sealed class GameplayLevelBuilder
         ]);
     }
 
-    private void AddHouseStreet(List<IWorldProp> props, float y)
+    private static void AddHouseStreet(List<IWorldProp> props, float y)
     {
         props.AddRange(
         [
@@ -381,42 +245,6 @@ public sealed class GameplayLevelBuilder
             new HouseExteriorProp(new Vector2(392f, y), new Point(176, 144)),
             new HouseExteriorProp(new Vector2(1360f, y), new Point(176, 144)),
             new HouseExteriorProp(new Vector2(1584f, y), new Point(176, 144))
-        ]);
-    }
-
-    private void AddBottomMountainWithGate(List<IWorldProp> props, Rectangle bounds, Rectangle gateTrigger)
-    {
-        props.Add(new MountainProp(new Vector2(bounds.Left, bounds.Bottom - MountainThickness), new Point(gateTrigger.X, MountainThickness)));
-        props.Add(new MountainProp(
-            new Vector2(gateTrigger.Right, bounds.Bottom - MountainThickness),
-            new Point(bounds.Width - gateTrigger.Right, MountainThickness)));
-    }
-
-    private void AddLeftMountainWithGate(List<IWorldProp> props, Rectangle bounds, Rectangle gateTrigger)
-    {
-        props.Add(new MountainProp(new Vector2(bounds.Left, bounds.Top), new Point(MountainThickness, gateTrigger.Y)));
-        props.Add(new MountainProp(
-            new Vector2(bounds.Left, gateTrigger.Bottom),
-            new Point(MountainThickness, bounds.Height - gateTrigger.Bottom)));
-    }
-
-    private void AddRightMountainWithGate(List<IWorldProp> props, Rectangle bounds, Rectangle gateTrigger)
-    {
-        props.Add(new MountainProp(new Vector2(bounds.Right - MountainThickness, bounds.Top), new Point(MountainThickness, gateTrigger.Y)));
-        props.Add(new MountainProp(
-            new Vector2(bounds.Right - MountainThickness, gateTrigger.Bottom),
-            new Point(MountainThickness, bounds.Height - gateTrigger.Bottom)));
-    }
-
-    private void AddWildernessDecor(List<IWorldProp> props, Rectangle bounds)
-    {
-        props.AddRange(
-        [
-            new TreeProp(new Vector2(bounds.Left + 220f, bounds.Top + 180f), new Point(76, 110)),
-            new TreeProp(new Vector2(bounds.Right - 340f, bounds.Top + 220f), new Point(76, 110)),
-            new TreeProp(new Vector2(bounds.Left + 300f, bounds.Bottom - 340f), new Point(76, 110)),
-            new GrassProp(new Vector2(bounds.Center.X - 180f, bounds.Center.Y - 40f), new Point(58, 36)),
-            new GrassProp(new Vector2(bounds.Center.X + 120f, bounds.Center.Y + 60f), new Point(58, 36))
         ]);
     }
 
@@ -450,7 +278,7 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitBoss, new Vector2(376f, 180f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitBoss, ScaleArenaVector(376f, 180f), EnemyAxisPreference.None)
         ];
     }
 
@@ -458,10 +286,10 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.BatMiniBoss, new Vector2(372f, 180f)),
-            new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(386f, 132f)),
-            new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(300f, 196f)),
-            new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(472f, 196f))
+            new EnemySpawnDefinition(EnemyKind.BatMiniBoss, ScaleArenaVector(372f, 180f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(386f, 132f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(300f, 196f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(472f, 196f))
         ];
     }
 
@@ -469,9 +297,9 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, new Vector2(164f, 180f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, new Vector2(604f, 180f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, new Vector2(384f, 110f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(164f, 180f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(604f, 180f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(384f, 110f), EnemyAxisPreference.None)
         ];
     }
 
@@ -479,16 +307,16 @@ public sealed class GameplayLevelBuilder
     {
         return
         [
-            CreateArenaHornedRabbitSpawn(new Vector2(170f, 96f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(376f, 96f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(582f, 96f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(170f, 328f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(376f, 328f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(582f, 328f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(106f, 164f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(106f, 260f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(646f, 164f)),
-            CreateArenaHornedRabbitSpawn(new Vector2(646f, 260f))
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(170f, 96f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(376f, 96f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(582f, 96f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(170f, 328f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(376f, 328f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(582f, 328f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(106f, 164f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(106f, 260f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(646f, 164f)),
+            CreateArenaHornedRabbitSpawn(ScaleArenaVector(646f, 260f))
         ];
     }
 
@@ -502,5 +330,30 @@ public sealed class GameplayLevelBuilder
         };
         var movementType = movementTypes[Random.Shared.Next(movementTypes.Length)];
         return new EnemySpawnDefinition(EnemyKind.HornedRabbit, position, movementType);
+    }
+
+    private static int ScaleArena(int value)
+    {
+        return (int)MathF.Round(value * ArenaScale);
+    }
+
+    private static Vector2 ScaleArenaVector(float x, float y)
+    {
+        return new Vector2(x * ArenaScale, y * ArenaScale);
+    }
+
+    private static Vector2 ScaleArenaVector(Vector2 value)
+    {
+        return ScaleArenaVector(value.X, value.Y);
+    }
+
+    private static Point ScaleArenaPoint(int x, int y)
+    {
+        return new Point(ScaleArena(x), ScaleArena(y));
+    }
+
+    private static Rectangle ScaleArenaRectangle(int x, int y, int width, int height)
+    {
+        return new Rectangle(ScaleArena(x), ScaleArena(y), ScaleArena(width), ScaleArena(height));
     }
 }

@@ -36,16 +36,29 @@ public sealed class PlayerAttackEffectRenderer : IGameplayEntityRenderer
     private void DrawSwordSwing(Rectangle attackBounds, Direction facing, int attackSequence)
     {
         var isAlternateSwing = attackSequence % 2 == 0;
+        var visualBounds = ExpandVisualBounds(attackBounds, facing);
 
-        foreach (var segment in CreateTrailSegments(attackBounds, facing, isAlternateSwing))
+        foreach (var segment in CreateTrailSegments(visualBounds, facing, isAlternateSwing))
         {
             _worldRectangleRenderer.Draw(segment, TrailColor);
         }
 
-        _worldRectangleRenderer.Draw(CreateBladeBounds(attackBounds, facing, isAlternateSwing), BladeColor);
-        _worldRectangleRenderer.Draw(CreateBladeEdgeBounds(attackBounds, facing, isAlternateSwing), BladeEdgeColor);
-        _worldRectangleRenderer.Draw(CreateGuardBounds(attackBounds, facing, isAlternateSwing), GuardColor);
-        _worldRectangleRenderer.Draw(CreateHiltBounds(attackBounds, facing, isAlternateSwing), HiltColor);
+        _worldRectangleRenderer.Draw(CreateBladeBounds(visualBounds, facing, isAlternateSwing), BladeColor);
+        _worldRectangleRenderer.Draw(CreateBladeEdgeBounds(visualBounds, facing, isAlternateSwing), BladeEdgeColor);
+        _worldRectangleRenderer.Draw(CreateGuardBounds(visualBounds, facing, isAlternateSwing), GuardColor);
+        _worldRectangleRenderer.Draw(CreateHiltBounds(visualBounds, facing, isAlternateSwing), HiltColor);
+    }
+
+    private static Rectangle ExpandVisualBounds(Rectangle attackBounds, Direction facing)
+    {
+        return facing switch
+        {
+            Direction.Up => new Rectangle(attackBounds.X - 4, attackBounds.Y - 6, attackBounds.Width + 8, attackBounds.Height + 6),
+            Direction.Down => new Rectangle(attackBounds.X - 4, attackBounds.Y, attackBounds.Width + 8, attackBounds.Height + 6),
+            Direction.Left => new Rectangle(attackBounds.X - 6, attackBounds.Y - 4, attackBounds.Width + 6, attackBounds.Height + 8),
+            Direction.Right => new Rectangle(attackBounds.X, attackBounds.Y - 4, attackBounds.Width + 6, attackBounds.Height + 8),
+            _ => attackBounds
+        };
     }
 
     private static IReadOnlyList<Rectangle> CreateTrailSegments(Rectangle attackBounds, Direction facing, bool isAlternateSwing)

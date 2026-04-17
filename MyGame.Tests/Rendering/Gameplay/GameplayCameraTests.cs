@@ -30,4 +30,18 @@ public sealed class GameplayCameraTests
         Assert.Equal(0f, camera.WorldTopLeft.X);
         Assert.Equal(0f, camera.WorldTopLeft.Y);
     }
+
+    [Fact]
+    public void Create_WhenViewportIsLargerThanWorld_ZoomsToFitAndCentersWorld()
+    {
+        var camera = GameplayCamera.Create(
+            playerPosition: new Vector2(384f, 224f),
+            viewportSize: new Point(1920, 1080),
+            playerSize: new Point(32, 32),
+            worldBounds: new Rectangle(0, 0, 800, 480));
+
+        Assert.Equal(2.25f, camera.Zoom, 3);
+        Assert.Equal(-26.6667f, camera.WorldTopLeft.X, 3);
+        Assert.Equal(0f, camera.WorldTopLeft.Y, 3);
+    }
 }

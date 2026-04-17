@@ -14,6 +14,7 @@ public enum GameAction
     Confirm,
     Cancel,
     Pause,
+    Map,
     PreviousTab,
     NextTab
 }

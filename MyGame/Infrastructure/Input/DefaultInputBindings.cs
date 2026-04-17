@@ -21,6 +21,7 @@ public sealed class DefaultInputBindings
             [GameAction.Confirm] = [Keys.Enter, Keys.Space],
             [GameAction.Cancel] = [Keys.Escape, Keys.Back],
             [GameAction.Pause] = [Keys.P, Keys.Escape],
+            [GameAction.Map] = [Keys.Tab, Keys.M],
             [GameAction.PreviousTab] = [Keys.Q],
             [GameAction.NextTab] = [Keys.R]
         };

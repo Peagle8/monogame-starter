@@ -1,8 +1,8 @@
 {
-  "MoveSpeed": 144,
-  "DashDistance": 72,
+  "MoveSpeed": 172.8,
+  "DashDistance": 86.4,
   "DashSeconds": 0.18,
-  "DashCooldownSeconds": 0.35,
+  "DashCooldownSeconds": 0.28,
   "ContactKnockbackDistance": 22,
   "ContactKnockbackSeconds": 0.12
 }

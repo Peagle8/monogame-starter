@@ -111,7 +111,7 @@ public sealed class PlayerActorTests
 
         Assert.True(player.IsAttacking);
         Assert.Equal(1, player.AttackSequence);
-        Assert.Equal(new Microsoft.Xna.Framework.Rectangle(400, 272, 32, 22), player.AttackBounds);
+        Assert.Equal(new Microsoft.Xna.Framework.Rectangle(400, 272, 32, 30), player.AttackBounds);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class PlayerActorTests
 
         player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
 
-        Assert.Equal(new Rectangle(389, 207, 32, 22), player.AttackBounds);
+        Assert.Equal(new Rectangle(389, 199, 32, 30), player.AttackBounds);
     }
 
     [Fact]

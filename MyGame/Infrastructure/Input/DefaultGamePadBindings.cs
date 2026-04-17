@@ -20,6 +20,7 @@ public sealed class DefaultGamePadBindings
             [GameAction.Confirm] = [GamePadControl.FaceBottom],
             [GameAction.Cancel] = [GamePadControl.FaceRight, GamePadControl.Back],
             [GameAction.Pause] = [GamePadControl.Start],
+            [GameAction.Map] = [GamePadControl.Back],
             [GameAction.PreviousTab] = [GamePadControl.LeftShoulder],
             [GameAction.NextTab] = [GamePadControl.RightShoulder]
         };
