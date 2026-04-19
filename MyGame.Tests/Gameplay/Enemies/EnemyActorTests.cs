@@ -136,6 +136,39 @@ public sealed class EnemyActorTests
     }
 
     [Fact]
+    public void HealthBarAlpha_WhenEnemyIsAlive_RemainsVisible()
+    {
+        var enemy = new EnemyActor(
+            new EnemySettings { MaxHealth = 4, MoveSpeed = 90f, ChaseRange = 200f },
+            new Vector2(10f, 10f));
+
+        Assert.Equal(1f, enemy.HealthBarAlpha);
+
+        enemy.TakeDamage(1);
+        enemy.Update(Vector2.Zero, new FrameTime(TimeSpan.FromSeconds(1.49), TimeSpan.FromSeconds(1.49)));
+
+        Assert.Equal(1f, enemy.HealthBarAlpha);
+    }
+
+    [Fact]
+    public void TakeDamage_WhenHornedRabbitBossAdvancesStage_KeepsHealthBarVisibleAtFullHealth()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss);
+        var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
+        var playerBounds = new Rectangle(120, 80, 28, 28);
+
+        enemy.TakeDamage(settings.MaxHealth);
+        enemy.Update(
+            new Vector2(playerBounds.X, playerBounds.Y),
+            playerBounds,
+            new FrameTime(TimeSpan.FromSeconds(0.2), TimeSpan.FromSeconds(0.2)));
+
+        Assert.Equal(settings.MaxHealth, enemy.CurrentHealth);
+        Assert.Equal(2, enemy.BossStage);
+        Assert.Equal(1f, enemy.HealthBarAlpha);
+    }
+
+    [Fact]
     public void Update_WhenDefeatedVisibilityExpires_IsNoLongerRenderable()
     {
         var enemy = new EnemyActor(
@@ -313,7 +346,7 @@ public sealed class EnemyActorTests
         var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
         var playerBounds = new Rectangle(120, 80, 28, 28);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
 
         Assert.Equal(2, enemy.BossStage);
@@ -328,7 +361,7 @@ public sealed class EnemyActorTests
         var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
         var playerBounds = new Rectangle(560, 320, 28, 28);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.0)));
 
         Assert.Equal(2, enemy.BossStage);
@@ -343,7 +376,7 @@ public sealed class EnemyActorTests
         var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
         var playerBounds = new Rectangle(560, 320, 28, 28);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
@@ -362,7 +395,7 @@ public sealed class EnemyActorTests
         var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
         var playerBounds = new Rectangle(560, 320, 28, 28);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
@@ -384,7 +417,7 @@ public sealed class EnemyActorTests
         var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
         var playerBounds = new Rectangle(560, 320, 28, 28);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
@@ -393,7 +426,7 @@ public sealed class EnemyActorTests
         Assert.Equal(3, stageTwoSpawns.Length);
         ClearPendingSpawns(enemy);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.65), TimeSpan.FromSeconds(2.15)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.16)));
@@ -413,14 +446,14 @@ public sealed class EnemyActorTests
         var enemy = new EnemyActor(settings, new Vector2(360f, 180f));
         var playerBounds = new Rectangle(560, 320, 28, 28);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.1), TimeSpan.FromSeconds(2.6)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.61)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(3.11)));
         ClearPendingSpawns(enemy);
 
-        enemy.TakeDamage(6);
+        enemy.TakeDamage(settings.MaxHealth);
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(1.5)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.65), TimeSpan.FromSeconds(2.15)));
         enemy.Update(new Vector2(playerBounds.X, playerBounds.Y), playerBounds, new FrameTime(TimeSpan.FromSeconds(0.01), TimeSpan.FromSeconds(2.16)));

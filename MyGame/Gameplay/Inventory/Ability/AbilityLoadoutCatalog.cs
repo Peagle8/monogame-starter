@@ -164,7 +164,7 @@ public static class AbilityLoadoutCatalog
         return
         [
             new AbilityCatalogEntry(AbilityLoadoutSlot.Defense, PlayerDefenseAbilityKind.Shield, "Base Shield", true, true),
-            new AbilityCatalogEntry(AbilityLoadoutSlot.Defense, PlayerDefenseAbilityKind.FireShield, "Fire Shield", false, true),
+            new AbilityCatalogEntry(AbilityLoadoutSlot.Defense, PlayerDefenseAbilityKind.FireShield, "Fire Shield", true, false),
             new AbilityCatalogEntry(AbilityLoadoutSlot.Defense, PlayerDefenseAbilityKind.IceShield, "Ice Shield", false, true),
             new AbilityCatalogEntry(AbilityLoadoutSlot.Defense, PlayerDefenseAbilityKind.ElectricityShield, "Electricity Shield", false, true),
             new AbilityCatalogEntry(AbilityLoadoutSlot.Defense, PlayerDefenseAbilityKind.StealthShield, "Stealth Shield", false, true),

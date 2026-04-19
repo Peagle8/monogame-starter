@@ -152,6 +152,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IGameplayEntityRenderer, WallEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, TreeEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, EnemyEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, EnemyHealthBarRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerProjectileRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerBombRenderer>();
         services.AddTransient<IGameplayEntityRenderer, ShopkeeperEntityRenderer>();

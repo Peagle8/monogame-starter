@@ -23,6 +23,7 @@ public sealed class PlayerActorTests
         Assert.Equal(3f, player.CurrentAbilityPoints);
         Assert.Equal(3f, player.MaxAbilityPoints);
         Assert.False(player.IsShieldActive);
+        Assert.False(player.IsFireShieldActive);
         Assert.Equal(0, player.ShieldCharges);
         Assert.False(player.IsDead);
     }
@@ -264,6 +265,55 @@ public sealed class PlayerActorTests
     }
 
     [Fact]
+    public void Update_WhenFireShieldEquippedAndDefenseAbilityPressed_ActivatesFireShieldAndSpendsAbilityPoints()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(player.IsFireShieldActive);
+        Assert.False(player.IsShieldActive);
+        Assert.Equal(0f, player.CurrentAbilityPoints);
+        Assert.Equal(3, player.ShieldCharges);
+    }
+
+    [Fact]
+    public void Update_WhenFireShieldIsActive_RemainsActiveWithoutTakingHits()
+    {
+        var inputService = new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility);
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings { MaxAbilityPoints = 1f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings
+            {
+                FireShieldActivationCost = 1f
+            }),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.True(player.IsFireShieldActive);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5.1)));
+
+        Assert.True(player.IsFireShieldActive);
+        Assert.Equal(3, player.ShieldCharges);
+    }
+
+    [Fact]
     public void TryAbsorbShieldHit_WhenShieldIsActive_ConsumesShieldCharge()
     {
         var player = new PlayerActor(
@@ -301,6 +351,32 @@ public sealed class PlayerActorTests
         Assert.True(player.TryAbsorbShieldHit());
 
         Assert.False(player.IsShieldActive);
+        Assert.Equal(0, player.ShieldCharges);
+    }
+
+    [Fact]
+    public void TryAbsorbShieldHit_WhenFireShieldIsActive_ConsumesShieldChargeAndEventuallyBreaksShield()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.IsFireShieldActive);
+        Assert.Equal(2, player.ShieldCharges);
+
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.TryAbsorbShieldHit());
+
+        Assert.False(player.IsFireShieldActive);
         Assert.Equal(0, player.ShieldCharges);
     }
 

@@ -34,6 +34,7 @@ public static class ServiceRegistration
         services.AddTransient<IEnemyFactory, EnemyFactory>();
         services.AddTransient<PlayerAttackHitResolver>();
         services.AddTransient<PlayerBombResolver>();
+        services.AddTransient<PlayerFireShieldResolver>();
         services.AddTransient<PlayerProjectileResolver>();
         services.AddTransient<WorldObstacleResolver>();
         services.AddTransient<EnemySeparationResolver>();

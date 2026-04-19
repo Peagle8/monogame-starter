@@ -111,6 +111,95 @@ public sealed class WorldTests
     }
 
     [Fact]
+    public void Update_WhenFireShieldIsActive_EnemyInsideAuraTakesDamageOverTime()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 1f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings
+            {
+                FireShieldActivationCost = 1f,
+                FireShieldDamageTickSeconds = 3f
+            }),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+        var enemy = new EnemyActor(
+            new EnemySettings { MaxHealth = 4, MoveSpeed = 0f, ChaseRange = 10f },
+            new Vector2(500f, 240f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(3.1), TimeSpan.FromSeconds(3.2)));
+
+        Assert.True(world.Player.IsFireShieldActive);
+        Assert.Equal(3, world.Player.ShieldCharges);
+        Assert.Equal(3, enemy.CurrentHealth);
+    }
+
+    [Fact]
+    public void Update_WhenFireShieldIsActive_EnemyContactConsumesShieldChargeInsteadOfDamagingPlayer()
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f, ContactKnockbackDistance = 20f, ContactKnockbackSeconds = 0.2f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+        var enemy = new EnemyActor(
+            new EnemySettings { MoveSpeed = 0f, ChaseRange = 100f, RecoverySeconds = 0.65f },
+            new Vector2(400f, 240f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
+
+        Assert.Equal(20, world.Player.CurrentHealth);
+        Assert.True(world.Player.IsFireShieldActive);
+        Assert.Equal(2, world.Player.ShieldCharges);
+        Assert.Equal(EnemyState.Recovering, enemy.State);
+    }
+
+    [Fact]
+    public void Update_WhenFireShieldIsActive_BatMiniBossConeConsumesShieldChargeInsteadOfDamagingOrStunningPlayer()
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.RestoreState(new Vector2(400f, 240f), player.MaxHealth, 3f);
+        player.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+        var minibossSettings = EnemySettingsCatalog.CreateDefault(EnemyKind.BatMiniBoss);
+        var miniboss = new EnemyActor(
+            minibossSettings,
+            new Vector2(344f, 228f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [miniboss]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var windupSeconds = minibossSettings.SpecialAttackPauseSeconds + 0.1f;
+        world.Update(new FrameTime(TimeSpan.FromSeconds(windupSeconds), TimeSpan.FromSeconds(windupSeconds + 0.1f)));
+
+        Assert.Equal(20, world.Player.CurrentHealth);
+        Assert.False(world.Player.IsStunned);
+        Assert.True(world.Player.IsFireShieldActive);
+        Assert.Equal(2, world.Player.ShieldCharges);
+    }
+
+    [Fact]
     public void Update_WhenEliteRabbitBombExplodesOnPlayer_AppliesKnockback()
     {
         var movementSettings = new PlayerMovementSettings
@@ -260,7 +349,7 @@ public sealed class WorldTests
         var boss = new EnemyActor(
             EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss),
             new Vector2(360f, 180f));
-        boss.TakeDamage(6);
+        boss.TakeDamage(boss.MaxHealth);
 
         var world = new global::MyGame.Gameplay.World.World(
             player,
@@ -1062,7 +1151,7 @@ public sealed class WorldTests
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.42), TimeSpan.FromSeconds(0.47)));
 
-        Assert.Equal(2, enemy.CurrentHealth);
+        Assert.Equal(1, enemy.CurrentHealth);
         Assert.Empty(world.GrassProps);
     }
 

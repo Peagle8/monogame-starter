@@ -96,6 +96,8 @@ public sealed class EnemyActor
 
     public float HitFlashAlpha => MathHelper.Clamp(_remainingHitFlashSeconds / HitFlashSeconds, 0f, 1f);
 
+    public float HealthBarAlpha => CurrentHealth > 0 ? 1f : 0f;
+
     public float DefeatedVisibilityAlpha =>
         State != EnemyState.Dead || _settings.DefeatedVisibleSeconds <= 0f
             ? 1f

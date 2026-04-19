@@ -46,7 +46,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.HornedRabbit => new EnemySettings
             {
                 Kind = EnemyKind.HornedRabbit,
-                MaxHealth = 2,
+                MaxHealth = 4,
                 MoveSpeed = 210f,
                 ChaseRange = 260f,
                 RecoverySeconds = 0.5f,
@@ -63,7 +63,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.HornedRabbitBoss => new EnemySettings
             {
                 Kind = EnemyKind.HornedRabbitBoss,
-                MaxHealth = 6,
+                MaxHealth = 12,
                 MoveSpeed = 0f,
                 ChaseRange = 1200f,
                 RecoverySeconds = 0.6f,
@@ -81,7 +81,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.HornedRabbitElite => new EnemySettings
             {
                 Kind = EnemyKind.HornedRabbitElite,
-                MaxHealth = 4,
+                MaxHealth = 8,
                 MoveSpeed = 216f,
                 ChaseRange = 1200f,
                 RecoverySeconds = 0.55f,
@@ -101,7 +101,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.Bat => new EnemySettings
             {
                 Kind = EnemyKind.Bat,
-                MaxHealth = 2,
+                MaxHealth = 4,
                 MoveSpeed = 144f,
                 ChaseRange = 280f,
                 RecoverySeconds = 0.5f,
@@ -119,7 +119,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.BatMiniBoss => new EnemySettings
             {
                 Kind = EnemyKind.BatMiniBoss,
-                MaxHealth = 6,
+                MaxHealth = 12,
                 MoveSpeed = 132f,
                 ChaseRange = 360f,
                 RecoverySeconds = 0.6f,
@@ -142,7 +142,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.Grasshopper => new EnemySettings
             {
                 Kind = EnemyKind.Grasshopper,
-                MaxHealth = 2,
+                MaxHealth = 4,
                 MoveSpeed = 128f,
                 ChaseRange = 280f,
                 RecoverySeconds = 0.5f,

@@ -17,6 +17,7 @@ public sealed class World
     private readonly IEnemySettingsCatalog _enemySettingsCatalog;
     private readonly PlayerAttackHitResolver _playerAttackHitResolver;
     private readonly PlayerBombResolver _playerBombResolver;
+    private readonly PlayerFireShieldResolver _playerFireShieldResolver;
     private readonly PlayerProjectileResolver _playerProjectileResolver;
     private readonly WorldObstacleResolver _worldObstacleResolver;
     private readonly EnemySeparationResolver _enemySeparationResolver;
@@ -50,6 +51,7 @@ public sealed class World
                 EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit))),
             playerAttackHitResolver: new PlayerAttackHitResolver(),
             playerBombResolver: new PlayerBombResolver(),
+            playerFireShieldResolver: new PlayerFireShieldResolver(new PlayerDefenseAbilitySettings()),
             playerProjectileResolver: new PlayerProjectileResolver(),
             worldObstacleResolver: new WorldObstacleResolver(new WorldCombatSettings()),
             enemySeparationResolver: new EnemySeparationResolver(new WorldCombatSettings()),
@@ -68,6 +70,7 @@ public sealed class World
         IEnemyFactory? enemyFactory = null,
         PlayerAttackHitResolver? playerAttackHitResolver = null,
         PlayerBombResolver? playerBombResolver = null,
+        PlayerFireShieldResolver? playerFireShieldResolver = null,
         PlayerProjectileResolver? playerProjectileResolver = null,
         WorldObstacleResolver? worldObstacleResolver = null,
         EnemySeparationResolver? enemySeparationResolver = null,
@@ -86,6 +89,7 @@ public sealed class World
         _enemyFactory = enemyFactory ?? new EnemyFactory(_enemySettingsCatalog);
         _playerAttackHitResolver = playerAttackHitResolver ?? new PlayerAttackHitResolver();
         _playerBombResolver = playerBombResolver ?? new PlayerBombResolver();
+        _playerFireShieldResolver = playerFireShieldResolver ?? new PlayerFireShieldResolver(new PlayerDefenseAbilitySettings());
         _playerProjectileResolver = playerProjectileResolver ?? new PlayerProjectileResolver();
         _worldObstacleResolver = worldObstacleResolver ?? new WorldObstacleResolver(resolvedWorldCombatSettings);
         _enemySeparationResolver = enemySeparationResolver ?? new EnemySeparationResolver(resolvedWorldCombatSettings);
@@ -198,6 +202,7 @@ public sealed class World
         UpdateScreenBanner(frameTime);
         var projectileHitEnemy = _playerProjectileResolver.Resolve(_playerProjectiles, _enemies, _props);
         var bombHitEnemy = _playerBombResolver.Resolve(_playerBombs, _props, _enemies);
+        _playerFireShieldResolver.Resolve(Player, _enemies, frameTime);
         _playerProjectiles.RemoveAll(projectile => !projectile.IsActive);
         _playerBombs.RemoveAll(bomb => !bomb.IsActive);
 
@@ -295,6 +300,7 @@ public sealed class World
         _remainingPlayerHitPauseSeconds = 0f;
         _playerAttackHitResolver.Reset();
         _enemyContactResolver.Reset();
+        _playerFireShieldResolver.Reset();
         _countedDefeatedEnemies.Clear();
         _enemies.Clear();
         _playerBombs.Clear();

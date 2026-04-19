@@ -150,7 +150,13 @@ public sealed class PlayerActor
     public bool IsAttacking => _attackState.IsAttacking;
 
     public bool IsShieldActive =>
-        _defenseAbilityState.EquippedAbility == PlayerDefenseAbilityKind.Shield
+        !IsDead
+        && _defenseAbilityState.EquippedAbility == PlayerDefenseAbilityKind.Shield
+        && _defenseAbilityState.IsActive;
+
+    public bool IsFireShieldActive =>
+        !IsDead
+        && _defenseAbilityState.EquippedAbility == PlayerDefenseAbilityKind.FireShield
         && _defenseAbilityState.IsActive;
 
     public int ShieldCharges => _defenseAbilityState.RemainingCharges;
@@ -193,7 +199,7 @@ public sealed class PlayerActor
 
         UpdateMovement(frameTime);
         UpdateAttack(frameTime, _inputService.IsJustPressed(GameAction.Attack) && !IsDead);
-        UpdateDefenseAbility(_inputService.IsJustPressed(GameAction.DefenseAbility) && !IsDead);
+        UpdateDefenseAbility(frameTime, _inputService.IsJustPressed(GameAction.DefenseAbility) && !IsDead);
         UpdateRangedAttack(frameTime, _inputService.IsJustPressed(GameAction.RangedAttack) && !IsDead);
     }
 
@@ -311,7 +317,7 @@ public sealed class PlayerActor
 
     public bool TryAbsorbShieldHit()
     {
-        if (!IsShieldActive)
+        if (!CanAbsorbShieldHit())
         {
             return false;
         }
@@ -325,7 +331,7 @@ public sealed class PlayerActor
         Position += _knockbackMotion.Update(frameTime.DeltaSeconds);
         IsMoving = true;
         UpdateAttack(frameTime, attackJustPressed: false);
-        UpdateDefenseAbility(defenseAbilityJustPressed: false);
+        UpdateDefenseAbility(frameTime, defenseAbilityJustPressed: false);
         UpdateRangedAttack(frameTime, rangedAttackJustPressed: false);
     }
 
@@ -334,7 +340,7 @@ public sealed class PlayerActor
         _remainingStunSeconds = Math.Max(0f, _remainingStunSeconds - frameTime.DeltaSeconds);
         IsMoving = false;
         UpdateAttack(frameTime, attackJustPressed: false);
-        UpdateDefenseAbility(defenseAbilityJustPressed: false);
+        UpdateDefenseAbility(frameTime, defenseAbilityJustPressed: false);
         UpdateRangedAttack(frameTime, rangedAttackJustPressed: false);
     }
 
@@ -360,7 +366,7 @@ public sealed class PlayerActor
         IsMoving = true;
         UpdateBombDash(frameTime);
         UpdateAttack(frameTime, attackJustPressed: false);
-        UpdateDefenseAbility(defenseAbilityJustPressed: false);
+        UpdateDefenseAbility(frameTime, defenseAbilityJustPressed: false);
         UpdateRangedAttack(frameTime, rangedAttackJustPressed: false);
         return true;
     }
@@ -393,14 +399,15 @@ public sealed class PlayerActor
             frameTime);
     }
 
-    private void UpdateDefenseAbility(bool defenseAbilityJustPressed)
+    private void UpdateDefenseAbility(FrameTime frameTime, bool defenseAbilityJustPressed)
     {
         var result = _defenseAbilityController.Update(
             _defenseAbilityState,
             defenseAbilityJustPressed,
-            CanActivateDefenseAbility());
+            CanActivateDefenseAbility(),
+            frameTime);
 
-        if (result.Activated && !TrySpendAbilityPoints(_defenseAbilityController.ShieldActivationCost))
+        if (result.Activated && !TrySpendAbilityPoints(_defenseAbilityController.GetActivationCost(_defenseAbilityState.EquippedAbility)))
         {
             return;
         }
@@ -499,11 +506,19 @@ public sealed class PlayerActor
         return horizontal < 0 ? Direction.Left : Direction.Right;
     }
 
+    private bool CanAbsorbShieldHit()
+    {
+        return !IsDead
+            && _defenseAbilityState.IsActive
+            && _defenseAbilityState.RemainingCharges > 0;
+    }
+
     private bool CanActivateDefenseAbility()
     {
         return _defenseAbilityState.EquippedAbility switch
         {
             PlayerDefenseAbilityKind.Shield => CurrentAbilityPoints >= _defenseAbilityController.ShieldActivationCost,
+            PlayerDefenseAbilityKind.FireShield => CurrentAbilityPoints >= _defenseAbilityController.FireShieldActivationCost,
             _ => false
         };
     }

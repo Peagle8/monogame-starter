@@ -6,7 +6,7 @@ public sealed class EnemySettings
 {
     public EnemyKind Kind { get; init; } = EnemyKind.Crab;
 
-    public int MaxHealth { get; init; } = 3;
+    public int MaxHealth { get; init; } = 6;
 
     public float MoveSpeed { get; init; } = 96f;
 

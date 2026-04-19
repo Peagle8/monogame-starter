@@ -17,6 +17,7 @@ public sealed class GameplayLevelBuilder
     private readonly WorldCombatSettings _worldCombatSettings;
     private readonly PlayerAttackHitResolver _playerAttackHitResolver;
     private readonly PlayerBombResolver _playerBombResolver;
+    private readonly PlayerFireShieldResolver _playerFireShieldResolver;
     private readonly PlayerProjectileResolver _playerProjectileResolver;
     private readonly WorldObstacleResolver _worldObstacleResolver;
     private readonly EnemySeparationResolver _enemySeparationResolver;
@@ -39,6 +40,33 @@ public sealed class GameplayLevelBuilder
             worldCombatSettings,
             playerAttackHitResolver,
             new PlayerBombResolver(),
+            new PlayerFireShieldResolver(new PlayerDefenseAbilitySettings()),
+            playerProjectileResolver,
+            worldObstacleResolver,
+            enemySeparationResolver,
+            enemyContactResolver)
+    {
+    }
+
+    public GameplayLevelBuilder(
+        EnemySettings defaultEnemySettings,
+        IEnemyFactory enemyFactory,
+        IEnemySettingsCatalog enemySettingsCatalog,
+        WorldCombatSettings worldCombatSettings,
+        PlayerAttackHitResolver playerAttackHitResolver,
+        PlayerFireShieldResolver playerFireShieldResolver,
+        PlayerProjectileResolver playerProjectileResolver,
+        WorldObstacleResolver worldObstacleResolver,
+        EnemySeparationResolver enemySeparationResolver,
+        EnemyContactResolver enemyContactResolver)
+        : this(
+            defaultEnemySettings,
+            enemyFactory,
+            enemySettingsCatalog,
+            worldCombatSettings,
+            playerAttackHitResolver,
+            new PlayerBombResolver(),
+            playerFireShieldResolver,
             playerProjectileResolver,
             worldObstacleResolver,
             enemySeparationResolver,
@@ -57,6 +85,33 @@ public sealed class GameplayLevelBuilder
         WorldObstacleResolver worldObstacleResolver,
         EnemySeparationResolver enemySeparationResolver,
         EnemyContactResolver enemyContactResolver)
+        : this(
+            defaultEnemySettings,
+            enemyFactory,
+            enemySettingsCatalog,
+            worldCombatSettings,
+            playerAttackHitResolver,
+            playerBombResolver,
+            new PlayerFireShieldResolver(new PlayerDefenseAbilitySettings()),
+            playerProjectileResolver,
+            worldObstacleResolver,
+            enemySeparationResolver,
+            enemyContactResolver)
+    {
+    }
+
+    public GameplayLevelBuilder(
+        EnemySettings defaultEnemySettings,
+        IEnemyFactory enemyFactory,
+        IEnemySettingsCatalog enemySettingsCatalog,
+        WorldCombatSettings worldCombatSettings,
+        PlayerAttackHitResolver playerAttackHitResolver,
+        PlayerBombResolver playerBombResolver,
+        PlayerFireShieldResolver playerFireShieldResolver,
+        PlayerProjectileResolver playerProjectileResolver,
+        WorldObstacleResolver worldObstacleResolver,
+        EnemySeparationResolver enemySeparationResolver,
+        EnemyContactResolver enemyContactResolver)
     {
         _defaultEnemySettings = defaultEnemySettings;
         _enemyFactory = enemyFactory;
@@ -64,6 +119,7 @@ public sealed class GameplayLevelBuilder
         _worldCombatSettings = worldCombatSettings;
         _playerAttackHitResolver = playerAttackHitResolver;
         _playerBombResolver = playerBombResolver;
+        _playerFireShieldResolver = playerFireShieldResolver;
         _playerProjectileResolver = playerProjectileResolver;
         _worldObstacleResolver = worldObstacleResolver;
         _enemySeparationResolver = enemySeparationResolver;
@@ -292,6 +348,7 @@ public sealed class GameplayLevelBuilder
             _enemyFactory,
             _playerAttackHitResolver,
             _playerBombResolver,
+            _playerFireShieldResolver,
             _playerProjectileResolver,
             _worldObstacleResolver,
             _enemySeparationResolver,
