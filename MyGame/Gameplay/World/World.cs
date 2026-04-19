@@ -16,6 +16,7 @@ public sealed class World
     private readonly IEnemyFactory _enemyFactory;
     private readonly IEnemySettingsCatalog _enemySettingsCatalog;
     private readonly PlayerAttackHitResolver _playerAttackHitResolver;
+    private readonly PlayerBombResolver _playerBombResolver;
     private readonly PlayerProjectileResolver _playerProjectileResolver;
     private readonly WorldObstacleResolver _worldObstacleResolver;
     private readonly EnemySeparationResolver _enemySeparationResolver;
@@ -23,6 +24,7 @@ public sealed class World
     private readonly IWorldEventController? _eventController;
     private readonly List<IWorldProp> _props;
     private readonly List<PlayerProjectile> _playerProjectiles;
+    private readonly List<PlayerBomb> _playerBombs;
     private readonly List<WorldToast> _toasts;
     private readonly List<WorldSceneTransition> _sceneTransitions;
     private readonly HashSet<WorldSceneTransition> _suppressedSceneTransitions = [];
@@ -47,6 +49,7 @@ public sealed class World
                 enemySettings,
                 EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit))),
             playerAttackHitResolver: new PlayerAttackHitResolver(),
+            playerBombResolver: new PlayerBombResolver(),
             playerProjectileResolver: new PlayerProjectileResolver(),
             worldObstacleResolver: new WorldObstacleResolver(new WorldCombatSettings()),
             enemySeparationResolver: new EnemySeparationResolver(new WorldCombatSettings()),
@@ -64,6 +67,7 @@ public sealed class World
         IEnemySettingsCatalog? enemySettingsCatalog = null,
         IEnemyFactory? enemyFactory = null,
         PlayerAttackHitResolver? playerAttackHitResolver = null,
+        PlayerBombResolver? playerBombResolver = null,
         PlayerProjectileResolver? playerProjectileResolver = null,
         WorldObstacleResolver? worldObstacleResolver = null,
         EnemySeparationResolver? enemySeparationResolver = null,
@@ -81,6 +85,7 @@ public sealed class World
         var resolvedWorldCombatSettings = worldCombatSettings ?? new WorldCombatSettings();
         _enemyFactory = enemyFactory ?? new EnemyFactory(_enemySettingsCatalog);
         _playerAttackHitResolver = playerAttackHitResolver ?? new PlayerAttackHitResolver();
+        _playerBombResolver = playerBombResolver ?? new PlayerBombResolver();
         _playerProjectileResolver = playerProjectileResolver ?? new PlayerProjectileResolver();
         _worldObstacleResolver = worldObstacleResolver ?? new WorldObstacleResolver(resolvedWorldCombatSettings);
         _enemySeparationResolver = enemySeparationResolver ?? new EnemySeparationResolver(resolvedWorldCombatSettings);
@@ -88,6 +93,7 @@ public sealed class World
         _props = props.ToList();
         _enemies = enemies.ToList();
         _playerProjectiles = [];
+        _playerBombs = [];
         _toasts = [];
         _sceneTransitions = sceneTransitions?.ToList() ?? [];
         WorldBounds = worldBounds;
@@ -112,6 +118,8 @@ public sealed class World
     public IReadOnlyList<GrassProp> GrassProps => _props.OfType<GrassProp>().ToArray();
 
     public IReadOnlyList<PlayerProjectile> PlayerProjectiles => _playerProjectiles;
+
+    public IReadOnlyList<PlayerBomb> PlayerBombs => _playerBombs;
 
     public IReadOnlyList<WorldToast> Toasts => _toasts;
 
@@ -166,6 +174,7 @@ public sealed class World
 
         Player.Update(frameTime);
         _playerProjectiles.AddRange(Player.ConsumeSpawnedProjectiles());
+        _playerBombs.AddRange(Player.ConsumeSpawnedBombs());
         _worldObstacleResolver.ResolvePlayer(Player, _props);
 
         foreach (var enemy in _enemies)
@@ -184,16 +193,19 @@ public sealed class World
         ResolveActiveEnemyBombExplosions();
 
         UpdateProjectiles(frameTime);
+        UpdatePlayerBombs(frameTime);
         UpdateToasts(frameTime);
         UpdateScreenBanner(frameTime);
         var projectileHitEnemy = _playerProjectileResolver.Resolve(_playerProjectiles, _enemies, _props);
+        var bombHitEnemy = _playerBombResolver.Resolve(_playerBombs, _props, _enemies);
         _playerProjectiles.RemoveAll(projectile => !projectile.IsActive);
+        _playerBombs.RemoveAll(bomb => !bomb.IsActive);
 
         var playerHitEnemy = _playerAttackHitResolver.Resolve(Player, _enemies);
         TrackDefeatedEnemies(rewardPlayer: true);
         _eventController?.Update(this, frameTime);
 
-        if (playerHitEnemy || projectileHitEnemy)
+        if (playerHitEnemy || projectileHitEnemy || bombHitEnemy)
         {
             _remainingPlayerHitPauseSeconds = _enemySettings.PlayerHitPauseSeconds;
             return;
@@ -238,6 +250,7 @@ public sealed class World
             ["PlayerFacing"] = Player.Facing.ToString(),
             ["PlayerStunned"] = Player.IsStunned.ToString(),
             ["ObjectiveComplete"] = IsObjectiveComplete.ToString(),
+            ["PlayerBombCount"] = _playerBombs.Count.ToString(),
             ["ScreenBanner"] = ActiveScreenBanner?.Text ?? "<none>",
             ["GrassPropCount"] = GrassProps.Count.ToString(),
             ["PropCount"] = _props.Count.ToString(),
@@ -254,6 +267,11 @@ public sealed class World
             DefeatedEnemyCount = DefeatedEnemyCount,
             Enemies = _enemies.Select(enemy => enemy.CreateSaveData()).ToArray(),
             PlayerAbilityPoints = Player.CurrentAbilityPoints,
+            UnlockedAbilities = Player.GetUnlockedAbilities().ToArray(),
+            EquippedDashAbility = Player.EquippedDashAbility,
+            EquippedDefenseAbility = Player.EquippedDefenseAbility,
+            EquippedRangedAbility = Player.EquippedRangedAttack,
+            EquippedMeleeAbility = Player.EquippedMeleeAbility,
             PlayerHealth = Player.CurrentHealth,
             PlayerPositionX = Player.Position.X,
             PlayerPositionY = Player.Position.Y
@@ -266,11 +284,20 @@ public sealed class World
             new Vector2(data.PlayerPositionX, data.PlayerPositionY),
             data.PlayerHealth,
             data.PlayerAbilityPoints);
+        if (data.UnlockedAbilities.Length > 0)
+        {
+            Player.SetUnlockedAbilities(data.UnlockedAbilities);
+        }
+        Player.EquipDashAbility(data.EquippedDashAbility);
+        Player.EquipDefenseAbility(data.EquippedDefenseAbility);
+        Player.EquipRangedAttack(data.EquippedRangedAbility);
+        Player.EquipMeleeAbility(data.EquippedMeleeAbility);
         _remainingPlayerHitPauseSeconds = 0f;
         _playerAttackHitResolver.Reset();
         _enemyContactResolver.Reset();
         _countedDefeatedEnemies.Clear();
         _enemies.Clear();
+        _playerBombs.Clear();
         _playerProjectiles.Clear();
         _toasts.Clear();
         _screenBanner = null;
@@ -307,6 +334,8 @@ public sealed class World
                         GetPlayerToastAnchor(),
                         new Color(128, 214, 255)));
                 }
+
+                TryUnlockBombDash(enemy);
             }
         }
     }
@@ -321,6 +350,14 @@ public sealed class World
         foreach (var projectile in _playerProjectiles)
         {
             projectile.Update(frameTime);
+        }
+    }
+
+    private void UpdatePlayerBombs(FrameTime frameTime)
+    {
+        foreach (var bomb in _playerBombs)
+        {
+            bomb.Update(frameTime.DeltaSeconds);
         }
     }
 
@@ -395,6 +432,17 @@ public sealed class World
             Player.ApplyStun(attack.StunSeconds);
             Player.ApplyKnockback(GetExplosionKnockbackDirection(explosionBounds));
         }
+    }
+
+    private void TryUnlockBombDash(EnemyActor enemy)
+    {
+        if (enemy.Kind != EnemyKind.HornedRabbitBoss || Player.HasAbility(PlayerAbility.BombDash))
+        {
+            return;
+        }
+
+        Player.UnlockAbility(PlayerAbility.BombDash);
+        ShowBanner("Bomb Dash unlocked", 2.6f);
     }
 
     private Vector2 GetExplosionKnockbackDirection(Rectangle explosionBounds)

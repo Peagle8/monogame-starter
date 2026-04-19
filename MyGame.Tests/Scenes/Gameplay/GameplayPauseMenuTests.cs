@@ -1,5 +1,8 @@
+using MyGame.Configuration;
 using MyGame.Core.Input;
+using MyGame.Gameplay.Inventory;
 using MyGame.Gameplay.World;
+using MyGame.Gameplay.Player;
 using MyGame.Scenes.Gameplay;
 
 namespace MyGame.Tests.Scenes.Gameplay;
@@ -88,6 +91,69 @@ public sealed class GameplayPauseMenuTests
         pauseMenu.Update(new StubInputService(GameAction.NextTab));
 
         Assert.Equal("Armor", pauseMenu.InventoryTab.ToString());
+    }
+
+    [Fact]
+    public void Update_WhenAbilitiesTabOpen_ConfirmOpensAbilityActions()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        Assert.Equal(PlayerInventoryTab.Abilities, pauseMenu.InventoryTab);
+        Assert.Equal(AbilityMenuView.ActionList, pauseMenu.AbilityMenuView);
+        Assert.Equal(AbilityLoadoutSlot.Dash, pauseMenu.SelectedAbilitySlot);
+    }
+
+    [Fact]
+    public void Update_WhenAbilitiesEquipListOpen_CancelReturnsToActionList()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        pauseMenu.Update(new StubInputService(GameAction.Cancel));
+
+        Assert.Equal(AbilityMenuView.ActionList, pauseMenu.AbilityMenuView);
+    }
+
+    [Fact]
+    public void Update_WhenUpgradeViewOpen_NextTabChangesUpgradePage()
+    {
+        var pauseMenu = CreatePauseMenu();
+        pauseMenu.Open();
+        pauseMenu.Update(new StubInputService());
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+        pauseMenu.Update(new StubInputService(GameAction.MoveDown));
+        pauseMenu.Update(new StubInputService(GameAction.Confirm));
+
+        pauseMenu.Update(new StubInputService(GameAction.NextTab));
+
+        Assert.Equal(AbilityMenuView.UpgradeView, pauseMenu.AbilityMenuView);
+        Assert.Equal(1, pauseMenu.UpgradePageIndex);
+        Assert.Equal(2, pauseMenu.UpgradePageCount);
     }
 
     [Fact]
@@ -347,7 +413,9 @@ public sealed class GameplayPauseMenuTests
         Func<OverworldMapSnapshot>? createMapSnapshot = null,
         Action? onReturnToMainMenu = null)
     {
+        var player = CreatePlayer();
         return new GameplayPauseMenu(
+            player,
             onResume ?? (() => { }),
             onSaveGame ?? (() => { }),
             onLoadGame ?? (() => { }),
@@ -360,6 +428,18 @@ public sealed class GameplayPauseMenuTests
             canShowMap,
             createMapSnapshot ?? (() => OverworldMapProjector.Create(GameplaySceneNames.Overworld, new Microsoft.Xna.Framework.Vector2(400f, 240f))),
             onReturnToMainMenu ?? (() => { }));
+    }
+
+    private static PlayerActor CreatePlayer()
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        return new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()));
     }
 
     private sealed class StubInputService : IInputService

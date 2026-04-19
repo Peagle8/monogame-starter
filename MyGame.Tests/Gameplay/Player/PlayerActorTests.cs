@@ -338,6 +338,37 @@ public sealed class PlayerActorTests
     }
 
     [Fact]
+    public void ApplyTransitionState_PreservesEquippedLoadoutSelections()
+    {
+        var sourcePlayer = new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        sourcePlayer.EquipDashAbility(PlayerDashAbilityKind.BombDash);
+        sourcePlayer.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+        sourcePlayer.EquipRangedAttack(PlayerRangedAttackKind.Bow);
+        sourcePlayer.EquipMeleeAbility(PlayerMeleeAbilityKind.FireSword);
+
+        var targetPlayer = new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        targetPlayer.ApplyTransitionState(new Vector2(96f, 144f), sourcePlayer.CreateTransitionState());
+
+        Assert.Equal(PlayerDashAbilityKind.BombDash, targetPlayer.EquippedDashAbility);
+        Assert.Equal(PlayerDefenseAbilityKind.FireShield, targetPlayer.EquippedDefenseAbility);
+        Assert.Equal(PlayerRangedAttackKind.Bow, targetPlayer.EquippedRangedAttack);
+        Assert.Equal(PlayerMeleeAbilityKind.FireSword, targetPlayer.EquippedMeleeAbility);
+    }
+
+    [Fact]
     public void ApplyKnockback_MovesPlayerImmediatelyAndStartsRecoil()
     {
         var player = new PlayerActor(
@@ -403,6 +434,68 @@ public sealed class PlayerActorTests
         player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
 
         Assert.False(player.IsDashing);
+        Assert.Equal(new Microsoft.Xna.Framework.Vector2(400f, 240f), player.Position);
+    }
+
+    [Fact]
+    public void Update_WhenBombDashIsEquippedAndUnlocked_SpawnsTrailBombs()
+    {
+        var movementSettings = new PlayerMovementSettings
+        {
+            DashDistance = 72f,
+            DashSeconds = 0.20f,
+            DashCooldownSeconds = 0.35f
+        };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.Dash),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.BombDash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.EquipDashAbility(PlayerDashAbilityKind.BombDash);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+        var firstBombs = player.ConsumeSpawnedBombs();
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.09), TimeSpan.FromSeconds(0.14)));
+        var secondBombs = player.ConsumeSpawnedBombs();
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.19)));
+        var thirdBombs = player.ConsumeSpawnedBombs();
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.10), TimeSpan.FromSeconds(0.29)));
+        var fourthBombs = player.ConsumeSpawnedBombs();
+
+        Assert.Equal(2, firstBombs.Count);
+        Assert.Equal(2, secondBombs.Count);
+        Assert.Equal(2, thirdBombs.Count);
+        Assert.Equal(4, fourthBombs.Count);
+        Assert.Equal(10, firstBombs.Count + secondBombs.Count + thirdBombs.Count + fourthBombs.Count);
+    }
+
+    [Fact]
+    public void Update_WhenBombDashIsEquippedButLocked_DoesNotStartDash()
+    {
+        var movementSettings = new PlayerMovementSettings
+        {
+            DashDistance = 72f,
+            DashSeconds = 0.20f,
+            DashCooldownSeconds = 0.35f
+        };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.Dash),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.EquipDashAbility(PlayerDashAbilityKind.BombDash);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+
+        Assert.False(player.IsDashing);
+        Assert.Empty(player.ConsumeSpawnedBombs());
         Assert.Equal(new Microsoft.Xna.Framework.Vector2(400f, 240f), player.Position);
     }
 

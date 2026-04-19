@@ -2,5 +2,10 @@ namespace MyGame.Gameplay.Player;
 
 public enum PlayerRangedAttackKind
 {
-    Fireball
+    Fireball,
+    WindCutter,
+    Missile,
+    Bow,
+    CompactBow,
+    LegendaryBow
 }

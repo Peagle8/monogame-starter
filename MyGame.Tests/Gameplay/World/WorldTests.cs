@@ -1036,6 +1036,37 @@ public sealed class WorldTests
     }
 
     [Fact]
+    public void Update_WhenPlayerBombExplodes_DamagesEnemyAndClearsGrass()
+    {
+        var movementSettings = new PlayerMovementSettings
+        {
+            DashDistance = 72f,
+            DashSeconds = 0.20f,
+            DashCooldownSeconds = 0.35f
+        };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.Dash),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.BombDash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(100f, 100f), player.MaxHealth);
+        player.EquipDashAbility(PlayerDashAbilityKind.BombDash);
+        var enemy = new EnemyActor(
+            new EnemySettings { MaxHealth = 3, MoveSpeed = 0f, ChaseRange = 10f },
+            new Vector2(100f, 112f));
+        var grass = new GrassProp(new Vector2(94f, 104f), new Point(32, 32));
+        var world = new global::MyGame.Gameplay.World.World(player, [grass], [enemy]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.05), TimeSpan.FromSeconds(0.05)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.42), TimeSpan.FromSeconds(0.47)));
+
+        Assert.Equal(2, enemy.CurrentHealth);
+        Assert.Empty(world.GrassProps);
+    }
+
+    [Fact]
     public void Update_AfterAbilityPointToastLifetimeExpires_RemovesToast()
     {
         var enemySettings = new EnemySettings { MaxHealth = 1, MoveSpeed = 0f, ChaseRange = 20f };
@@ -1084,11 +1115,32 @@ public sealed class WorldTests
         Assert.Equal(1, saveData.DefeatedEnemyCount);
         Assert.Single(saveData.Enemies);
         Assert.Equal(3f, saveData.PlayerAbilityPoints);
+        Assert.Equal([PlayerAbility.Dash], saveData.UnlockedAbilities);
+        Assert.Equal(PlayerDashAbilityKind.BaseDash, saveData.EquippedDashAbility);
+        Assert.Equal(PlayerDefenseAbilityKind.Shield, saveData.EquippedDefenseAbility);
+        Assert.Equal(PlayerRangedAttackKind.Fireball, saveData.EquippedRangedAbility);
+        Assert.Equal(PlayerMeleeAbilityKind.BaseAttack, saveData.EquippedMeleeAbility);
         Assert.Equal(EnemyKind.Crab, saveData.Enemies[0].Kind);
         Assert.Equal(EnemyAxisPreference.None, saveData.Enemies[0].AxisPreference);
         Assert.Equal(400f, saveData.Enemies[0].PositionX);
         Assert.Equal(272f, saveData.Enemies[0].PositionY);
         Assert.Equal(0, saveData.Enemies[0].CurrentHealth);
+    }
+
+    [Fact]
+    public void Update_WhenHornedRabbitBossDies_UnlocksBombDash()
+    {
+        var player = CreatePlayer();
+        var boss = new EnemyActor(
+            EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbitBoss),
+            new Vector2(360f, 180f));
+        boss.RestoreState(boss.Position, 0);
+        var world = new global::MyGame.Gameplay.World.World(player, [], [boss]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(world.Player.HasAbility(PlayerAbility.BombDash));
+        Assert.Equal("Bomb Dash unlocked", world.ActiveScreenBanner?.Text);
     }
 
     [Fact]
@@ -1128,6 +1180,10 @@ public sealed class WorldTests
                 }
             ],
             PlayerAbilityPoints = 1.5f,
+            EquippedDashAbility = PlayerDashAbilityKind.BaseDash,
+            EquippedDefenseAbility = PlayerDefenseAbilityKind.Shield,
+            EquippedRangedAbility = PlayerRangedAttackKind.Fireball,
+            EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
             PlayerHealth = 4,
             PlayerPositionX = 128f,
             PlayerPositionY = 196f
@@ -1138,6 +1194,10 @@ public sealed class WorldTests
         Assert.Equal(new Vector2(128f, 196f), world.Player.Position);
         Assert.Equal(4, world.Player.CurrentHealth);
         Assert.Equal(1.5f, world.Player.CurrentAbilityPoints);
+        Assert.Equal(PlayerDashAbilityKind.BaseDash, world.Player.EquippedDashAbility);
+        Assert.Equal(PlayerDefenseAbilityKind.Shield, world.Player.EquippedDefenseAbility);
+        Assert.Equal(PlayerRangedAttackKind.Fireball, world.Player.EquippedRangedAttack);
+        Assert.Equal(PlayerMeleeAbilityKind.BaseAttack, world.Player.EquippedMeleeAbility);
         Assert.Equal(2, world.Enemies.Count);
         Assert.Equal(new Vector2(150f, 160f), world.Enemies[0].Position);
         Assert.Equal(2, world.Enemies[0].CurrentHealth);
@@ -1146,6 +1206,42 @@ public sealed class WorldTests
         Assert.Equal(0, world.Enemies[1].CurrentHealth);
         Assert.Equal(EnemyState.Dead, world.Enemies[1].State);
         Assert.Equal(1, world.DefeatedEnemyCount);
+    }
+
+    [Fact]
+    public void ApplySaveData_WhenUnlockedAbilitiesArePresent_RestoresThem()
+    {
+        var enemySettings = new EnemySettings { MaxHealth = 3, MoveSpeed = 120f, ChaseRange = 160f };
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [], enemySettings);
+        var saveData = new MyGame.Infrastructure.Save.SaveGameData
+        {
+            SceneName = "Gameplay",
+            DefeatedEnemyCount = 0,
+            Enemies = [],
+            PlayerAbilityPoints = 1.5f,
+            UnlockedAbilities = [PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.BombDash],
+            EquippedDashAbility = PlayerDashAbilityKind.BombDash,
+            EquippedDefenseAbility = PlayerDefenseAbilityKind.Shield,
+            EquippedRangedAbility = PlayerRangedAttackKind.Fireball,
+            EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
+            PlayerHealth = 4,
+            PlayerPositionX = 128f,
+            PlayerPositionY = 196f
+        };
+
+        world.ApplySaveData(saveData);
+
+        Assert.True(world.Player.HasAbility(PlayerAbility.BombDash));
+        Assert.True(world.Player.HasAbility(PlayerAbility.Fireball));
+        Assert.Equal(PlayerDashAbilityKind.BombDash, world.Player.EquippedDashAbility);
     }
 
     [Fact]
@@ -1177,6 +1273,10 @@ public sealed class WorldTests
                 }
             ],
             PlayerAbilityPoints = 1.5f,
+            EquippedDashAbility = PlayerDashAbilityKind.BaseDash,
+            EquippedDefenseAbility = PlayerDefenseAbilityKind.Shield,
+            EquippedRangedAbility = PlayerRangedAttackKind.Fireball,
+            EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
             PlayerHealth = 4,
             PlayerPositionX = 128f,
             PlayerPositionY = 196f

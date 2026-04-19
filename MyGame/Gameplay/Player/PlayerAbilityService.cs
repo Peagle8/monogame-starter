@@ -9,6 +9,8 @@ public sealed class PlayerAbilityService : IPlayerAbilityService
         _unlockedAbilities = unlockedAbilities?.ToHashSet() ?? [];
     }
 
+    public IReadOnlyCollection<PlayerAbility> UnlockedAbilities => _unlockedAbilities;
+
     public bool HasAbility(PlayerAbility ability)
     {
         return _unlockedAbilities.Contains(ability);
@@ -22,5 +24,14 @@ public sealed class PlayerAbilityService : IPlayerAbilityService
     public void Lock(PlayerAbility ability)
     {
         _unlockedAbilities.Remove(ability);
+    }
+
+    public void SetUnlockedAbilities(IEnumerable<PlayerAbility> abilities)
+    {
+        _unlockedAbilities.Clear();
+        foreach (var ability in abilities)
+        {
+            _unlockedAbilities.Add(ability);
+        }
     }
 }

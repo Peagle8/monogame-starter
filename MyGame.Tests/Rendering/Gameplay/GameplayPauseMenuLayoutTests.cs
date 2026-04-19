@@ -22,6 +22,14 @@ public sealed class GameplayPauseMenuLayoutTests
     }
 
     [Fact]
+    public void GetInventoryModalBounds_UsesLargerBaselineForInventoryContent()
+    {
+        var bounds = GameplayPauseMenuLayout.GetInventoryModalBounds(new Point(800, 480));
+
+        Assert.Equal(new Rectangle(112, 20, 576, 440), bounds);
+    }
+
+    [Fact]
     public void GetInventoryContentBounds_StaysInsideModal()
     {
         var modalBounds = GameplayPauseMenuLayout.GetInventoryModalBounds(new Point(1920, 1080));
@@ -31,5 +39,6 @@ public sealed class GameplayPauseMenuLayoutTests
         Assert.True(contentBounds.Right < modalBounds.Right);
         Assert.True(contentBounds.Top > modalBounds.Top);
         Assert.True(contentBounds.Bottom < modalBounds.Bottom);
+        Assert.Equal(584, contentBounds.Height);
     }
 }

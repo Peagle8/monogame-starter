@@ -45,7 +45,7 @@ public static class GameplayPauseMenuLayout
 
     public static Rectangle GetInventoryModalBounds(Point viewportSize)
     {
-        return CreateCenteredBounds(viewportSize, 0.6f, 0.68f, 464, 336, 1040, 760);
+        return CreateCenteredBounds(viewportSize, 0.72f, 0.82f, 560, 440, 1200, 860);
     }
 
     public static Rectangle GetInventoryTabBounds(Rectangle modalBounds)
@@ -63,7 +63,7 @@ public static class GameplayPauseMenuLayout
             modalBounds.X + 32,
             modalBounds.Y + 164,
             modalBounds.Width - 64,
-            modalBounds.Height - 258);
+            modalBounds.Height - 276);
     }
 
     private static Rectangle CreateCenteredBounds(

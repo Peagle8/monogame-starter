@@ -79,6 +79,7 @@ public sealed class GameplayScene : IScene
         _saveGameService = saveGameService;
         _gameRecorder = gameRecorder;
         _pauseMenu = GameplayPauseMenu.CreateGameplayMenu(
+            World.Player,
             _saveGameService,
             _gameRecorder,
             diagnosticsSettings,

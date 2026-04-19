@@ -4,5 +4,7 @@ public sealed record PlayerTransitionState(
     int CurrentHealth,
     float CurrentAbilityPoints,
     Direction Facing,
+    PlayerDashAbilityKind EquippedDashAbility,
     PlayerDefenseAbilityState DefenseAbilityState,
-    PlayerRangedAttackState RangedAttackState);
+    PlayerRangedAttackState RangedAttackState,
+    PlayerMeleeAbilityKind EquippedMeleeAbility);

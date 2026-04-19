@@ -1,6 +1,7 @@
 using MyGame.Infrastructure.Logging;
 using MyGame.Infrastructure.Save;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Player;
 
 namespace MyGame.Tests.Infrastructure.Save;
 
@@ -36,6 +37,11 @@ public sealed class JsonSaveGameServiceTests : IDisposable
                 }
             ],
             PlayerAbilityPoints = 1.5f,
+            UnlockedAbilities = [PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.BombDash],
+            EquippedDashAbility = PlayerDashAbilityKind.BaseDash,
+            EquippedDefenseAbility = PlayerDefenseAbilityKind.Shield,
+            EquippedRangedAbility = PlayerRangedAttackKind.Fireball,
+            EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
             PlayerHealth = 3,
             PlayerPositionX = 123.5f,
             PlayerPositionY = 456.25f
@@ -48,6 +54,11 @@ public sealed class JsonSaveGameServiceTests : IDisposable
         Assert.Equal(expected.SceneName, loaded!.SceneName);
         Assert.Equal(expected.DefeatedEnemyCount, loaded.DefeatedEnemyCount);
         Assert.Equal(expected.PlayerAbilityPoints, loaded.PlayerAbilityPoints);
+        Assert.Equal(expected.UnlockedAbilities, loaded.UnlockedAbilities);
+        Assert.Equal(expected.EquippedDashAbility, loaded.EquippedDashAbility);
+        Assert.Equal(expected.EquippedDefenseAbility, loaded.EquippedDefenseAbility);
+        Assert.Equal(expected.EquippedRangedAbility, loaded.EquippedRangedAbility);
+        Assert.Equal(expected.EquippedMeleeAbility, loaded.EquippedMeleeAbility);
         Assert.Equal(expected.PlayerHealth, loaded.PlayerHealth);
         Assert.Equal(expected.PlayerPositionX, loaded.PlayerPositionX);
         Assert.Equal(expected.PlayerPositionY, loaded.PlayerPositionY);
@@ -91,6 +102,11 @@ public sealed class JsonSaveGameServiceTests : IDisposable
             DefeatedEnemyCount = 0,
             Enemies = [],
             PlayerAbilityPoints = 3f,
+            UnlockedAbilities = [PlayerAbility.Dash, PlayerAbility.BombDash],
+            EquippedDashAbility = PlayerDashAbilityKind.BaseDash,
+            EquippedDefenseAbility = PlayerDefenseAbilityKind.Shield,
+            EquippedRangedAbility = PlayerRangedAttackKind.Fireball,
+            EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
             PlayerHealth = 5,
             PlayerPositionX = 10f,
             PlayerPositionY = 20f

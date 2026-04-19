@@ -15,13 +15,18 @@ public sealed class PlayerActor
     private readonly PlayerRangedAttackController _rangedAttackController;
     private readonly PlayerMovementController _movementController;
     private readonly PlayerDashController _dashController;
+    private readonly PlayerBombDashController _bombDashController;
     private readonly IPlayerAbilityService _abilityService;
     private readonly KnockbackMotion _knockbackMotion = new();
     private readonly List<PlayerProjectile> _spawnedProjectiles = [];
+    private readonly List<PlayerBomb> _spawnedBombs = [];
     private PlayerAttackState _attackState = PlayerAttackState.Idle;
+    private PlayerDashAbilityKind _equippedDashAbility = PlayerDashAbilityKind.BaseDash;
     private PlayerDefenseAbilityState _defenseAbilityState = PlayerDefenseAbilityState.Default;
     private PlayerRangedAttackState _rangedAttackState = PlayerRangedAttackState.Default;
     private PlayerDashState _dashState = PlayerDashState.Idle;
+    private PlayerBombTrailState _bombTrailState = PlayerBombTrailState.Default;
+    private PlayerMeleeAbilityKind _equippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack;
     private float _remainingStunSeconds;
 
     public PlayerActor(
@@ -39,7 +44,8 @@ public sealed class PlayerActor
             abilityService,
             attackController,
             new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
-            new PlayerRangedAttackController(new PlayerRangedAttackSettings()))
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()),
+            new PlayerBombDashController())
     {
     }
 
@@ -59,7 +65,8 @@ public sealed class PlayerActor
             abilityService,
             attackController,
             new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
-            rangedAttackController)
+            rangedAttackController,
+            new PlayerBombDashController())
     {
     }
 
@@ -72,6 +79,29 @@ public sealed class PlayerActor
         PlayerAttackController attackController,
         PlayerDefenseAbilityController defenseAbilityController,
         PlayerRangedAttackController rangedAttackController)
+        : this(
+            inputService,
+            combatSettings,
+            movementController,
+            dashController,
+            abilityService,
+            attackController,
+            defenseAbilityController,
+            rangedAttackController,
+            new PlayerBombDashController())
+    {
+    }
+
+    public PlayerActor(
+        IInputService inputService,
+        PlayerCombatSettings combatSettings,
+        PlayerMovementController movementController,
+        PlayerDashController dashController,
+        IPlayerAbilityService abilityService,
+        PlayerAttackController attackController,
+        PlayerDefenseAbilityController defenseAbilityController,
+        PlayerRangedAttackController rangedAttackController,
+        PlayerBombDashController bombDashController)
     {
         _inputService = inputService;
         _combatSettings = combatSettings;
@@ -81,6 +111,7 @@ public sealed class PlayerActor
         _attackController = attackController;
         _defenseAbilityController = defenseAbilityController;
         _rangedAttackController = rangedAttackController;
+        _bombDashController = bombDashController;
         Position = new Vector2(400f, 240f);
         PreviousPosition = Position;
         Facing = Direction.Down;
@@ -111,6 +142,10 @@ public sealed class PlayerActor
     public PlayerDefenseAbilityKind EquippedDefenseAbility => _defenseAbilityState.EquippedAbility;
 
     public PlayerRangedAttackKind EquippedRangedAttack => _rangedAttackState.EquippedAttack;
+
+    public PlayerDashAbilityKind EquippedDashAbility => _equippedDashAbility;
+
+    public PlayerMeleeAbilityKind EquippedMeleeAbility => _equippedMeleeAbility;
 
     public bool IsAttacking => _attackState.IsAttacking;
 
@@ -179,6 +214,7 @@ public sealed class PlayerActor
             _movementController.ContactKnockbackDistance,
             _movementController.ContactKnockbackSeconds);
         _dashState = PlayerDashState.Idle;
+        _bombTrailState = PlayerBombTrailState.Default;
         IsMoving = _knockbackMotion.IsActive;
     }
 
@@ -191,6 +227,7 @@ public sealed class PlayerActor
 
         _remainingStunSeconds = Math.Max(_remainingStunSeconds, seconds);
         _dashState = PlayerDashState.Idle;
+        _bombTrailState = PlayerBombTrailState.Default;
         IsMoving = false;
     }
 
@@ -205,8 +242,10 @@ public sealed class PlayerActor
             CurrentHealth,
             CurrentAbilityPoints,
             Facing,
+            _equippedDashAbility,
             _defenseAbilityState,
-            _rangedAttackState);
+            _rangedAttackState,
+            _equippedMeleeAbility);
     }
 
     public void ApplyTransitionState(Vector2 position, PlayerTransitionState state)
@@ -216,13 +255,17 @@ public sealed class PlayerActor
         Facing = state.Facing;
         CurrentHealth = Math.Clamp(state.CurrentHealth, 0, MaxHealth);
         CurrentAbilityPoints = MathHelper.Clamp(state.CurrentAbilityPoints, 0f, MaxAbilityPoints);
+        _equippedDashAbility = state.EquippedDashAbility;
         IsMoving = false;
         _attackState = PlayerAttackState.Idle;
         _defenseAbilityState = state.DefenseAbilityState;
         _rangedAttackState = state.RangedAttackState;
+        _equippedMeleeAbility = state.EquippedMeleeAbility;
         _dashState = PlayerDashState.Idle;
+        _bombTrailState = PlayerBombTrailState.Default;
         _remainingStunSeconds = 0f;
         _knockbackMotion.Reset();
+        _spawnedBombs.Clear();
         _spawnedProjectiles.Clear();
     }
 
@@ -234,8 +277,10 @@ public sealed class PlayerActor
                 currentHealth,
                 currentAbilityPoints,
                 Facing,
+                PlayerDashAbilityKind.BaseDash,
                 PlayerDefenseAbilityState.Default,
-                PlayerRangedAttackState.Default));
+                PlayerRangedAttackState.Default,
+                PlayerMeleeAbilityKind.BaseAttack));
     }
 
     public void AddAbilityPoints(float amount)
@@ -306,12 +351,14 @@ public sealed class PlayerActor
 
         if (!_dashState.IsDashing)
         {
+            UpdateBombDash(frameTime);
             return false;
         }
 
         Position = dashResult.Position;
         Facing = dashResult.Facing;
         IsMoving = true;
+        UpdateBombDash(frameTime);
         UpdateAttack(frameTime, attackJustPressed: false);
         UpdateDefenseAbility(defenseAbilityJustPressed: false);
         UpdateRangedAttack(frameTime, rangedAttackJustPressed: false);
@@ -321,7 +368,7 @@ public sealed class PlayerActor
     private bool CanStartDash()
     {
         return _inputService.IsJustPressed(GameAction.Dash)
-            && _abilityService.HasAbility(PlayerAbility.Dash)
+            && CanUseEquippedDashAbility()
             && !IsDead
             && !IsAttacking;
     }
@@ -381,7 +428,37 @@ public sealed class PlayerActor
 
     private bool CanUseRangedAttack()
     {
-        return _abilityService.HasAbility(PlayerAbility.Fireball);
+        return _rangedAttackState.EquippedAttack switch
+        {
+            PlayerRangedAttackKind.Fireball => _abilityService.HasAbility(PlayerAbility.Fireball),
+            _ => false
+        };
+    }
+
+    private bool CanUseEquippedDashAbility()
+    {
+        return _equippedDashAbility switch
+        {
+            PlayerDashAbilityKind.BaseDash => _abilityService.HasAbility(PlayerAbility.Dash),
+            PlayerDashAbilityKind.BombDash => _abilityService.HasAbility(PlayerAbility.BombDash),
+            _ => false
+        };
+    }
+
+    private void UpdateBombDash(FrameTime frameTime)
+    {
+        var result = _bombDashController.Update(
+            _bombTrailState,
+            _dashState,
+            Bounds,
+            _equippedDashAbility == PlayerDashAbilityKind.BombDash && _abilityService.HasAbility(PlayerAbility.BombDash),
+            frameTime);
+        _bombTrailState = result.State;
+
+        if (result.SpawnedBombs.Count > 0)
+        {
+            _spawnedBombs.AddRange(result.SpawnedBombs);
+        }
     }
 
     private static Direction ResolveCombatFacing(InputSnapshot input, Direction fallbackFacing)
@@ -443,14 +520,56 @@ public sealed class PlayerActor
         return projectiles;
     }
 
+    public IReadOnlyList<PlayerBomb> ConsumeSpawnedBombs()
+    {
+        if (_spawnedBombs.Count == 0)
+        {
+            return [];
+        }
+
+        var bombs = _spawnedBombs.ToArray();
+        _spawnedBombs.Clear();
+        return bombs;
+    }
+
     public void EquipRangedAttack(PlayerRangedAttackKind rangedAttackKind)
     {
         _rangedAttackState = _rangedAttackState with { EquippedAttack = rangedAttackKind };
     }
 
+    public void EquipDashAbility(PlayerDashAbilityKind dashAbilityKind)
+    {
+        _equippedDashAbility = dashAbilityKind;
+    }
+
     public void EquipDefenseAbility(PlayerDefenseAbilityKind defenseAbilityKind)
     {
         _defenseAbilityState = PlayerDefenseAbilityState.Default with { EquippedAbility = defenseAbilityKind };
+    }
+
+    public void EquipMeleeAbility(PlayerMeleeAbilityKind meleeAbilityKind)
+    {
+        _equippedMeleeAbility = meleeAbilityKind;
+    }
+
+    public bool HasAbility(PlayerAbility ability)
+    {
+        return _abilityService.HasAbility(ability);
+    }
+
+    public IReadOnlyCollection<PlayerAbility> GetUnlockedAbilities()
+    {
+        return _abilityService.UnlockedAbilities;
+    }
+
+    public void UnlockAbility(PlayerAbility ability)
+    {
+        _abilityService.Unlock(ability);
+    }
+
+    public void SetUnlockedAbilities(IEnumerable<PlayerAbility> abilities)
+    {
+        _abilityService.SetUnlockedAbilities(abilities);
     }
 
     internal void MoveBy(Vector2 delta)

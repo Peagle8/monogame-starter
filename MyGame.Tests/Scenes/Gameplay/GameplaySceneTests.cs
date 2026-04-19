@@ -93,6 +93,10 @@ public sealed class GameplaySceneTests
         Assert.Equal(240f, saveGameService.LastSavedData.PlayerPositionY);
         Assert.Equal(20, saveGameService.LastSavedData.PlayerHealth);
         Assert.Single(saveGameService.LastSavedData.Enemies);
+        Assert.Equal(PlayerDashAbilityKind.BaseDash, saveGameService.LastSavedData.EquippedDashAbility);
+        Assert.Equal(PlayerDefenseAbilityKind.Shield, saveGameService.LastSavedData.EquippedDefenseAbility);
+        Assert.Equal(PlayerRangedAttackKind.Fireball, saveGameService.LastSavedData.EquippedRangedAbility);
+        Assert.Equal(PlayerMeleeAbilityKind.BaseAttack, saveGameService.LastSavedData.EquippedMeleeAbility);
         Assert.Equal("Game saved.", scene.PauseMenu.StatusMessage);
         Assert.True(scene.PauseMenu.IsOpen);
     }
@@ -118,6 +122,10 @@ public sealed class GameplaySceneTests
                     }
                 ],
                 PlayerAbilityPoints = 1.25f,
+                EquippedDashAbility = PlayerDashAbilityKind.BaseDash,
+                EquippedDefenseAbility = PlayerDefenseAbilityKind.Shield,
+                EquippedRangedAbility = PlayerRangedAttackKind.Fireball,
+                EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
                 PlayerHealth = 2,
                 PlayerPositionX = 128f,
                 PlayerPositionY = 256f

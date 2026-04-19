@@ -2,5 +2,11 @@ namespace MyGame.Gameplay.Player;
 
 public enum PlayerDefenseAbilityKind
 {
-    Shield
+    Shield,
+    FireShield,
+    IceShield,
+    ElectricityShield,
+    StealthShield,
+    WindShield,
+    GodShield
 }
