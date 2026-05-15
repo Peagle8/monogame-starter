@@ -1,0 +1,22 @@
+{
+  "entries": [
+    {
+      "id": "flooded_ruins_lightning_hint",
+      "zoneId": "flooded_ruins",
+      "objectiveId": "open_north_gate",
+      "requiredFlags": ["has_lightning_charm"],
+      "excludedFlags": ["water_channel_active"],
+      "priority": 100,
+      "text": "水路の近くで雷に反応する仕掛けを探してみよう。"
+    },
+    {
+      "id": "flooded_ruins_surface_hint",
+      "zoneId": "flooded_ruins",
+      "objectiveId": "open_north_gate",
+      "requiredFlags": ["has_lightning_charm"],
+      "excludedFlags": ["water_channel_active"],
+      "priority": 95,
+      "text": "門そのものより先に動かすべき仕掛けがあるかもしれない。"
+    }
+  ]
+}

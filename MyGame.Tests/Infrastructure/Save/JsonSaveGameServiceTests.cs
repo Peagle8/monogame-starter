@@ -1,6 +1,7 @@
 using MyGame.Infrastructure.Logging;
 using MyGame.Infrastructure.Save;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Player;
 
 namespace MyGame.Tests.Infrastructure.Save;
@@ -29,11 +30,13 @@ public sealed class JsonSaveGameServiceTests : IDisposable
             [
                 new EnemySaveData
                 {
-                    Kind = EnemyKind.Crab,
+                    Kind = EnemyKind.Skeleton,
                     AxisPreference = EnemyAxisPreference.None,
                     PositionX = 520f,
                     PositionY = 240f,
-                    CurrentHealth = 0
+                    CurrentHealth = 2,
+                    CurrentAbilityPoints = 1.5f,
+                    ShieldCharges = 2
                 }
             ],
             PlayerAbilityPoints = 1.5f,
@@ -44,7 +47,17 @@ public sealed class JsonSaveGameServiceTests : IDisposable
             EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
             PlayerHealth = 3,
             PlayerPositionX = 123.5f,
-            PlayerPositionY = 456.25f
+            PlayerPositionY = 456.25f,
+            NarrativeLocale = "en-US",
+            ActiveQuestId = "town_introductions",
+            ActiveObjectiveId = "meet_townsfolk",
+            TownAlertLevel = TownAlertLevel.Watchful,
+            PlayerReputation = 12,
+            NarrativeFlags = ["met_shopkeeper"],
+            RecentDialogueIds = ["shopkeeper_greeting_1"],
+            RecentHintIds = ["overworld_meet_townsfolk_start"],
+            DiscoveredJournalEntryIds = ["journal_met_shopkeeper"],
+            ReadJournalEntryIds = ["journal_met_shopkeeper"]
         };
 
         service.Save(expected);
@@ -62,12 +75,24 @@ public sealed class JsonSaveGameServiceTests : IDisposable
         Assert.Equal(expected.PlayerHealth, loaded.PlayerHealth);
         Assert.Equal(expected.PlayerPositionX, loaded.PlayerPositionX);
         Assert.Equal(expected.PlayerPositionY, loaded.PlayerPositionY);
+        Assert.Equal(expected.NarrativeLocale, loaded.NarrativeLocale);
+        Assert.Equal(expected.ActiveQuestId, loaded.ActiveQuestId);
+        Assert.Equal(expected.ActiveObjectiveId, loaded.ActiveObjectiveId);
+        Assert.Equal(expected.TownAlertLevel, loaded.TownAlertLevel);
+        Assert.Equal(expected.PlayerReputation, loaded.PlayerReputation);
+        Assert.Equal(expected.NarrativeFlags, loaded.NarrativeFlags);
+        Assert.Equal(expected.RecentDialogueIds, loaded.RecentDialogueIds);
+        Assert.Equal(expected.RecentHintIds, loaded.RecentHintIds);
+        Assert.Equal(expected.DiscoveredJournalEntryIds, loaded.DiscoveredJournalEntryIds);
+        Assert.Equal(expected.ReadJournalEntryIds, loaded.ReadJournalEntryIds);
         Assert.Single(loaded.Enemies);
         Assert.Equal(expected.Enemies[0].Kind, loaded.Enemies[0].Kind);
         Assert.Equal(expected.Enemies[0].AxisPreference, loaded.Enemies[0].AxisPreference);
         Assert.Equal(expected.Enemies[0].PositionX, loaded.Enemies[0].PositionX);
         Assert.Equal(expected.Enemies[0].PositionY, loaded.Enemies[0].PositionY);
         Assert.Equal(expected.Enemies[0].CurrentHealth, loaded.Enemies[0].CurrentHealth);
+        Assert.Equal(expected.Enemies[0].CurrentAbilityPoints, loaded.Enemies[0].CurrentAbilityPoints);
+        Assert.Equal(expected.Enemies[0].ShieldCharges, loaded.Enemies[0].ShieldCharges);
     }
 
     [Fact]

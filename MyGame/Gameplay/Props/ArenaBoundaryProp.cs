@@ -4,15 +4,18 @@ namespace MyGame.Gameplay.Props;
 
 public sealed class ArenaBoundaryProp : IWorldProp
 {
-    public ArenaBoundaryProp(Vector2 position, Point size)
+    public ArenaBoundaryProp(Vector2 position, Point size, bool isVisible = true)
     {
         Position = position;
         Size = size;
+        IsVisible = isVisible;
     }
 
     public Vector2 Position { get; }
 
     public Point Size { get; }
+
+    public bool IsVisible { get; }
 
     public bool BlocksMovement => true;
 

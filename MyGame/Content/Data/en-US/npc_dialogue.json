@@ -1,0 +1,51 @@
+{
+  "entries": [
+    {
+      "id": "shopkeeper_greeting_1",
+      "speakerId": "shopkeeper",
+      "speakerName": "Shopkeeper",
+      "questId": "town_introductions",
+      "objectiveId": "meet_townsfolk",
+      "lineStyle": "greeting",
+      "weight": 3,
+      "excludedFlags": [ "met_shopkeeper" ],
+      "setFlags": [ "met_shopkeeper" ],
+      "text": "First time at the counter? I can keep the basics moving while the town sorts itself out."
+    },
+    {
+      "id": "shopkeeper_greeting_repeat_1",
+      "speakerId": "shopkeeper",
+      "speakerName": "Shopkeeper",
+      "questId": "town_introductions",
+      "objectiveId": "meet_townsfolk",
+      "lineStyle": "greeting",
+      "weight": 2,
+      "requiredFlags": [ "met_shopkeeper" ],
+      "text": "Back again? The shelves are mostly placeholders, but the counter is open."
+    },
+    {
+      "id": "townsfolk_one_greeting_1",
+      "speakerId": "townsfolk_one",
+      "speakerName": "Townsfolk",
+      "questId": "town_introductions",
+      "objectiveId": "meet_townsfolk",
+      "lineStyle": "greeting",
+      "weight": 1,
+      "setFlags": [ "met_townsfolk_one" ],
+      "canDeliverHint": true,
+      "text": "Placeholder town chatter: the north road is probably important later."
+    },
+    {
+      "id": "townsfolk_two_greeting_1",
+      "speakerId": "townsfolk_two",
+      "speakerName": "Townsfolk",
+      "questId": "town_introductions",
+      "objectiveId": "meet_townsfolk",
+      "lineStyle": "greeting",
+      "weight": 1,
+      "setFlags": [ "met_townsfolk_two" ],
+      "canDeliverHint": true,
+      "text": "Placeholder town chatter: someone should really label these houses."
+    }
+  ]
+}

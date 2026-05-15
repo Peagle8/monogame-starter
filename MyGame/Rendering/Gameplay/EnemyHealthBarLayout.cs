@@ -8,6 +8,7 @@ public static class EnemyHealthBarLayout
     private const int BorderThickness = 1;
     private static readonly Point NormalBarSize = new(24, 5);
     private static readonly Point BossBarSize = new(38, 6);
+    private static readonly Point AbilityBarSize = new(20, 4);
 
     public static Rectangle GetFrameBounds(EnemyActor enemy)
     {
@@ -52,6 +53,21 @@ public static class EnemyHealthBarLayout
         return new Rectangle(backgroundBounds.X, backgroundBounds.Y, fillWidth, backgroundBounds.Height);
     }
 
+    public static Rectangle GetAbilityFrameBounds(EnemyActor enemy)
+    {
+        if (enemy.MaxAbilityPoints <= 0f)
+        {
+            return Rectangle.Empty;
+        }
+
+        var healthFrameBounds = GetFrameBounds(enemy);
+        return new Rectangle(
+            healthFrameBounds.Center.X - (AbilityBarSize.X / 2),
+            healthFrameBounds.Y - AbilityBarSize.Y - 2,
+            AbilityBarSize.X,
+            AbilityBarSize.Y);
+    }
+
     private static bool IsBoss(EnemyKind kind)
     {
         return kind is EnemyKind.HornedRabbitBoss or EnemyKind.BatMiniBoss;
@@ -68,6 +84,8 @@ public static class EnemyHealthBarLayout
             EnemyKind.Bat => enemy.Bounds.Top - 24,
             EnemyKind.BatMiniBoss => enemy.Bounds.Top + 4,
             EnemyKind.Grasshopper => enemy.Bounds.Top + 4,
+            EnemyKind.Skeleton => enemy.Bounds.Top + 1,
+            EnemyKind.SkeletonElite => enemy.Bounds.Top + 2,
             _ => enemy.Bounds.Top
         };
     }

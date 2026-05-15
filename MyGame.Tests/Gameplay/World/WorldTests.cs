@@ -3,6 +3,7 @@ using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Core.Input;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.Props;
 using MyGame.Gameplay.World;
@@ -616,6 +617,7 @@ public sealed class WorldTests
             player,
             [new TreeProp(new Vector2(5f, 10f), new Point(16, 24))],
             [enemy]);
+        world.NarrativeState.SetTownState(TownAlertLevel.Watchful, 7);
         var frameTime = new FrameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         world.Update(frameTime);
@@ -632,6 +634,8 @@ public sealed class WorldTests
         Assert.Equal("False", debugState["PlayerAttackActive"]);
         Assert.Equal("3.00/3.00", debugState["PlayerAbilityPoints"]);
         Assert.Equal("20/20", debugState["PlayerHealth"]);
+        Assert.Equal("Watchful", debugState["TownAlertLevel"]);
+        Assert.Equal("7", debugState["PlayerReputation"]);
     }
 
     [Fact]
@@ -860,6 +864,40 @@ public sealed class WorldTests
 
         Assert.Equal(enemy.MaxHealth - 1, enemy.CurrentHealth);
         Assert.Empty(world.PlayerProjectiles);
+    }
+
+    [Fact]
+    public void Update_WhenMissileHitsEnemy_DealsDoubleFireballDamage()
+    {
+        var player = CreateMissilePlayer(GameAction.RangedAttack);
+        var enemy = new EnemyActor(
+            new EnemySettings { MaxHealth = 6, MoveSpeed = 0f, ChaseRange = 20f },
+            new Vector2(402f, 292f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemy]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(4, enemy.CurrentHealth);
+        Assert.Empty(world.PlayerProjectiles);
+    }
+
+    [Fact]
+    public void Update_WhenMissileSpawns_SeeksNearestEnemyInFront()
+    {
+        var player = CreateMissilePlayer(GameAction.RangedAttack);
+        var enemyAhead = new EnemyActor(
+            new EnemySettings { MoveSpeed = 0f, ChaseRange = 20f },
+            new Vector2(480f, 292f));
+        var enemyBehind = new EnemyActor(
+            new EnemySettings { MoveSpeed = 0f, ChaseRange = 20f },
+            new Vector2(360f, 200f));
+        var world = new global::MyGame.Gameplay.World.World(player, [], [enemyBehind, enemyAhead]);
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        var projectile = Assert.Single(world.PlayerProjectiles);
+        Assert.Equal(Direction.Right, projectile.Direction);
+        Assert.True(projectile.Position.X > 404f);
     }
 
     [Fact]
@@ -1196,6 +1234,7 @@ public sealed class WorldTests
             new PlayerAttackController(new PlayerAttackSettings { Damage = 3 }));
         var enemy = new EnemyActor(enemySettings, new Vector2(400f, 272f));
         var world = new global::MyGame.Gameplay.World.World(player, [], [enemy], enemySettings);
+        world.NarrativeState.SetTownState(TownAlertLevel.Watchful, 15);
 
         world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
         var saveData = world.CreateSaveData("Gameplay");
@@ -1209,6 +1248,8 @@ public sealed class WorldTests
         Assert.Equal(PlayerDefenseAbilityKind.Shield, saveData.EquippedDefenseAbility);
         Assert.Equal(PlayerRangedAttackKind.Fireball, saveData.EquippedRangedAbility);
         Assert.Equal(PlayerMeleeAbilityKind.BaseAttack, saveData.EquippedMeleeAbility);
+        Assert.Equal(TownAlertLevel.Watchful, saveData.TownAlertLevel);
+        Assert.Equal(15, saveData.PlayerReputation);
         Assert.Equal(EnemyKind.Crab, saveData.Enemies[0].Kind);
         Assert.Equal(EnemyAxisPreference.None, saveData.Enemies[0].AxisPreference);
         Assert.Equal(400f, saveData.Enemies[0].PositionX);
@@ -1275,7 +1316,10 @@ public sealed class WorldTests
             EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
             PlayerHealth = 4,
             PlayerPositionX = 128f,
-            PlayerPositionY = 196f
+            PlayerPositionY = 196f,
+            TownAlertLevel = TownAlertLevel.Alarmed,
+            PlayerReputation = -12,
+            NarrativeFlags = ["met_shopkeeper"]
         };
 
         world.ApplySaveData(saveData);
@@ -1287,6 +1331,9 @@ public sealed class WorldTests
         Assert.Equal(PlayerDefenseAbilityKind.Shield, world.Player.EquippedDefenseAbility);
         Assert.Equal(PlayerRangedAttackKind.Fireball, world.Player.EquippedRangedAttack);
         Assert.Equal(PlayerMeleeAbilityKind.BaseAttack, world.Player.EquippedMeleeAbility);
+        Assert.Equal(TownAlertLevel.Alarmed, world.NarrativeState.TownAlertLevel);
+        Assert.Equal(-12, world.NarrativeState.PlayerReputation);
+        Assert.True(world.NarrativeState.HasFlag("met_shopkeeper"));
         Assert.Equal(2, world.Enemies.Count);
         Assert.Equal(new Vector2(150f, 160f), world.Enemies[0].Position);
         Assert.Equal(2, world.Enemies[0].CurrentHealth);
@@ -1316,21 +1363,26 @@ public sealed class WorldTests
             DefeatedEnemyCount = 0,
             Enemies = [],
             PlayerAbilityPoints = 1.5f,
-            UnlockedAbilities = [PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.BombDash],
+            UnlockedAbilities = [PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.Missile, PlayerAbility.BombDash],
             EquippedDashAbility = PlayerDashAbilityKind.BombDash,
             EquippedDefenseAbility = PlayerDefenseAbilityKind.Shield,
-            EquippedRangedAbility = PlayerRangedAttackKind.Fireball,
+            EquippedRangedAbility = PlayerRangedAttackKind.Missile,
             EquippedMeleeAbility = PlayerMeleeAbilityKind.BaseAttack,
             PlayerHealth = 4,
             PlayerPositionX = 128f,
-            PlayerPositionY = 196f
+            PlayerPositionY = 196f,
+            TownAlertLevel = TownAlertLevel.Alarmed,
+            PlayerReputation = -12,
+            NarrativeFlags = ["met_shopkeeper"]
         };
 
         world.ApplySaveData(saveData);
 
         Assert.True(world.Player.HasAbility(PlayerAbility.BombDash));
         Assert.True(world.Player.HasAbility(PlayerAbility.Fireball));
+        Assert.True(world.Player.HasAbility(PlayerAbility.Missile));
         Assert.Equal(PlayerDashAbilityKind.BombDash, world.Player.EquippedDashAbility);
+        Assert.Equal(PlayerRangedAttackKind.Missile, world.Player.EquippedRangedAttack);
     }
 
     [Fact]
@@ -1446,6 +1498,21 @@ public sealed class WorldTests
             new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
             new PlayerAttackController(new PlayerAttackSettings()),
             new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+    }
+
+    private static PlayerActor CreateMissilePlayer(params GameAction[] justPressedActions)
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, justPressedActions),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.Missile]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipRangedAttack(PlayerRangedAttackKind.Missile);
+        return player;
     }
 }
 

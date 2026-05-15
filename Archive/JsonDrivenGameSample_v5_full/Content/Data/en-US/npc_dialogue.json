@@ -1,0 +1,31 @@
+{
+  "entries": [
+    {
+      "id": "villager_guarded_shrine_1",
+      "speakerRole": "Villager",
+      "mood": "guarded",
+      "questId": "forest_shrine",
+      "lineStyle": "short",
+      "weight": 5,
+      "text": "Keep your voice down. Something feels wrong near the shrine."
+    },
+    {
+      "id": "villager_guarded_shrine_2",
+      "speakerRole": "Villager",
+      "mood": "guarded",
+      "questId": "forest_shrine",
+      "lineStyle": "short",
+      "weight": 2,
+      "text": "I should not be saying this, but avoid the shrine after dark."
+    },
+    {
+      "id": "villager_guarded_shrine_3",
+      "speakerRole": "Villager",
+      "mood": "guarded",
+      "questId": "forest_shrine",
+      "lineStyle": "short",
+      "weight": 1,
+      "text": "The woods have been wrong ever since the old bells started ringing again."
+    }
+  ]
+}

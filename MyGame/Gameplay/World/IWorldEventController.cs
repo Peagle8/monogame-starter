@@ -8,5 +8,7 @@ public interface IWorldEventController
 
     void Initialize(World world);
 
+    void Reset(World world);
+
     void Update(World world, FrameTime frameTime);
 }

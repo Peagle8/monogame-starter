@@ -1,6 +1,6 @@
 {
   "Kind": "BatMiniBoss",
-  "MaxHealth": 12,
+  "MaxHealth": 15,
   "MoveSpeed": 132,
   "ChaseRange": 360,
   "RecoverySeconds": 0.6,

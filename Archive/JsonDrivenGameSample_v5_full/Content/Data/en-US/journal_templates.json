@@ -1,0 +1,18 @@
+{
+  "entries": [
+    {
+      "id": "journal_bandit_ring",
+      "requiredFlags": ["spared_bandit_chief", "found_cursed_ring"],
+      "priority": 100,
+      "title": "A Dangerous Bargain",
+      "summary": "You spared the bandit chief and discovered a cursed ring."
+    },
+    {
+      "id": "journal_ring_unease",
+      "requiredFlags": ["found_cursed_ring"],
+      "priority": 80,
+      "title": "An Uneasy Discovery",
+      "summary": "The ring you found carries a presence that feels old and unwelcome."
+    }
+  ]
+}

@@ -6,9 +6,11 @@ using MyGame.Core.Assets;
 using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.Enemies;
 using MyGame.Gameplay.Props;
+using MyGame.Gameplay.Shops;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Save;
 using MyGame.Scenes.Gameplay;
@@ -322,6 +324,27 @@ public sealed class GameplaySceneTests
     }
 
     [Fact]
+    public void Enter_WhenArenaSceneIsAlreadyComplete_ResetsArenaBackToWaveOne()
+    {
+        var world = CreateCompletedArenaWorld();
+        Assert.True(world.IsObjectiveComplete);
+        Assert.DoesNotContain(world.Enemies, enemy => enemy.State != EnemyState.Dead);
+
+        var scene = CreateScene(
+            new StubInputService(),
+            new CallbackState(),
+            world: world,
+            sceneName: GameplaySceneNames.Arena);
+
+        scene.Enter();
+
+        Assert.False(scene.World.IsObjectiveComplete);
+        Assert.Equal(6, scene.World.Enemies.Count(enemy => enemy.State != EnemyState.Dead));
+        Assert.All(scene.World.Enemies.Where(enemy => enemy.State != EnemyState.Dead), enemy => Assert.Equal(EnemyKind.Skeleton, enemy.Kind));
+        Assert.Equal("Wave 1", scene.World.ActiveScreenBanner?.Text);
+    }
+
+    [Fact]
     public void Update_WhenWorldTransitionIsBlocked_DoesNotInvokeTransitionCallback()
     {
         var requestedTransition = default(WorldSceneTransition);
@@ -354,6 +377,141 @@ public sealed class GameplaySceneTests
     }
 
     [Fact]
+    public void Update_WhenInteractPressedNearShopkeeperCounter_OpensGreetingBeforeShop()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateShopkeeperWorld(inputService);
+        var scene = CreateScene(
+            inputService,
+            new CallbackState(),
+            world: world,
+            npcDialogueService: CreateNpcDialogueService());
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(scene.NpcDialogue.IsOpen);
+        Assert.False(scene.ShopDialogue.IsOpen);
+        Assert.Equal("Shopkeeper", scene.NpcDialogue.SpeakerName);
+        Assert.Equal("Welcome to the counter.", scene.NpcDialogue.Text);
+    }
+
+    [Fact]
+    public void Update_WhenShopkeeperGreetingIsConfirmed_OpensShopDialogue()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateShopkeeperWorld(inputService);
+        var scene = CreateScene(
+            inputService,
+            new CallbackState(),
+            world: world,
+            npcDialogueService: CreateNpcDialogueService());
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.2)));
+
+        Assert.False(scene.NpcDialogue.IsOpen);
+        Assert.True(scene.ShopDialogue.IsOpen);
+        Assert.Equal(ShopDialogueTab.Buy, scene.ShopDialogue.ActiveTab);
+    }
+
+    [Fact]
+    public void Update_WhenInteractPressedNearNpc_OpensNpcDialogue()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateNpcWorld(inputService);
+        var scene = CreateScene(
+            inputService,
+            new CallbackState(),
+            world: world,
+            npcDialogueService: CreateNpcDialogueService());
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(scene.NpcDialogue.IsOpen);
+        Assert.Equal("Townsfolk", scene.NpcDialogue.SpeakerName);
+        Assert.Equal("Hello from town.", scene.NpcDialogue.Text);
+        Assert.Contains("town_line", scene.World.NarrativeHistory.GetRecentIds(NpcDialogueService.HistorySystemName));
+    }
+
+    [Fact]
+    public void GetDebugState_AfterNpcDialogueSelection_ReportsDialogueInspectionData()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateNpcWorld(inputService);
+        var scene = CreateScene(
+            inputService,
+            new CallbackState(),
+            world: world,
+            npcDialogueService: CreateNpcDialogueService());
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var debugState = scene.GetDebugState();
+
+        Assert.Equal(NarrativeIds.SpeakerTownsfolkOne, debugState["NpcDialogueDebugSpeakerId"]);
+        Assert.Equal("greeting", debugState["NpcDialogueDebugLineStyle"]);
+        Assert.Equal("town_line", debugState["NpcDialogueMatchedIds"]);
+        Assert.Equal("<none>", debugState["NpcDialogueSuppressedIds"]);
+        Assert.Equal("town_line", debugState["NpcDialogueSelectedId"]);
+        Assert.Equal(string.Empty, debugState["NpcDialogueFallbackReason"]);
+    }
+
+    [Fact]
+    public void Update_WhenNpcDialogueDeliversHint_AddsHintToast()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateNpcWorld(inputService);
+        var scene = CreateScene(
+            inputService,
+            new CallbackState(),
+            world: world,
+            npcDialogueService: CreateNpcDialogueService(canDeliverHint: true),
+            hintService: CreateHintService());
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Contains("Hint: Find the other townsfolk.", scene.NpcDialogue.Text);
+        Assert.Contains(scene.World.Toasts, toast => toast.Text == "Find the other townsfolk.");
+    }
+
+    [Fact]
+    public void Update_WhenNpcDialogueSetsJournalFlag_DiscoversJournalEntry()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateNpcWorld(inputService);
+        var scene = CreateScene(
+            inputService,
+            new CallbackState(),
+            world: world,
+            npcDialogueService: CreateNpcDialogueService(setFlagOnTownLine: true),
+            journalService: CreateJournalService());
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(scene.World.JournalState.IsDiscovered("journal_1"));
+        Assert.Equal("1", scene.GetDebugState()["JournalDiscoveredCount"]);
+    }
+
+    [Fact]
+    public void Update_WhenNpcDialogueIsOpen_DoesNotAdvanceWorldSimulation()
+    {
+        var inputService = new StubInputService(GameAction.Interact);
+        var world = CreateNpcWorld(inputService);
+        var scene = CreateScene(
+            inputService,
+            new CallbackState(),
+            world: world,
+            npcDialogueService: CreateNpcDialogueService());
+        var initialPosition = scene.World.Player.Position;
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.True(scene.NpcDialogue.IsOpen);
+
+        scene.Update(new FrameTime(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1.1)));
+
+        Assert.Equal(initialPosition, scene.World.Player.Position);
+    }
+
+    [Fact]
     public void Constructor_WhenReplayMenuDisabled_HidesReplayEntry()
     {
         var scene = CreateScene(
@@ -371,12 +529,16 @@ public sealed class GameplaySceneTests
         World? world = null,
         GameRecorder? gameRecorder = null,
         DiagnosticsSettings? diagnosticsSettings = null,
-        Action<WorldSceneTransition>? onSceneTransition = null)
+        Action<WorldSceneTransition>? onSceneTransition = null,
+        string sceneName = GameplaySceneNames.Overworld,
+        NpcDialogueService? npcDialogueService = null,
+        HintService? hintService = null,
+        JournalService? journalService = null)
     {
         world ??= CreateWorld(inputService);
 
         return new GameplayScene(
-            GameplaySceneNames.Overworld,
+            sceneName,
             inputService,
             world,
             new StubSceneRenderer(),
@@ -386,7 +548,10 @@ public sealed class GameplaySceneTests
             diagnosticsSettings ?? new DiagnosticsSettings(),
             onRestart: () => state.Restarted = true,
             onReturnToMainMenu: () => state.ReturnedToMainMenu = true,
-            onSceneTransition: onSceneTransition ?? (_ => { }));
+            onSceneTransition: onSceneTransition ?? (_ => { }),
+            npcDialogueService: npcDialogueService,
+            hintService: hintService,
+            journalService: journalService);
     }
 
     private static World CreateWorld(IInputService inputService)
@@ -472,7 +637,169 @@ public sealed class GameplaySceneTests
         return new World(
             player,
             [new CounterProp(new Vector2(352f, 232f), new Point(96, 24))],
+            []); 
+    }
+
+    private static World CreateShopkeeperWorld(IInputService inputService)
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(384f, 264f), player.MaxHealth);
+
+        return new World(
+            player,
+            [
+                new CounterProp(new Vector2(352f, 232f), new Point(96, 24)),
+                new ShopkeeperProp(new Vector2(380f, 190f), new Point(40, 42))
+            ],
             []);
+    }
+
+    private static World CreateNpcWorld(IInputService inputService)
+    {
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        player.RestoreState(new Vector2(100f, 116f), player.MaxHealth);
+
+        return new World(
+            player,
+            [
+                new TownsfolkProp(
+                    new Vector2(120f, 100f),
+                    new Point(34, 44),
+                    NarrativeIds.SpeakerTownsfolkOne,
+                    "Townsfolk")
+            ],
+            []);
+    }
+
+    private static NpcDialogueService CreateNpcDialogueService(
+        bool canDeliverHint = false,
+        bool setFlagOnTownLine = false)
+    {
+        return new NpcDialogueService(
+            new NpcDialogueDataFile
+            {
+                Entries =
+                [
+                    new NpcDialogueEntry
+                    {
+                        Id = "town_line",
+                        SpeakerId = NarrativeIds.SpeakerTownsfolkOne,
+                        SpeakerName = "Townsfolk",
+                        QuestId = NarrativeIds.QuestTownIntroductions,
+                        ObjectiveId = NarrativeIds.ObjectiveMeetTownsfolk,
+                        LineStyle = "greeting",
+                        Weight = 1,
+                        CanDeliverHint = canDeliverHint,
+                        SetFlags = setFlagOnTownLine ? [NarrativeIds.FlagMetTownsfolkOne] : [],
+                        Text = "Hello from town."
+                    },
+                    new NpcDialogueEntry
+                    {
+                        Id = "shop_line",
+                        SpeakerId = NarrativeIds.SpeakerShopkeeper,
+                        SpeakerName = "Shopkeeper",
+                        QuestId = NarrativeIds.QuestTownIntroductions,
+                        ObjectiveId = NarrativeIds.ObjectiveMeetTownsfolk,
+                        LineStyle = "greeting",
+                        Weight = 1,
+                        Text = "Welcome to the counter."
+                    }
+                ]
+            },
+            new WeightedRandomSelector(new Random(1)),
+            new RecentSelectionHistory());
+    }
+
+    private static JournalService CreateJournalService()
+    {
+        return new JournalService(
+            new JournalDataFile
+            {
+                Entries =
+                [
+                    new JournalEntryTemplate
+                    {
+                        Id = "journal_1",
+                        RequiredFlags = [NarrativeIds.FlagMetTownsfolkOne],
+                        Priority = 1,
+                        Title = "Town Notes",
+                        Summary = "A backend journal entry."
+                    }
+                ]
+            });
+    }
+
+    private static HintService CreateHintService()
+    {
+        return new HintService(
+            new HintDataFile
+            {
+                Entries =
+                [
+                    new HintEntry
+                    {
+                        Id = "hint_1",
+                        ZoneId = NarrativeIds.ZoneOverworld,
+                        ObjectiveId = NarrativeIds.ObjectiveMeetTownsfolk,
+                        Priority = 1,
+                        Text = "Find the other townsfolk."
+                    }
+                ]
+            },
+            new RecentSelectionHistory());
+    }
+
+    private static World CreateCompletedArenaWorld()
+    {
+        var inputService = new StubInputService();
+        var movementSettings = new PlayerMovementSettings { MoveSpeed = 180f };
+        var player = new PlayerActor(
+            inputService,
+            new PlayerCombatSettings(),
+            new PlayerMovementController(movementSettings),
+            new PlayerDashController(movementSettings),
+            new PlayerAbilityService([PlayerAbility.Dash]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+        var controller = new ArenaEncounterController(
+            new StubEnemyFactory(),
+            true,
+            new[]
+            {
+                new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(120f, 96f), EnemyAxisPreference.None),
+                new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(220f, 96f), EnemyAxisPreference.None),
+                new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(320f, 96f), EnemyAxisPreference.None),
+                new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(120f, 196f), EnemyAxisPreference.None),
+                new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(220f, 196f), EnemyAxisPreference.None),
+                new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(320f, 196f), EnemyAxisPreference.None)
+            });
+        var world = new World(
+            player,
+            [],
+            [],
+            sceneTransitions: [],
+            eventController: controller);
+
+        foreach (var enemy in world.Enemies)
+        {
+            enemy.TakeDamage(enemy.MaxHealth);
+        }
+
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        return world;
     }
 
     private sealed class CallbackState
@@ -562,6 +889,24 @@ public sealed class GameplaySceneTests
         public void Save(SaveGameData data)
         {
             LastSavedData = data;
+        }
+    }
+
+    private sealed class StubEnemyFactory : IEnemyFactory
+    {
+        public EnemyActor Create(EnemySpawnDefinition spawn)
+        {
+            return Create(spawn.Kind, spawn.Position, spawn.AxisPreference);
+        }
+
+        public EnemyActor CreateFromSaveData(EnemySaveData saveData)
+        {
+            return Create(saveData.Kind, new Vector2(saveData.PositionX, saveData.PositionY), saveData.AxisPreference);
+        }
+
+        public EnemyActor Create(EnemyKind kind, Vector2 position, EnemyAxisPreference axisPreference = EnemyAxisPreference.None)
+        {
+            return new EnemyActor(EnemySettingsCatalog.CreateDefault(kind), position, axisPreference: axisPreference);
         }
     }
 }

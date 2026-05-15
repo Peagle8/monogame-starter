@@ -26,6 +26,11 @@ public sealed class ArenaBoundaryEntityRenderer : IGameplayEntityRenderer
     {
         foreach (var boundary in world.GetProps<ArenaBoundaryProp>())
         {
+            if (!boundary.IsVisible)
+            {
+                continue;
+            }
+
             DrawBoundary(boundary.Bounds);
         }
     }

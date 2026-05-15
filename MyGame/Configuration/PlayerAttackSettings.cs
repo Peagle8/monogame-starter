@@ -8,5 +8,5 @@ public sealed class PlayerAttackSettings
 
     public float CooldownSeconds { get; init; } = 0.28f;
 
-    public int Range { get; init; } = 30;
+    public int Range { get; init; } = 39;
 }

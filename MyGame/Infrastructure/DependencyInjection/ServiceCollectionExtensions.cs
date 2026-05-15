@@ -4,6 +4,7 @@ using MyGame.Configuration;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Configuration;
@@ -45,6 +46,9 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<JsonFileLoader<DiagnosticsSettings>>();
         services.AddSingleton<JsonFileLoader<EnemySettings>>();
+        services.AddSingleton<JsonFileLoader<HintDataFile>>();
+        services.AddSingleton<JsonFileLoader<JournalDataFile>>();
+        services.AddSingleton<JsonFileLoader<NpcDialogueDataFile>>();
         services.AddSingleton<JsonFileLoader<PlayerCombatSettings>>();
         services.AddSingleton<JsonFileLoader<PlayerMovementSettings>>();
         services.AddSingleton<JsonFileLoader<WorldCombatSettings>>();
@@ -120,10 +124,71 @@ public static class ServiceCollectionExtensions
             var grasshopperSettings = loader.LoadOrDefault(
                 Path.Combine(configDirectory, "GrasshopperSettings.json"),
                 EnemySettingsCatalog.CreateDefault(EnemyKind.Grasshopper));
+            var skeletonSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "SkeletonSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.Skeleton));
+            var skeletonEliteSettings = loader.LoadOrDefault(
+                Path.Combine(configDirectory, "SkeletonEliteSettings.json"),
+                EnemySettingsCatalog.CreateDefault(EnemyKind.SkeletonElite));
 
-            return new EnemySettingsCatalog(crabSettings, hornedRabbitSettings, hornedRabbitEliteSettings, batSettings, grasshopperSettings, batMiniBossSettings, hornedRabbitBossSettings);
+            return new EnemySettingsCatalog(
+                crabSettings,
+                hornedRabbitSettings,
+                hornedRabbitEliteSettings,
+                batSettings,
+                grasshopperSettings,
+                batMiniBossSettings,
+                hornedRabbitBossSettings,
+                skeletonSettings,
+                skeletonEliteSettings);
         });
         services.AddSingleton(provider => provider.GetRequiredService<IEnemySettingsCatalog>().Get(EnemyKind.Crab));
+        services.AddSingleton<NarrativeState>();
+        services.AddSingleton<RecentSelectionHistory>();
+        services.AddSingleton<WeightedRandomSelector>();
+        services.AddSingleton<NarrativeDataValidator>();
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<NpcDialogueDataFile>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Data",
+                NarrativeIds.LocaleEnglishUnitedStates,
+                "npc_dialogue.json");
+            var data = loader.LoadOrDefault(path, new NpcDialogueDataFile());
+            provider.GetRequiredService<NarrativeDataValidator>().Validate(data);
+            return data;
+        });
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<HintDataFile>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Data",
+                NarrativeIds.LocaleEnglishUnitedStates,
+                "hints.json");
+            var data = loader.LoadOrDefault(path, new HintDataFile());
+            provider.GetRequiredService<NarrativeDataValidator>().Validate(data);
+            return data;
+        });
+        services.AddSingleton(provider =>
+        {
+            var loader = provider.GetRequiredService<JsonFileLoader<JournalDataFile>>();
+            var path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Content",
+                "Data",
+                NarrativeIds.LocaleEnglishUnitedStates,
+                "journal_templates.json");
+            var data = loader.LoadOrDefault(path, new JournalDataFile());
+            provider.GetRequiredService<NarrativeDataValidator>().Validate(data);
+            return data;
+        });
+        services.AddSingleton<NpcDialogueService>();
+        services.AddSingleton<HintService>();
+        services.AddSingleton<JournalService>();
 
         return services;
     }
@@ -140,6 +205,8 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IEnemyKindRenderer, BatEnemyRenderer>();
         services.AddTransient<IEnemyKindRenderer, BatMiniBossEnemyRenderer>();
         services.AddTransient<IEnemyKindRenderer, GrasshopperEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, SkeletonEnemyRenderer>();
+        services.AddTransient<IEnemyKindRenderer, SkeletonEliteEnemyRenderer>();
         services.AddTransient<IRenderer<EnemyActor>, EnemyRenderer>();
         services.AddTransient<IRenderer<PlayerActor>, PlayerRenderer>();
         services.AddTransient<IGameplayEntityRenderer, GrassEntityRenderer>();
@@ -154,8 +221,10 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IGameplayEntityRenderer, EnemyEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, EnemyHealthBarRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerProjectileRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, EnemyProjectileRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerBombRenderer>();
         services.AddTransient<IGameplayEntityRenderer, ShopkeeperEntityRenderer>();
+        services.AddTransient<IGameplayEntityRenderer, TownsfolkEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, ShopTalkIndicatorRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerShieldRenderer>();
         services.AddTransient<IGameplayEntityRenderer, PlayerStunRenderer>();
@@ -164,6 +233,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IGameplayEntityRenderer, CounterEntityRenderer>();
         services.AddTransient<IGameplayEntityRenderer, WorldToastRenderer>();
         services.AddTransient<IRenderer<GameplayPauseMenu>, GameplayPauseMenuRenderer>();
+        services.AddTransient<NpcDialogueRenderer>();
         services.AddTransient<ShopDialogueRenderer>();
         services.AddTransient<GameplayOverlayRenderer>();
         services.AddTransient<MainMenuRenderer>();

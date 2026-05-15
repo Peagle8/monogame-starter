@@ -1,8 +1,9 @@
 using Microsoft.Xna.Framework;
+using MyGame.Gameplay.Narrative;
 
 namespace MyGame.Gameplay.Props;
 
-public sealed class ShopkeeperProp : IWorldProp
+public sealed class ShopkeeperProp : IConversationProp
 {
     public ShopkeeperProp(Vector2 position, Point size)
     {
@@ -13,6 +14,10 @@ public sealed class ShopkeeperProp : IWorldProp
     public Vector2 Position { get; }
 
     public Point Size { get; }
+
+    public string DialogueSpeakerId => NarrativeIds.SpeakerShopkeeper;
+
+    public string DisplayName => "Shopkeeper";
 
     public bool BlocksMovement => false;
 

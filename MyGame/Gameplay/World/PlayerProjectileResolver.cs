@@ -32,7 +32,12 @@ public sealed class PlayerProjectileResolver
                     continue;
                 }
 
-                enemy.TakeDamage(projectile.Damage);
+                if (!enemy.TryTakeDamage(projectile.Damage))
+                {
+                    projectile.Deactivate();
+                    break;
+                }
+
                 enemy.ApplyKnockback(DirectionHelper.ToVector(projectile.Direction));
                 projectile.Deactivate();
                 hitEnemy = true;

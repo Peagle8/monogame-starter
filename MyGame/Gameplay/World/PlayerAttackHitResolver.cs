@@ -35,7 +35,12 @@ public sealed class PlayerAttackHitResolver
                 continue;
             }
 
-            enemy.TakeDamage(player.AttackDamage);
+            if (!enemy.TryTakeDamage(player.AttackDamage))
+            {
+                _enemyLastHitByAttackSequence[enemy] = player.AttackSequence;
+                continue;
+            }
+
             enemy.ApplyKnockback(GetEnemyKnockbackDirection(player, enemy));
             _enemyLastHitByAttackSequence[enemy] = player.AttackSequence;
             hitEnemy = true;

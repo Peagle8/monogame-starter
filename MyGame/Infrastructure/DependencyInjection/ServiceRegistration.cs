@@ -30,11 +30,12 @@ public static class ServiceRegistration
         services.AddSingleton(new PlayerAttackSettings());
         services.AddSingleton(new PlayerDefenseAbilitySettings());
         services.AddSingleton(new PlayerRangedAttackSettings());
-        services.AddSingleton<IPlayerAbilityService>(_ => new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.BombDash]));
+        services.AddSingleton<IPlayerAbilityService>(_ => new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.Missile, PlayerAbility.BombDash]));
         services.AddTransient<IEnemyFactory, EnemyFactory>();
         services.AddTransient<PlayerAttackHitResolver>();
         services.AddTransient<PlayerBombResolver>();
         services.AddTransient<PlayerFireShieldResolver>();
+        services.AddTransient<PlayerMissileTargetResolver>();
         services.AddTransient<PlayerProjectileResolver>();
         services.AddTransient<WorldObstacleResolver>();
         services.AddTransient<EnemySeparationResolver>();

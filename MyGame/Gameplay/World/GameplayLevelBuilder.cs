@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using MyGame.Configuration;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.Props;
 using MyGame.Scenes.Gameplay;
@@ -177,16 +178,9 @@ public sealed class GameplayLevelBuilder
 
     public World BuildArena(PlayerActor player)
     {
-        IWorldProp[] props =
-        [
-            new ArenaBoundaryProp(new Vector2(0f, 0f), ScaleArenaPoint(800, 72)),
-            new ArenaBoundaryProp(new Vector2(0f, 0f), ScaleArenaPoint(72, 480)),
-            new ArenaBoundaryProp(ScaleArenaVector(728f, 0f), ScaleArenaPoint(72, 480)),
-            new ArenaBoundaryProp(new Vector2(0f, ScaleArena(408)), ScaleArenaPoint(304, 72)),
-            new ArenaBoundaryProp(ScaleArenaVector(496f, 408f), ScaleArenaPoint(304, 72)),
-            new ArenaBoundaryProp(ScaleArenaVector(304f, 432f), ScaleArenaPoint(32, 48)),
-            new ArenaBoundaryProp(ScaleArenaVector(464f, 432f), ScaleArenaPoint(32, 48))
-        ];
+        var arenaEnemySettingsCatalog = CreateArenaEnemySettingsCatalog();
+        var arenaEnemyFactory = new EnemyFactory(arenaEnemySettingsCatalog);
+        IWorldProp[] props = ArenaLayout.CreateBoundaryProps(isVisible: false);
 
         return CreateWorld(
             player,
@@ -199,14 +193,20 @@ public sealed class GameplayLevelBuilder
                     new Vector2(676f, 1144f),
                     world => world.IsObjectiveComplete)
             ],
-            new Rectangle(0, 0, ScaleArena(800), ScaleArena(480)),
+            ArenaLayout.WorldBounds,
             new ArenaEncounterController(
-                _enemyFactory,
+                arenaEnemyFactory,
                 true,
                 BuildArenaWaveOneSpawns(),
                 BuildArenaWaveTwoSpawns(),
                 BuildArenaWaveThreeSpawns(),
-                BuildArenaWaveFourSpawns()));
+                BuildArenaWaveFourSpawns(),
+                BuildArenaWaveFiveSpawns(),
+                BuildArenaWaveSixSpawns(),
+                BuildArenaWaveSevenSpawns()),
+            arenaEnemySettingsCatalog.Get(EnemyKind.Crab),
+            arenaEnemySettingsCatalog,
+            arenaEnemyFactory);
     }
 
     public World BuildWildernessNorth(PlayerActor player)
@@ -301,7 +301,9 @@ public sealed class GameplayLevelBuilder
             new ArenaEntranceProp(new Vector2(616f, 960f), new Point(160, 172), arenaDoorBounds, "Arena"),
             new ShopExteriorProp(new Vector2(876f, 968f), new Point(160, 164), shopDoorBounds, "Shop 1"),
             new ShopExteriorProp(new Vector2(1136f, 968f), new Point(160, 164), new Rectangle(1196, 1084, 32, 48), "Shop 2"),
-            new ShopExteriorProp(new Vector2(1008f, 1212f), new Point(160, 164), new Rectangle(1068, 1328, 32, 48), "Shop 3")
+            new ShopExteriorProp(new Vector2(1008f, 1212f), new Point(160, 164), new Rectangle(1068, 1328, 32, 48), "Shop 3"),
+            new TownsfolkProp(new Vector2(800f, 1196f), new Point(34, 44), NarrativeIds.SpeakerTownsfolkOne, "Townsfolk"),
+            new TownsfolkProp(new Vector2(1236f, 1196f), new Point(34, 44), NarrativeIds.SpeakerTownsfolkTwo, "Townsfolk")
         ]);
     }
 
@@ -337,15 +339,22 @@ public sealed class GameplayLevelBuilder
         IEnumerable<EnemyActor> enemies,
         IEnumerable<WorldSceneTransition> sceneTransitions,
         Rectangle? worldBounds = null,
-        IWorldEventController? eventController = null)
+        IWorldEventController? eventController = null,
+        EnemySettings? enemySettings = null,
+        IEnemySettingsCatalog? enemySettingsCatalog = null,
+        IEnemyFactory? enemyFactory = null)
     {
+        var resolvedEnemySettings = enemySettings ?? _defaultEnemySettings;
+        var resolvedEnemySettingsCatalog = enemySettingsCatalog ?? _enemySettingsCatalog;
+        var resolvedEnemyFactory = enemyFactory ?? _enemyFactory;
+
         return new World(
             player,
             props,
             enemies,
-            _defaultEnemySettings,
-            _enemySettingsCatalog,
-            _enemyFactory,
+            resolvedEnemySettings,
+            resolvedEnemySettingsCatalog,
+            resolvedEnemyFactory,
             _playerAttackHitResolver,
             _playerBombResolver,
             _playerFireShieldResolver,
@@ -359,7 +368,87 @@ public sealed class GameplayLevelBuilder
             eventController);
     }
 
+    private EnemySettingsCatalog CreateArenaEnemySettingsCatalog()
+    {
+        var arenaChaseRange = ScaleArenaVector(800f, 480f).Length();
+
+        return new EnemySettingsCatalog(
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.Crab), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.HornedRabbit), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.HornedRabbitElite), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.Bat), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.Grasshopper), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.BatMiniBoss), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.HornedRabbitBoss), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.Skeleton), arenaChaseRange),
+            CreateArenaEnemySettings(_enemySettingsCatalog.Get(EnemyKind.SkeletonElite), arenaChaseRange));
+    }
+
+    private static EnemySettings CreateArenaEnemySettings(EnemySettings source, float arenaChaseRange)
+    {
+        return new EnemySettings
+        {
+            Kind = source.Kind,
+            MaxHealth = source.MaxHealth,
+            MoveSpeed = source.MoveSpeed,
+            ChaseRange = Math.Max(source.ChaseRange, arenaChaseRange),
+            RecoverySeconds = source.RecoverySeconds,
+            DefeatedVisibleSeconds = source.DefeatedVisibleSeconds,
+            PlayerHitKnockbackDistance = source.PlayerHitKnockbackDistance,
+            PlayerHitKnockbackSeconds = source.PlayerHitKnockbackSeconds,
+            PlayerHitPauseSeconds = source.PlayerHitPauseSeconds,
+            DashSpeed = source.DashSpeed,
+            DashSeconds = source.DashSeconds,
+            DashPauseSeconds = source.DashPauseSeconds,
+            InitialDashPauseMinSeconds = source.InitialDashPauseMinSeconds,
+            InitialDashPauseMaxSeconds = source.InitialDashPauseMaxSeconds,
+            AttackHitboxPadding = source.AttackHitboxPadding,
+            BoundsWidth = source.BoundsWidth,
+            BoundsHeight = source.BoundsHeight,
+            MaxAbilityPoints = source.MaxAbilityPoints,
+            AbilityPointRegenPerSecond = source.AbilityPointRegenPerSecond,
+            ShieldActivationCost = source.ShieldActivationCost,
+            ShieldMaxCharges = source.ShieldMaxCharges,
+            ProjectileDamage = source.ProjectileDamage,
+            ProjectileSpeed = source.ProjectileSpeed,
+            ProjectileLifetimeSeconds = source.ProjectileLifetimeSeconds,
+            ProjectileSize = source.ProjectileSize,
+            ProjectileAttackRange = source.ProjectileAttackRange,
+            PreferredRange = source.PreferredRange,
+            SpecialAttackDamage = source.SpecialAttackDamage,
+            SpecialAttackRange = source.SpecialAttackRange,
+            SpecialAttackPauseSeconds = source.SpecialAttackPauseSeconds,
+            SpecialAttackStunSeconds = source.SpecialAttackStunSeconds,
+            SpecialAttackConeHalfAngleDegrees = source.SpecialAttackConeHalfAngleDegrees
+        };
+    }
+
     private static EnemySpawnDefinition[] BuildArenaWaveOneSpawns()
+    {
+        return
+        [
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(176f, 140f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(384f, 140f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(592f, 140f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(176f, 284f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(384f, 284f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(592f, 284f), EnemyAxisPreference.None)
+        ];
+    }
+
+    private static EnemySpawnDefinition[] BuildArenaWaveTwoSpawns()
+    {
+        return
+        [
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(176f, 132f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.SkeletonElite, ScaleArenaVector(256f, 176f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(384f, 116f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.SkeletonElite, ScaleArenaVector(512f, 176f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(592f, 132f), EnemyAxisPreference.None)
+        ];
+    }
+
+    private static EnemySpawnDefinition[] BuildArenaWaveThreeSpawns()
     {
         return
         [
@@ -367,7 +456,7 @@ public sealed class GameplayLevelBuilder
         ];
     }
 
-    private static EnemySpawnDefinition[] BuildArenaWaveTwoSpawns()
+    private static EnemySpawnDefinition[] BuildArenaWaveFourSpawns()
     {
         return
         [
@@ -378,7 +467,7 @@ public sealed class GameplayLevelBuilder
         ];
     }
 
-    private static EnemySpawnDefinition[] BuildArenaWaveThreeSpawns()
+    private static EnemySpawnDefinition[] BuildArenaWaveFiveSpawns()
     {
         return
         [
@@ -388,7 +477,7 @@ public sealed class GameplayLevelBuilder
         ];
     }
 
-    private static EnemySpawnDefinition[] BuildArenaWaveFourSpawns()
+    private static EnemySpawnDefinition[] BuildArenaWaveSixSpawns()
     {
         return
         [
@@ -405,16 +494,35 @@ public sealed class GameplayLevelBuilder
         ];
     }
 
+    private static EnemySpawnDefinition[] BuildArenaWaveSevenSpawns()
+    {
+        return
+        [
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, ScaleArenaVector(144f, 116f)),
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, ScaleArenaVector(288f, 116f)),
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, ScaleArenaVector(480f, 116f)),
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, ScaleArenaVector(624f, 116f)),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(160f, 160f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(304f, 160f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.SkeletonElite, ScaleArenaVector(448f, 160f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, ScaleArenaVector(592f, 160f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(176f, 208f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(304f, 208f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(496f, 208f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbitElite, ScaleArenaVector(624f, 208f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(224f, 288f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(400f, 272f)),
+            new EnemySpawnDefinition(EnemyKind.Bat, ScaleArenaVector(576f, 288f)),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, ScaleArenaVector(160f, 344f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, ScaleArenaVector(304f, 344f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, ScaleArenaVector(496f, 344f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, ScaleArenaVector(640f, 344f), EnemyAxisPreference.None)
+        ];
+    }
+
     private static EnemySpawnDefinition CreateArenaHornedRabbitSpawn(Vector2 position)
     {
-        var movementTypes = new[]
-        {
-            EnemyAxisPreference.None,
-            EnemyAxisPreference.Horizontal,
-            EnemyAxisPreference.Vertical
-        };
-        var movementType = movementTypes[Random.Shared.Next(movementTypes.Length)];
-        return new EnemySpawnDefinition(EnemyKind.HornedRabbit, position, movementType);
+        return new EnemySpawnDefinition(EnemyKind.HornedRabbit, position, EnemyAxisPreference.None);
     }
 
     private static int ScaleArena(int value)

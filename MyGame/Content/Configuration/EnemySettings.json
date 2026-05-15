@@ -1,5 +1,5 @@
 {
-  "MaxHealth": 6,
+  "MaxHealth": 8,
   "MoveSpeed": 96,
   "ChaseRange": 160,
   "RecoverySeconds": 0.65,

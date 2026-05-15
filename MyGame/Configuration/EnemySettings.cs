@@ -6,7 +6,7 @@ public sealed class EnemySettings
 {
     public EnemyKind Kind { get; init; } = EnemyKind.Crab;
 
-    public int MaxHealth { get; init; } = 6;
+    public int MaxHealth { get; init; } = 8;
 
     public float MoveSpeed { get; init; } = 96f;
 
@@ -37,6 +37,26 @@ public sealed class EnemySettings
     public int BoundsWidth { get; init; } = 28;
 
     public int BoundsHeight { get; init; } = 28;
+
+    public float MaxAbilityPoints { get; init; } = 0f;
+
+    public float AbilityPointRegenPerSecond { get; init; } = 0f;
+
+    public float ShieldActivationCost { get; init; } = 0f;
+
+    public int ShieldMaxCharges { get; init; } = 0;
+
+    public int ProjectileDamage { get; init; } = 0;
+
+    public float ProjectileSpeed { get; init; } = 0f;
+
+    public float ProjectileLifetimeSeconds { get; init; } = 0f;
+
+    public int ProjectileSize { get; init; } = 0;
+
+    public float ProjectileAttackRange { get; init; } = 0f;
+
+    public float PreferredRange { get; init; } = 0f;
 
     public int SpecialAttackDamage { get; init; } = 0;
 

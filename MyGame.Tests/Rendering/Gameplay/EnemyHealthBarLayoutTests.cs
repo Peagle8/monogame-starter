@@ -50,4 +50,28 @@ public sealed class EnemyHealthBarLayoutTests
 
         Assert.Equal(new Rectangle(103, 118, 11, 3), fillBounds);
     }
+
+    [Fact]
+    public void GetAbilityFrameBounds_ForSkeleton_PlacesAbilityBarAboveHealthBar()
+    {
+        var enemy = new EnemyActor(EnemySettingsCatalog.CreateDefault(EnemyKind.Skeleton), new Vector2(100f, 120f));
+
+        var healthBounds = EnemyHealthBarLayout.GetFrameBounds(enemy);
+        var abilityBounds = EnemyHealthBarLayout.GetAbilityFrameBounds(enemy);
+
+        Assert.Equal(new Rectangle(106, 106, 20, 4), abilityBounds);
+        Assert.True(abilityBounds.Bottom < healthBounds.Bottom);
+    }
+
+    [Fact]
+    public void GetAbilityFrameBounds_ForSkeletonElite_PlacesAbilityBarAboveLargerBody()
+    {
+        var enemy = new EnemyActor(EnemySettingsCatalog.CreateDefault(EnemyKind.SkeletonElite), new Vector2(100f, 120f));
+
+        var healthBounds = EnemyHealthBarLayout.GetFrameBounds(enemy);
+        var abilityBounds = EnemyHealthBarLayout.GetAbilityFrameBounds(enemy);
+
+        Assert.Equal(new Rectangle(108, 107, 20, 4), abilityBounds);
+        Assert.True(abilityBounds.Bottom < healthBounds.Bottom);
+    }
 }

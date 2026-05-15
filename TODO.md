@@ -7,14 +7,16 @@ This file tracks the next implementation chunks in a form that is easy to hand o
 1. `Inventory model V1`
    Add a real player inventory data model behind the current pause-menu tabs so weapons, armor, items, and ability unlock state live in persistent gameplay data instead of UI-only shells.
 2. `Shop system V1`
-   Connect the current buy/sell dialogue shell to wares, prices, currency, inventory mutation, and save-friendly progression state. Expand beyond the first functional shop interior after the core loop is proven.
-3. `Town interaction shell`
-   Add the first reusable NPC interaction flow in the town hub, including prompt detection, dialogue shell plumbing, and at least one quest-style NPC plus one lore-style NPC.
-4. `Dungeon entrance and floor plumbing V1`
+   Connect the current shopkeeper greeting and buy/sell shell to wares, prices, currency, inventory mutation, and save-friendly progression state.
+3. `Quest giver prototype`
+   Add one NPC that uses the narrative flag/objective foundation to hand out and complete a simple test quest.
+4. `Journal UI V1`
+   Add a pause-menu journal tab that reads the backend journal state, lists discovered entries, and marks entries read.
+5. `Dungeon entrance and floor plumbing V1`
    Turn the current town dungeon entrance into a real gameplay path with floor transitions, floor-state data, and the first reusable dungeon-scene patterns.
-5. `Arena reward loop and selection V1`
+6. `Arena reward loop and selection V1`
    Decide and implement the first pass of arena rewards beyond inter-wave recovery, then add encounter selection that can later key off dungeon slice unlocks.
-6. `Ability/loadout progression V1`
+7. `Ability/loadout progression V1`
    Move the current ability/loadout shell from a tuning scaffold into a real progression system with clearer unlock rules, implemented ability variants, and save-friendly state transitions.
 
 ## Recently Completed
@@ -22,7 +24,7 @@ This file tracks the next implementation chunks in a form that is easy to hand o
 1. `Overworld V1 scene network`
    Town hub, four wilderness scenes, cardinal gate transitions, central district layout, placeholder houses, town walls, and mountain-bounded wilderness are now in.
 2. `Arena combat prototype room`
-   The arena is now a dedicated interior scene with locked/unlocked exits, screen-sized bounds, and a four-wave encounter sequence.
+   The arena is now a dedicated interior scene with locked/unlocked exits, screen-sized bounds, and a five-wave encounter sequence.
 3. `Pause-menu map and loadout shell`
    The pause flow now includes an overworld map, replay controls, and a tabbed inventory shell with an ability/loadout view.
 4. `Ability save/equip plumbing`
@@ -33,6 +35,8 @@ This file tracks the next implementation chunks in a form that is easy to hand o
    Enemy health bars are now always visible, bosses use larger bars, and current enemy HP totals were doubled to improve encounter readability and duration.
 7. `Shop shell V1`
    The town now has three shop exteriors and one functional interior with a proximity prompt plus buy/sell dialogue shell.
+8. `Narrative foundation V1`
+   JSON-backed NPC dialogue, reusable NPC prompts/panels, shopkeeper greeting handoff, hints via NPC dialogue/toasts, backend journal state, recent-history persistence, debug inspection data, and town alert/reputation foundations are now in.
 
 ## World Structure Chunks
 
@@ -61,14 +65,28 @@ This file tracks the next implementation chunks in a form that is easy to hand o
 ## Town, NPC, And Dialogue Chunks
 
 1. `NPC interaction framework V1`
-   Add reusable NPC prompt, facing, interaction, and state plumbing that works for shops, lore, and quests.
-2. `Quest giver prototype`
+   Done. Reusable conversation props, NPC prompt detection, dialogue state, and dialogue panel are now in.
+2. `Dialogue presentation V1`
+   Done. JSON-backed dialogue drives townsfolk and shopkeeper greeting text, with recent selection suppression.
+3. `Hint delivery V1`
+   Done. Hints load from JSON and surface through NPC-delivered text plus world toasts.
+4. `Journal backend V1`
+   Done. Journal entries load from JSON, discover from narrative flags, and persist discovered/read state.
+5. `Town reputation and alert foundation`
+   Done. Town alert level and player reputation live in narrative state, save/load, and debug output.
+6. `Journal UI V1`
+   Add a pause-menu tab for discovered journal entries, unread/read state, and entry detail text.
+7. `Quest giver prototype`
    Add one NPC that can hand out and complete a simple test quest.
-3. `Lore NPC prototype`
-   Add one NPC that exists only for world flavor and conversation.
-4. `Dialogue authoring model`
-   Decide whether dialogue is stored as authored lines, branching nodes, topic pools, or another constrained format.
-5. `Dynamic dialogue experiment`
+8. `Lore NPC content pass`
+   Replace placeholder townsfolk lines with authored town flavor, hint-bearing lines, and journal-linked lore.
+9. `Narrative debug overlay polish`
+   Decide how much dialogue/hint/journal debug inspection should be visible in the overlay versus recorder state only.
+10. `Dialogue authoring model V2`
+   Extend the current weighted-line model toward short exchanges, topics, or branching choices.
+11. `Narrative content validation tests`
+   Add tests that load the real JSON files and validate all shipped dialogue, hints, and journal templates.
+12. `Dynamic dialogue experiment`
    Explore whether LLM-assisted phrasing makes sense for low-stakes flavor dialogue while keeping plot facts and quest rules authored.
 
 ## Inventory, Economy, And Progression Chunks

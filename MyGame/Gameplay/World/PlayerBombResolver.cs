@@ -30,7 +30,11 @@ public sealed class PlayerBombResolver
                     continue;
                 }
 
-                enemy.TakeDamage(damage);
+                if (!enemy.TryTakeDamage(damage))
+                {
+                    continue;
+                }
+
                 enemy.ApplyKnockback(GetKnockbackDirection(explosionCenter, enemy));
                 hitEnemy = true;
             }

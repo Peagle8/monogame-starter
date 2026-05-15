@@ -24,6 +24,24 @@ public sealed class AbilityLoadoutCatalogTests
         Assert.True(fireShield.IsUnlocked);
     }
 
+    [Fact]
+    public void CreateOptionViewModels_ForRangedSlot_EnablesMissileWhenUnlocked()
+    {
+        var player = new PlayerActor(
+            new StubInputService(),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.Missile]),
+            new PlayerAttackController(new PlayerAttackSettings()));
+
+        var options = AbilityLoadoutCatalog.CreateOptionViewModels(player, AbilityLoadoutSlot.Ranged);
+        var missile = Assert.Single(options.Where(option => option.DisplayName == "Missile"));
+
+        Assert.True(missile.IsEnabled);
+        Assert.True(missile.IsUnlocked);
+    }
+
     private sealed class StubInputService : MyGame.Core.Input.IInputService
     {
         public MyGame.Core.Input.InputSnapshot Current => MyGame.Core.Input.InputSnapshot.Empty;

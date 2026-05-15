@@ -13,6 +13,12 @@ internal static class EnemyBehaviorFactory
             EnemyKind.Bat => new BatEnemyBehavior(initialDashPauseSeconds),
             EnemyKind.BatMiniBoss => new BatMiniBossEnemyBehavior(),
             EnemyKind.Grasshopper => new GrasshopperEnemyBehavior(initialDashPauseSeconds),
+            EnemyKind.Skeleton => new SkeletonEnemyBehavior(initialDashPauseSeconds),
+            EnemyKind.SkeletonElite => new SkeletonEnemyBehavior(
+                initialDashPauseSeconds,
+                projectilesPerVolley: 2,
+                projectileSpreadDegrees: 14f,
+                usesBackstepLeap: true),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported enemy kind.")
         };
     }

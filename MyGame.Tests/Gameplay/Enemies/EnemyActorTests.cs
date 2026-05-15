@@ -386,6 +386,7 @@ public sealed class EnemyActorTests
 
         Assert.Equal(3, pendingSpawns.Length);
         Assert.All(pendingSpawns, spawn => Assert.Equal(EnemyKind.HornedRabbit, spawn.Kind));
+        Assert.All(pendingSpawns, spawn => Assert.Equal(EnemyAxisPreference.None, spawn.AxisPreference));
     }
 
     [Fact]
@@ -437,6 +438,9 @@ public sealed class EnemyActorTests
         Assert.Equal(5, pendingSpawns.Length);
         Assert.Equal(2, pendingSpawns.Count(spawn => spawn.Kind == EnemyKind.HornedRabbitElite));
         Assert.Equal(3, pendingSpawns.Count(spawn => spawn.Kind == EnemyKind.HornedRabbit));
+        Assert.All(
+            pendingSpawns.Where(spawn => spawn.Kind == EnemyKind.HornedRabbit),
+            spawn => Assert.Equal(EnemyAxisPreference.None, spawn.AxisPreference));
     }
 
     [Fact]
@@ -729,6 +733,118 @@ public sealed class EnemyActorTests
         Assert.False(enemy.CanDealContactDamage);
     }
 
+    [Fact]
+    public void Update_WhenSkeletonPlayerIsInRange_ActivatesShieldAndSpendsAbilityPoints()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Skeleton);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(320f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(enemy.IsShieldActive);
+        Assert.Equal(3, enemy.ShieldCharges);
+        Assert.Equal(0f, enemy.CurrentAbilityPoints);
+    }
+
+    [Fact]
+    public void TryTakeDamage_WhenSkeletonShieldIsActive_ConsumesShieldChargeInsteadOfHealth()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Skeleton);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+        enemy.Update(new Vector2(320f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        var tookDamage = enemy.TryTakeDamage(1);
+
+        Assert.False(tookDamage);
+        Assert.Equal(settings.MaxHealth, enemy.CurrentHealth);
+        Assert.Equal(2, enemy.ShieldCharges);
+    }
+
+    [Fact]
+    public void Update_WhenSkeletonPlayerIsTooClose_RetreatsFromPlayer()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Skeleton);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(120f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Chasing, enemy.State);
+        Assert.True(enemy.Position.X < 100f);
+    }
+
+    [Fact]
+    public void Update_WhenSkeletonPlayerIsInFiringRange_QueuesArrowProjectile()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Skeleton);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(320f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        var projectile = Assert.Single(GetSpawnedProjectiles(enemy).OfType<EnemyProjectile>());
+
+        Assert.Equal(EnemyState.Aiming, enemy.State);
+        Assert.True(projectile.Velocity.X > 0f);
+        Assert.Equal(settings.ProjectileDamage, projectile.Damage);
+    }
+
+    [Fact]
+    public void Update_WhenSkeletonRegeneratesBackToFull_ReactivatesShield()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.Skeleton);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+        enemy.Update(new Vector2(320f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.True(enemy.TryAbsorbShieldHit());
+        Assert.True(enemy.TryAbsorbShieldHit());
+        Assert.True(enemy.TryAbsorbShieldHit());
+
+        enemy.Update(new Vector2(320f, 100f), new FrameTime(TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60.1)));
+
+        Assert.True(enemy.IsShieldActive);
+        Assert.Equal(3, enemy.ShieldCharges);
+        Assert.Equal(0f, enemy.CurrentAbilityPoints);
+    }
+
+    [Fact]
+    public void Update_WhenSkeletonElitePlayerIsInRange_ActivatesShieldWithSixCharges()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.SkeletonElite);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(320f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.True(enemy.IsShieldActive);
+        Assert.Equal(6, enemy.ShieldCharges);
+        Assert.Equal(0f, enemy.CurrentAbilityPoints);
+    }
+
+    [Fact]
+    public void Update_WhenSkeletonElitePlayerIsInFiringRange_QueuesTwoArrowProjectiles()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.SkeletonElite);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(320f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        var projectiles = GetSpawnedProjectiles(enemy).OfType<EnemyProjectile>().ToArray();
+
+        Assert.Equal(2, projectiles.Length);
+        Assert.All(projectiles, projectile => Assert.True(projectile.Velocity.X > 0f));
+        Assert.Contains(projectiles, projectile => projectile.Velocity.Y < 0f);
+        Assert.Contains(projectiles, projectile => projectile.Velocity.Y > 0f);
+    }
+
+    [Fact]
+    public void Update_WhenSkeletonElitePlayerIsTooClose_BackstepsAwayFromPlayer()
+    {
+        var settings = EnemySettingsCatalog.CreateDefault(EnemyKind.SkeletonElite);
+        var enemy = new EnemyActor(settings, new Vector2(100f, 100f));
+
+        enemy.Update(new Vector2(120f, 100f), new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Equal(EnemyState.Chasing, enemy.State);
+        Assert.True(enemy.Position.X < 100f);
+    }
+
     private static IEnumerable<object> GetBombs(EnemyActor enemy)
     {
         var bombsField = typeof(EnemyActor).GetField("_bombs", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
@@ -745,6 +861,15 @@ public sealed class EnemyActorTests
         var pendingSpawns = pendingSpawnsField!.GetValue(enemy);
         Assert.NotNull(pendingSpawns);
         return Assert.IsAssignableFrom<System.Collections.IEnumerable>(pendingSpawns).Cast<object>();
+    }
+
+    private static IEnumerable<object> GetSpawnedProjectiles(EnemyActor enemy)
+    {
+        var spawnedProjectilesField = typeof(EnemyActor).GetField("_spawnedProjectiles", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(spawnedProjectilesField);
+        var spawnedProjectiles = spawnedProjectilesField!.GetValue(enemy);
+        Assert.NotNull(spawnedProjectiles);
+        return Assert.IsAssignableFrom<System.Collections.IEnumerable>(spawnedProjectiles).Cast<object>();
     }
 
     private static void ClearPendingSpawns(EnemyActor enemy)

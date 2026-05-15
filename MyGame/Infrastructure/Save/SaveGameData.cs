@@ -1,4 +1,5 @@
 using MyGame.Gameplay.Player;
+using MyGame.Gameplay.Narrative;
 
 namespace MyGame.Infrastructure.Save;
 
@@ -27,4 +28,24 @@ public sealed class SaveGameData
     public required int DefeatedEnemyCount { get; init; }
 
     public required EnemySaveData[] Enemies { get; init; }
+
+    public string NarrativeLocale { get; init; } = "en-US";
+
+    public string ActiveQuestId { get; init; } = "town_introductions";
+
+    public string ActiveObjectiveId { get; init; } = "meet_townsfolk";
+
+    public TownAlertLevel TownAlertLevel { get; init; } = TownAlertLevel.Calm;
+
+    public int PlayerReputation { get; init; }
+
+    public string[] NarrativeFlags { get; init; } = [];
+
+    public string[] RecentDialogueIds { get; init; } = [];
+
+    public string[] RecentHintIds { get; init; } = [];
+
+    public string[] DiscoveredJournalEntryIds { get; init; } = [];
+
+    public string[] ReadJournalEntryIds { get; init; } = [];
 }

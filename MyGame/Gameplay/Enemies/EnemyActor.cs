@@ -7,28 +7,29 @@ using MyGame.Gameplay.World;
 using MyGame.Infrastructure.Save;
 
 namespace MyGame.Gameplay.Enemies;
-
 public sealed class EnemyActor
 {
     internal const float BossStageTransitionSeconds = 1.4f;
+    private const float HitFlashSeconds = 0.12f;
+    private const float SpecialAttackVisibleSeconds = 0.18f;
 
     private readonly EnemySettings _settings;
     private readonly EnemyAxisPreference _axisPreference;
     private readonly IEnemyBehavior _behavior;
+    private readonly EnemyAbilityState _abilityState;
     private readonly KnockbackMotion _knockbackMotion = new();
     private readonly List<EnemySpawnDefinition> _pendingEnemySpawns = [];
-    private float _remainingDefeatedVisibleSeconds;
-    private float _remainingHitFlashSeconds;
-    private float _remainingRecoverySeconds;
-    private float _remainingSpecialAttackVisibleSeconds;
     private readonly List<EnemyBomb> _bombs = [];
+    private readonly List<EnemyProjectile> _spawnedProjectiles = [];
     private EnemyAttack? _pendingAttack;
     private EnemyAttack? _activeSpecialAttack;
     private bool _hasConsumedActiveSpecialAttack;
     private bool _hasPendingBossStageTransition;
+    private float _remainingDefeatedVisibleSeconds;
+    private float _remainingHitFlashSeconds;
+    private float _remainingRecoverySeconds;
+    private float _remainingSpecialAttackVisibleSeconds;
     private float _remainingBossStageTransitionSeconds;
-    private const float HitFlashSeconds = 0.12f;
-    private const float SpecialAttackVisibleSeconds = 0.18f;
 
     public EnemyActor(
         EnemySettings settings,
@@ -39,6 +40,7 @@ public sealed class EnemyActor
         _settings = settings;
         _axisPreference = axisPreference;
         _behavior = EnemyBehaviorFactory.Create(settings.Kind, axisPreference, initialDashPauseSeconds);
+        _abilityState = new EnemyAbilityState(settings);
         Position = position;
         PreviousPosition = position;
         CurrentHealth = settings.MaxHealth;
@@ -51,19 +53,38 @@ public sealed class EnemyActor
     }
 
     public Vector2 Position { get; private set; }
-
     public Vector2 PreviousPosition { get; private set; }
-
     public int CurrentHealth { get; private set; }
-
     public int MaxHealth => _settings.MaxHealth;
-
     public EnemyKind Kind => _settings.Kind;
-
     public bool IsMoving { get; private set; }
-
     public EnemyState State { get; private set; }
-
+    public Direction DashDirection { get; internal set; }
+    public EnemyAxisPreference AxisPreference => _axisPreference;
+    public float CurrentAbilityPoints => _abilityState.CurrentAbilityPoints;
+    public float MaxAbilityPoints => _abilityState.MaxAbilityPoints;
+    public bool IsShieldActive => _abilityState.IsShieldActive;
+    public int ShieldCharges => _abilityState.ShieldCharges;
+    public int BossStage { get; private set; } = 1;
+    public int BossStageCount { get; private set; } = 1;
+    public bool IsBossStageTransitioning => _remainingBossStageTransitionSeconds > 0f;
+    public float RemainingBossStageTransitionSeconds => _remainingBossStageTransitionSeconds;
+    public bool IsRenderable => State != EnemyState.Dead || _remainingDefeatedVisibleSeconds > 0f;
+    public bool IsFlashingFromHit => _remainingHitFlashSeconds > 0f;
+    public float HitFlashAlpha => MathHelper.Clamp(_remainingHitFlashSeconds / HitFlashSeconds, 0f, 1f);
+    public float HealthBarAlpha => CurrentHealth > 0 ? 1f : 0f;
+    public float DefeatedVisibilityAlpha =>
+        State != EnemyState.Dead || _settings.DefeatedVisibleSeconds <= 0f
+            ? 1f
+            : MathHelper.Clamp(_remainingDefeatedVisibleSeconds / _settings.DefeatedVisibleSeconds, 0f, 1f);
+    public Rectangle Bounds => new((int)Position.X, (int)Position.Y, _settings.BoundsWidth, _settings.BoundsHeight);
+    public Rectangle ContactBounds => GetContactBounds();
+    public Rectangle PreviousBounds => new((int)PreviousPosition.X, (int)PreviousPosition.Y, _settings.BoundsWidth, _settings.BoundsHeight);
+    public Vector2 AttackOrigin => GetAttackOrigin();
+    public bool IsSpecialAttackTelegraphVisible { get; private set; }
+    public bool IsSpecialAttackActive => _remainingSpecialAttackVisibleSeconds > 0f;
+    public float SpecialAttackRange => _settings.SpecialAttackRange;
+    public float SpecialAttackConeHalfAngleDegrees => _settings.SpecialAttackConeHalfAngleDegrees;
     public bool CanDealContactDamage =>
         State is not EnemyState.Dead and not EnemyState.Recovering
         && !IsBossStageTransitioning
@@ -78,140 +99,16 @@ public sealed class EnemyActor
             _ => true
         });
 
-    public Direction DashDirection { get; internal set; }
-
-    public EnemyAxisPreference AxisPreference => _axisPreference;
-
-    public int BossStage { get; private set; } = 1;
-
-    public int BossStageCount { get; private set; } = 1;
-
-    public bool IsBossStageTransitioning => _remainingBossStageTransitionSeconds > 0f;
-
-    public float RemainingBossStageTransitionSeconds => _remainingBossStageTransitionSeconds;
-
-    public bool IsRenderable => State != EnemyState.Dead || _remainingDefeatedVisibleSeconds > 0f;
-
-    public bool IsFlashingFromHit => _remainingHitFlashSeconds > 0f;
-
-    public float HitFlashAlpha => MathHelper.Clamp(_remainingHitFlashSeconds / HitFlashSeconds, 0f, 1f);
-
-    public float HealthBarAlpha => CurrentHealth > 0 ? 1f : 0f;
-
-    public float DefeatedVisibilityAlpha =>
-        State != EnemyState.Dead || _settings.DefeatedVisibleSeconds <= 0f
-            ? 1f
-            : MathHelper.Clamp(_remainingDefeatedVisibleSeconds / _settings.DefeatedVisibleSeconds, 0f, 1f);
-
-    public Rectangle Bounds => new((int)Position.X, (int)Position.Y, _settings.BoundsWidth, _settings.BoundsHeight);
-
-    public Rectangle ContactBounds => GetContactBounds();
-
-    public Rectangle PreviousBounds => new((int)PreviousPosition.X, (int)PreviousPosition.Y, _settings.BoundsWidth, _settings.BoundsHeight);
-
-    public Vector2 AttackOrigin => GetAttackOrigin();
-
-    public bool IsSpecialAttackTelegraphVisible { get; private set; }
-
-    public bool IsSpecialAttackActive => _remainingSpecialAttackVisibleSeconds > 0f;
-
-    public float SpecialAttackRange => _settings.SpecialAttackRange;
-
-    public float SpecialAttackConeHalfAngleDegrees => _settings.SpecialAttackConeHalfAngleDegrees;
-
     internal IReadOnlyList<EnemyBomb> Bombs => _bombs;
-
+    internal EnemySettings Settings => _settings;
     public void Update(Vector2 playerPosition, FrameTime frameTime)
     {
-        PreviousPosition = Position;
-        _remainingHitFlashSeconds = Math.Max(0f, _remainingHitFlashSeconds - frameTime.DeltaSeconds);
-        _remainingSpecialAttackVisibleSeconds = Math.Max(0f, _remainingSpecialAttackVisibleSeconds - frameTime.DeltaSeconds);
-        _remainingBossStageTransitionSeconds = Math.Max(0f, _remainingBossStageTransitionSeconds - frameTime.DeltaSeconds);
-        UpdateBombs(frameTime.DeltaSeconds);
-        if (_remainingSpecialAttackVisibleSeconds <= 0f)
-        {
-            _activeSpecialAttack = null;
-            _hasConsumedActiveSpecialAttack = false;
-        }
-
-        if (CurrentHealth <= 0)
-        {
-            State = EnemyState.Dead;
-            IsMoving = false;
-            IsSpecialAttackTelegraphVisible = false;
-            _remainingDefeatedVisibleSeconds = Math.Max(0f, _remainingDefeatedVisibleSeconds - frameTime.DeltaSeconds);
-            return;
-        }
-
-        if (_remainingRecoverySeconds > 0f)
-        {
-            if (_knockbackMotion.IsActive)
-            {
-                Position += _knockbackMotion.Update(frameTime.DeltaSeconds);
-                IsMoving = true;
-            }
-            else
-            {
-                IsMoving = false;
-            }
-
-            _remainingRecoverySeconds = Math.Max(0f, _remainingRecoverySeconds - frameTime.DeltaSeconds);
-
-            if (_remainingRecoverySeconds > 0f)
-            {
-                State = EnemyState.Recovering;
-                return;
-            }
-        }
-
-        _behavior.Update(this, playerPosition, new Rectangle((int)playerPosition.X, (int)playerPosition.Y, 0, 0), frameTime);
+        UpdateCore(playerPosition, new Rectangle((int)playerPosition.X, (int)playerPosition.Y, 0, 0), frameTime);
     }
 
     public void Update(Vector2 playerPosition, Rectangle playerBounds, FrameTime frameTime)
     {
-        PreviousPosition = Position;
-        _remainingHitFlashSeconds = Math.Max(0f, _remainingHitFlashSeconds - frameTime.DeltaSeconds);
-        _remainingSpecialAttackVisibleSeconds = Math.Max(0f, _remainingSpecialAttackVisibleSeconds - frameTime.DeltaSeconds);
-        _remainingBossStageTransitionSeconds = Math.Max(0f, _remainingBossStageTransitionSeconds - frameTime.DeltaSeconds);
-        UpdateBombs(frameTime.DeltaSeconds);
-        if (_remainingSpecialAttackVisibleSeconds <= 0f)
-        {
-            _activeSpecialAttack = null;
-            _hasConsumedActiveSpecialAttack = false;
-        }
-
-        if (CurrentHealth <= 0)
-        {
-            State = EnemyState.Dead;
-            IsMoving = false;
-            IsSpecialAttackTelegraphVisible = false;
-            _remainingDefeatedVisibleSeconds = Math.Max(0f, _remainingDefeatedVisibleSeconds - frameTime.DeltaSeconds);
-            return;
-        }
-
-        if (_remainingRecoverySeconds > 0f)
-        {
-            if (_knockbackMotion.IsActive)
-            {
-                Position += _knockbackMotion.Update(frameTime.DeltaSeconds);
-                IsMoving = true;
-            }
-            else
-            {
-                IsMoving = false;
-            }
-
-            _remainingRecoverySeconds = Math.Max(0f, _remainingRecoverySeconds - frameTime.DeltaSeconds);
-
-            if (_remainingRecoverySeconds > 0f)
-            {
-                State = EnemyState.Recovering;
-                IsSpecialAttackTelegraphVisible = false;
-                return;
-            }
-        }
-
-        _behavior.Update(this, playerPosition, playerBounds, frameTime);
+        UpdateCore(playerPosition, playerBounds, frameTime);
     }
 
     public void BeginRecovery()
@@ -228,14 +125,27 @@ public sealed class EnemyActor
 
     public void TakeDamage(int amount)
     {
-        CurrentHealth = Math.Max(0, CurrentHealth - amount);
+        _ = TryTakeDamage(amount);
+    }
+    public bool TryTakeDamage(int amount)
+    {
+        if (CurrentHealth <= 0 || amount <= 0)
+        {
+            return false;
+        }
+
         _remainingHitFlashSeconds = HitFlashSeconds;
         IsSpecialAttackTelegraphVisible = false;
         _remainingSpecialAttackVisibleSeconds = 0f;
+        if (TryAbsorbShieldHit())
+        {
+            return false;
+        }
 
+        CurrentHealth = Math.Max(0, CurrentHealth - amount);
         if (TryAdvanceBossStage())
         {
-            return;
+            return true;
         }
 
         if (CurrentHealth == 0)
@@ -244,6 +154,8 @@ public sealed class EnemyActor
             IsMoving = false;
             _remainingDefeatedVisibleSeconds = _settings.DefeatedVisibleSeconds;
         }
+
+        return true;
     }
 
     public void ApplyKnockback(Vector2 direction)
@@ -253,12 +165,7 @@ public sealed class EnemyActor
             return;
         }
 
-        if (Kind == EnemyKind.HornedRabbitBoss)
-        {
-            return;
-        }
-
-        if (IsBossStageTransitioning)
+        if (Kind == EnemyKind.HornedRabbitBoss || IsBossStageTransitioning)
         {
             return;
         }
@@ -269,7 +176,6 @@ public sealed class EnemyActor
             _settings.PlayerHitKnockbackDistance,
             _settings.PlayerHitKnockbackSeconds);
         _remainingRecoverySeconds = Math.Max(_remainingRecoverySeconds, _settings.PlayerHitKnockbackSeconds);
-        
         State = EnemyState.Recovering;
         IsMoving = true;
     }
@@ -282,11 +188,18 @@ public sealed class EnemyActor
             AxisPreference = AxisPreference,
             PositionX = Position.X,
             PositionY = Position.Y,
-            CurrentHealth = CurrentHealth
+            CurrentHealth = CurrentHealth,
+            CurrentAbilityPoints = MaxAbilityPoints > 0f ? CurrentAbilityPoints : null,
+            ShieldCharges = ShieldCharges > 0 ? ShieldCharges : null
         };
     }
 
     public void RestoreState(Vector2 position, int currentHealth)
+    {
+        RestoreState(position, currentHealth, MaxAbilityPoints, 0);
+    }
+
+    public void RestoreState(Vector2 position, int currentHealth, float currentAbilityPoints, int shieldCharges = 0)
     {
         Position = position;
         PreviousPosition = position;
@@ -303,13 +216,23 @@ public sealed class EnemyActor
         _hasConsumedActiveSpecialAttack = false;
         _bombs.Clear();
         _pendingEnemySpawns.Clear();
+        _spawnedProjectiles.Clear();
         _hasPendingBossStageTransition = false;
         _remainingBossStageTransitionSeconds = 0f;
         _knockbackMotion.Reset();
+        _abilityState.Restore(currentAbilityPoints, shieldCharges);
         _behavior.Reset(this);
     }
 
-    internal EnemySettings Settings => _settings;
+    public bool TryActivateShield()
+    {
+        return !IsBossStageTransitioning && _abilityState.TryActivateShield();
+    }
+
+    public bool TryAbsorbShieldHit()
+    {
+        return !IsBossStageTransitioning && _abilityState.TryAbsorbShieldHit();
+    }
 
     internal void QueueAttack(EnemyAttack attack)
     {
@@ -375,6 +298,23 @@ public sealed class EnemyActor
         _bombs.Add(new EnemyBomb(bounds, attack, fuseSeconds, explosionDurationSeconds, explosionPadding));
     }
 
+    internal void QueueProjectile(EnemyProjectile projectile)
+    {
+        _spawnedProjectiles.Add(projectile);
+    }
+
+    internal IReadOnlyList<EnemyProjectile> ConsumeSpawnedProjectiles()
+    {
+        if (_spawnedProjectiles.Count == 0)
+        {
+            return [];
+        }
+
+        var projectiles = _spawnedProjectiles.ToArray();
+        _spawnedProjectiles.Clear();
+        return projectiles;
+    }
+
     internal void QueueSpawnEnemy(EnemySpawnDefinition spawn)
     {
         _pendingEnemySpawns.Add(spawn);
@@ -428,6 +368,79 @@ public sealed class EnemyActor
         }
 
         _hasPendingBossStageTransition = false;
+        return true;
+    }
+
+    private void UpdateCore(Vector2 playerPosition, Rectangle playerBounds, FrameTime frameTime)
+    {
+        BeginFrame(frameTime);
+        if (HandleDeath(frameTime))
+        {
+            return;
+        }
+
+        _abilityState.Regenerate(frameTime.DeltaSeconds);
+        if (HandleRecovery(frameTime))
+        {
+            return;
+        }
+
+        _behavior.Update(this, playerPosition, playerBounds, frameTime);
+    }
+
+    private void BeginFrame(FrameTime frameTime)
+    {
+        PreviousPosition = Position;
+        _remainingHitFlashSeconds = Math.Max(0f, _remainingHitFlashSeconds - frameTime.DeltaSeconds);
+        _remainingSpecialAttackVisibleSeconds = Math.Max(0f, _remainingSpecialAttackVisibleSeconds - frameTime.DeltaSeconds);
+        _remainingBossStageTransitionSeconds = Math.Max(0f, _remainingBossStageTransitionSeconds - frameTime.DeltaSeconds);
+        UpdateBombs(frameTime.DeltaSeconds);
+        if (_remainingSpecialAttackVisibleSeconds <= 0f)
+        {
+            _activeSpecialAttack = null;
+            _hasConsumedActiveSpecialAttack = false;
+        }
+    }
+
+    private bool HandleDeath(FrameTime frameTime)
+    {
+        if (CurrentHealth > 0)
+        {
+            return false;
+        }
+
+        State = EnemyState.Dead;
+        IsMoving = false;
+        IsSpecialAttackTelegraphVisible = false;
+        _remainingDefeatedVisibleSeconds = Math.Max(0f, _remainingDefeatedVisibleSeconds - frameTime.DeltaSeconds);
+        return true;
+    }
+
+    private bool HandleRecovery(FrameTime frameTime)
+    {
+        if (_remainingRecoverySeconds <= 0f)
+        {
+            return false;
+        }
+
+        if (_knockbackMotion.IsActive)
+        {
+            Position += _knockbackMotion.Update(frameTime.DeltaSeconds);
+            IsMoving = true;
+        }
+        else
+        {
+            IsMoving = false;
+        }
+
+        _remainingRecoverySeconds = Math.Max(0f, _remainingRecoverySeconds - frameTime.DeltaSeconds);
+        if (_remainingRecoverySeconds <= 0f)
+        {
+            return false;
+        }
+
+        State = EnemyState.Recovering;
+        IsSpecialAttackTelegraphVisible = false;
         return true;
     }
 

@@ -10,6 +10,8 @@ namespace MyGame.Rendering.Gameplay;
 public sealed class PlayerShieldRenderer : IGameplayEntityRenderer
 {
     private const float FireShieldAccentRadiusPadding = 18f;
+    private static readonly Color ShieldBreakShardColor = new(156, 240, 255, 210);
+    private static readonly Color ShieldBreakCoreColor = new(226, 252, 255, 235);
     private static readonly Color ShieldColor = new(112, 224, 255, 180);
     private static readonly Color FireShieldOuterColor = new(228, 66, 42, 170);
     private static readonly Color FireShieldInnerColor = new(255, 150, 54, 190);
@@ -33,17 +35,28 @@ public sealed class PlayerShieldRenderer : IGameplayEntityRenderer
         if (world.Player.IsFireShieldActive)
         {
             DrawFireShield(world.Player.Bounds, frameTime);
-            return;
+        }
+        else if (world.Player.IsShieldActive)
+        {
+            foreach (var segment in CreateShieldSegments(world.Player.Bounds))
+            {
+                _worldRectangleRenderer.Draw(segment, ShieldColor);
+            }
         }
 
-        if (!world.Player.IsShieldActive)
+        if (!world.Player.IsShieldBreakEffectActive)
         {
             return;
         }
 
-        foreach (var segment in CreateShieldSegments(world.Player.Bounds))
+        DrawShieldBreakEffect(world.Player, frameTime.TotalSeconds);
+    }
+
+    private void DrawShieldBreakEffect(PlayerActor player, float totalSeconds)
+    {
+        foreach (var segment in CreateShieldBreakSegments(player, totalSeconds))
         {
-            _worldRectangleRenderer.Draw(segment, ShieldColor);
+            _worldRectangleRenderer.Draw(segment.Bounds, segment.Color * player.ShieldBreakEffectAlpha);
         }
     }
 
@@ -71,11 +84,7 @@ public sealed class PlayerShieldRenderer : IGameplayEntityRenderer
 
     private static IReadOnlyList<Rectangle> CreateShieldSegments(Rectangle playerBounds)
     {
-        var shieldBounds = new Rectangle(
-            playerBounds.X - 6,
-            playerBounds.Y - 6,
-            playerBounds.Width + 12,
-            playerBounds.Height + 12);
+        var shieldBounds = GetShieldBounds(playerBounds);
         const int thickness = 3;
 
         return
@@ -89,6 +98,15 @@ public sealed class PlayerShieldRenderer : IGameplayEntityRenderer
             new Rectangle(shieldBounds.X + 2, shieldBounds.Bottom - 8, 6, 6),
             new Rectangle(shieldBounds.Right - 8, shieldBounds.Bottom - 8, 6, 6)
         ];
+    }
+
+    private static Rectangle GetShieldBounds(Rectangle playerBounds)
+    {
+        return new Rectangle(
+            playerBounds.X - 6,
+            playerBounds.Y - 6,
+            playerBounds.Width + 12,
+            playerBounds.Height + 12);
     }
 
     private IReadOnlyList<FireShieldSegment> CreateFireShieldSegments(Vector2 center, float outerRadius, float innerRadius, float totalSeconds)
@@ -126,6 +144,58 @@ public sealed class PlayerShieldRenderer : IGameplayEntityRenderer
             {
                 segments.Add(new FireShieldSegment(accentCoreBounds, FireShieldAccentCoreColor));
             }
+        }
+
+        return segments;
+    }
+
+    private IReadOnlyList<FireShieldSegment> CreateShieldBreakSegments(PlayerActor player, float totalSeconds)
+    {
+        return player.ShieldBreakEffectKind == PlayerDefenseAbilityKind.FireShield
+            ? CreateFireShieldBreakSegments(player.Bounds, player.ShieldBreakEffectProgress, totalSeconds)
+            : CreateBaseShieldBreakSegments(player.Bounds, player.ShieldBreakEffectProgress, totalSeconds);
+    }
+
+    private static IReadOnlyList<FireShieldSegment> CreateBaseShieldBreakSegments(Rectangle playerBounds, float progress, float totalSeconds)
+    {
+        var center = new Vector2(playerBounds.Center.X, playerBounds.Center.Y);
+        var burstDistance = 12f + (progress * 24f);
+        var segmentWidth = Math.Max(4, 8 - (int)MathF.Round(progress * 3f));
+        var segmentHeight = Math.Max(4, 12 - (int)MathF.Round(progress * 4f));
+        var segments = new List<FireShieldSegment>(12);
+
+        for (var index = 0; index < 8; index++)
+        {
+            var angle = (MathF.Tau * index) / 8f;
+            var wobble = MathF.Sin((totalSeconds * 11f) + index) * 2f;
+            var shardBounds = CreateSegmentBounds(center, burstDistance + wobble, angle, segmentWidth, segmentHeight);
+            var coreBounds = CreateSegmentBounds(center, (burstDistance * 0.6f) + wobble, angle, Math.Max(3, segmentWidth - 2), Math.Max(3, segmentHeight - 5));
+
+            segments.Add(new FireShieldSegment(shardBounds, ShieldBreakShardColor));
+            segments.Add(new FireShieldSegment(coreBounds, ShieldBreakCoreColor));
+        }
+
+        return segments;
+    }
+
+    private IReadOnlyList<FireShieldSegment> CreateFireShieldBreakSegments(Rectangle playerBounds, float progress, float totalSeconds)
+    {
+        const int segmentCount = 16;
+        var center = PlayerFireShieldArea.GetCenter(playerBounds);
+        var baseRadius = PlayerFireShieldArea.GetRadius(playerBounds, _settings.FireShieldRadiusMultiplier);
+        var burstDistance = baseRadius + (progress * 30f);
+        var outerHeight = Math.Max(8, 18 - (int)MathF.Round(progress * 6f));
+        var segments = new List<FireShieldSegment>(segmentCount * 2);
+
+        for (var index = 0; index < segmentCount; index++)
+        {
+            var angle = ((MathF.Tau * index) / segmentCount) + (totalSeconds * 0.35f);
+            var lift = 10f + MathF.Max(0f, MathF.Sin((totalSeconds * 8f) + index) * 6f);
+            var outerBounds = CreateSegmentBounds(center, burstDistance + lift, angle, 10, outerHeight);
+            var innerBounds = CreateSegmentBounds(center, burstDistance - 10f + (lift * 0.35f), angle, 5, Math.Max(6, outerHeight - 7));
+
+            segments.Add(new FireShieldSegment(outerBounds, FireShieldAccentColor));
+            segments.Add(new FireShieldSegment(innerBounds, FireShieldAccentCoreColor));
         }
 
         return segments;

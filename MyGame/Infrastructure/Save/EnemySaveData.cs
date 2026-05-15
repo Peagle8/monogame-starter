@@ -13,4 +13,8 @@ public sealed class EnemySaveData
     public required float PositionY { get; init; }
 
     public required int CurrentHealth { get; init; }
+
+    public float? CurrentAbilityPoints { get; init; }
+
+    public int? ShieldCharges { get; init; }
 }

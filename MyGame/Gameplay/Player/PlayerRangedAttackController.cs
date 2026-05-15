@@ -37,16 +37,26 @@ public sealed class PlayerRangedAttackController
 
     private PlayerProjectile CreateProjectile(PlayerRangedAttackKind equippedAttack, Vector2 playerPosition, Direction facing)
     {
+        var projectilePosition = CreateProjectilePosition(playerPosition, facing);
+
         return equippedAttack switch
         {
             PlayerRangedAttackKind.Fireball => new PlayerProjectile(
                 equippedAttack,
-                CreateProjectilePosition(playerPosition, facing),
+                projectilePosition,
                 facing,
                 _settings.ProjectileSpeed,
                 _settings.ProjectileLifetimeSeconds,
                 _settings.ProjectileSize,
                 _settings.Damage),
+            PlayerRangedAttackKind.Missile => new PlayerProjectile(
+                equippedAttack,
+                projectilePosition,
+                facing,
+                _settings.ProjectileSpeed,
+                _settings.ProjectileLifetimeSeconds,
+                _settings.ProjectileSize,
+                _settings.Damage * 2),
             _ => throw new ArgumentOutOfRangeException(nameof(equippedAttack), equippedAttack, null)
         };
     }

@@ -17,6 +17,7 @@ public sealed class PlayerActor
     private readonly PlayerDashController _dashController;
     private readonly PlayerBombDashController _bombDashController;
     private readonly IPlayerAbilityService _abilityService;
+    private readonly PlayerShieldBreakEffect _shieldBreakEffect = new();
     private readonly KnockbackMotion _knockbackMotion = new();
     private readonly List<PlayerProjectile> _spawnedProjectiles = [];
     private readonly List<PlayerBomb> _spawnedBombs = [];
@@ -161,6 +162,14 @@ public sealed class PlayerActor
 
     public int ShieldCharges => _defenseAbilityState.RemainingCharges;
 
+    public bool IsShieldBreakEffectActive => _shieldBreakEffect.IsActive;
+
+    public PlayerDefenseAbilityKind ShieldBreakEffectKind => _shieldBreakEffect.Kind;
+
+    public float ShieldBreakEffectAlpha => _shieldBreakEffect.Alpha;
+
+    public float ShieldBreakEffectProgress => _shieldBreakEffect.Progress;
+
     public bool IsMoving { get; private set; }
 
     public bool IsRecoiling => _knockbackMotion.IsActive;
@@ -177,6 +186,7 @@ public sealed class PlayerActor
 
     public void Update(FrameTime frameTime)
     {
+        _shieldBreakEffect.Update(frameTime.DeltaSeconds);
         PreviousPosition = Position;
         RegenerateAbilityPoints(frameTime);
 
@@ -262,17 +272,10 @@ public sealed class PlayerActor
         CurrentHealth = Math.Clamp(state.CurrentHealth, 0, MaxHealth);
         CurrentAbilityPoints = MathHelper.Clamp(state.CurrentAbilityPoints, 0f, MaxAbilityPoints);
         _equippedDashAbility = state.EquippedDashAbility;
-        IsMoving = false;
-        _attackState = PlayerAttackState.Idle;
         _defenseAbilityState = state.DefenseAbilityState;
         _rangedAttackState = state.RangedAttackState;
         _equippedMeleeAbility = state.EquippedMeleeAbility;
-        _dashState = PlayerDashState.Idle;
-        _bombTrailState = PlayerBombTrailState.Default;
-        _remainingStunSeconds = 0f;
-        _knockbackMotion.Reset();
-        _spawnedBombs.Clear();
-        _spawnedProjectiles.Clear();
+        ResetTransientState();
     }
 
     public void RestoreState(Vector2 position, int currentHealth, float currentAbilityPoints)
@@ -287,6 +290,14 @@ public sealed class PlayerActor
                 PlayerDefenseAbilityState.Default,
                 PlayerRangedAttackState.Default,
                 PlayerMeleeAbilityKind.BaseAttack));
+    }
+
+    public void RestoreResources(int currentHealth, float currentAbilityPoints)
+    {
+        PreviousPosition = Position;
+        CurrentHealth = Math.Clamp(currentHealth, 0, MaxHealth);
+        CurrentAbilityPoints = MathHelper.Clamp(currentAbilityPoints, 0f, MaxAbilityPoints);
+        ResetTransientState();
     }
 
     public void AddAbilityPoints(float amount)
@@ -322,7 +333,13 @@ public sealed class PlayerActor
             return false;
         }
 
+        var consumedAbilityKind = _defenseAbilityState.EquippedAbility;
         _defenseAbilityState = _defenseAbilityController.ConsumeShieldCharge(_defenseAbilityState);
+        if (!_defenseAbilityState.IsActive)
+        {
+            _shieldBreakEffect.Begin(consumedAbilityKind);
+        }
+
         return true;
     }
 
@@ -438,6 +455,7 @@ public sealed class PlayerActor
         return _rangedAttackState.EquippedAttack switch
         {
             PlayerRangedAttackKind.Fireball => _abilityService.HasAbility(PlayerAbility.Fireball),
+            PlayerRangedAttackKind.Missile => _abilityService.HasAbility(PlayerAbility.Missile),
             _ => false
         };
     }
@@ -511,6 +529,19 @@ public sealed class PlayerActor
         return !IsDead
             && _defenseAbilityState.IsActive
             && _defenseAbilityState.RemainingCharges > 0;
+    }
+
+    private void ResetTransientState()
+    {
+        IsMoving = false;
+        _attackState = PlayerAttackState.Idle;
+        _dashState = PlayerDashState.Idle;
+        _bombTrailState = PlayerBombTrailState.Default;
+        _remainingStunSeconds = 0f;
+        _knockbackMotion.Reset();
+        _spawnedBombs.Clear();
+        _spawnedProjectiles.Clear();
+        _shieldBreakEffect.Reset();
     }
 
     private bool CanActivateDefenseAbility()

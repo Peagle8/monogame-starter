@@ -220,11 +220,11 @@ internal sealed class HornedRabbitBossEnemyBehavior : IEnemyBehavior
         yield return new EnemySpawnDefinition(
             EnemyKind.HornedRabbit,
             spawnPositions.MinionTop,
-            EnemyAxisPreference.Horizontal);
+            EnemyAxisPreference.None);
         yield return new EnemySpawnDefinition(
             EnemyKind.HornedRabbit,
             spawnPositions.MinionMiddle,
-            EnemyAxisPreference.Vertical);
+            EnemyAxisPreference.None);
         yield return new EnemySpawnDefinition(
             EnemyKind.HornedRabbit,
             spawnPositions.MinionBottom,
@@ -245,11 +245,11 @@ internal sealed class HornedRabbitBossEnemyBehavior : IEnemyBehavior
         yield return new EnemySpawnDefinition(
             EnemyKind.HornedRabbit,
             spawnPositions.MinionTop,
-            EnemyAxisPreference.Horizontal);
+            EnemyAxisPreference.None);
         yield return new EnemySpawnDefinition(
             EnemyKind.HornedRabbit,
             spawnPositions.MinionMiddle,
-            EnemyAxisPreference.Vertical);
+            EnemyAxisPreference.None);
         yield return new EnemySpawnDefinition(
             EnemyKind.HornedRabbit,
             spawnPositions.MinionBottom,

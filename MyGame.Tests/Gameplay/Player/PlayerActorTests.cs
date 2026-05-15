@@ -112,7 +112,7 @@ public sealed class PlayerActorTests
 
         Assert.True(player.IsAttacking);
         Assert.Equal(1, player.AttackSequence);
-        Assert.Equal(new Microsoft.Xna.Framework.Rectangle(400, 272, 32, 30), player.AttackBounds);
+        Assert.Equal(new Microsoft.Xna.Framework.Rectangle(400, 272, 32, 39), player.AttackBounds);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public sealed class PlayerActorTests
 
         player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
 
-        Assert.Equal(new Rectangle(389, 199, 32, 30), player.AttackBounds);
+        Assert.Equal(new Rectangle(389, 190, 32, 39), player.AttackBounds);
     }
 
     [Fact]
@@ -153,6 +153,46 @@ public sealed class PlayerActorTests
         Assert.Equal(Direction.Down, projectile.Direction);
         Assert.Equal(1, projectile.Damage);
         Assert.Equal(new Rectangle(404, 272, 24, 24), projectile.Bounds);
+    }
+
+    [Fact]
+    public void Update_WhenMissileIsEquippedAndUnlocked_SpawnsMissileWithDoubleDamage()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.RangedAttack),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball, PlayerAbility.Missile]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipRangedAttack(PlayerRangedAttackKind.Missile);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        var projectile = Assert.Single(player.ConsumeSpawnedProjectiles());
+
+        Assert.Equal(PlayerRangedAttackKind.Missile, projectile.Kind);
+        Assert.Equal(Direction.Down, projectile.Direction);
+        Assert.Equal(2, projectile.Damage);
+        Assert.Equal(new Rectangle(404, 272, 24, 24), projectile.Bounds);
+    }
+
+    [Fact]
+    public void Update_WhenMissileIsEquippedButLocked_DoesNotSpawnProjectile()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.RangedAttack),
+            new PlayerCombatSettings(),
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipRangedAttack(PlayerRangedAttackKind.Missile);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+
+        Assert.Empty(player.ConsumeSpawnedProjectiles());
     }
 
     [Fact]
@@ -352,6 +392,7 @@ public sealed class PlayerActorTests
 
         Assert.False(player.IsShieldActive);
         Assert.Equal(0, player.ShieldCharges);
+        Assert.True(player.IsShieldBreakEffectActive);
     }
 
     [Fact]
@@ -378,6 +419,32 @@ public sealed class PlayerActorTests
 
         Assert.False(player.IsFireShieldActive);
         Assert.Equal(0, player.ShieldCharges);
+        Assert.True(player.IsShieldBreakEffectActive);
+        Assert.Equal(PlayerDefenseAbilityKind.FireShield, player.ShieldBreakEffectKind);
+    }
+
+    [Fact]
+    public void Update_AfterShieldBreakEffectDuration_EndsShieldBreakEffect()
+    {
+        var player = new PlayerActor(
+            new StubInputService(InputSnapshot.Empty, GameAction.DefenseAbility),
+            new PlayerCombatSettings { MaxAbilityPoints = 3f, AbilityPointRegenPerSecond = 0f },
+            new PlayerMovementController(new PlayerMovementSettings()),
+            new PlayerDashController(new PlayerMovementSettings()),
+            new PlayerAbilityService([PlayerAbility.Dash, PlayerAbility.Fireball]),
+            new PlayerAttackController(new PlayerAttackSettings()),
+            new PlayerDefenseAbilityController(new PlayerDefenseAbilitySettings()),
+            new PlayerRangedAttackController(new PlayerRangedAttackSettings()));
+        player.EquipDefenseAbility(PlayerDefenseAbilityKind.FireShield);
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.TryAbsorbShieldHit());
+        Assert.True(player.IsShieldBreakEffectActive);
+
+        player.Update(new global::MyGame.Core.FrameTime(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(0.6)));
+
+        Assert.False(player.IsShieldBreakEffectActive);
     }
 
     [Fact]

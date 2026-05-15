@@ -3,7 +3,7 @@
 This repo is a top-down action RPG prototype built in MonoGame with one strong architectural rule:
 keep MonoGame types at the edges and keep gameplay rules in plain C# wherever practical.
 
-It is no longer just a bare skeleton. The project now has a playable town-and-wilderness world, an arena encounter ladder, a shop interaction shell, a pause-map, an ability/loadout shell, save/load, replay diagnostics, and a growing enemy roster.
+It is no longer just a bare skeleton. The project now has a playable town-and-wilderness world, an arena encounter ladder, a shop interaction shell, JSON-backed NPC dialogue, hints, backend journal state, a pause-map, an ability/loadout shell, save/load, replay diagnostics, and a growing enemy roster.
 
 ## Current Snapshot
 
@@ -13,6 +13,11 @@ The game currently includes:
 - a town hub plus north, south, east, and west wilderness scenes connected by transitions
 - a dedicated arena interior and a dedicated shop interior connected from the town hub
 - three shop exteriors in the town center, with one functional interior currently wired up
+- two placeholder overworld townsfolk with reusable NPC talk prompts and JSON-backed dialogue
+- JSON-backed shopkeeper greetings that hand off into the existing buy/sell shell
+- JSON-backed hint selection that can appear through NPC dialogue and world-space toasts
+- backend journal entries that discover from narrative flags and persist for future UI
+- narrative state for active quest/objective, flags, recent dialogue/hint history, town alert level, and player reputation
 - a dungeon exterior/entrance prop in town that currently serves as world-shape scaffolding rather than a live dungeon
 - a reusable `World` simulation model that owns player, enemies, props, combat resolution, scene transitions, banners, toasts, and objective state
 - player movement, contact recoil, death, melee attack, ranged attack, defense ability, dash, and bomb-dash bomb trail behavior
@@ -20,7 +25,7 @@ The game currently includes:
 - pause-menu inventory tabs for weapons, armor, items, and abilities/loadout
 - a pause-map panel for overworld scenes
 - an ability/loadout shell with slot-based equip flow for dash, defense, ranged, and melee abilities
-- save/load support for unlocked abilities and currently equipped loadout choices
+- save/load support for unlocked abilities, currently equipped loadout choices, and narrative state
 - enemy roster:
   - crab
   - horned rabbit
@@ -31,11 +36,11 @@ The game currently includes:
   - grasshopper
 - always-visible world-space enemy health bars, with larger boss bars
 - doubled enemy health totals across the current roster for longer encounter reads
-- four arena waves with banners, inter-wave pacing, and staged boss/miniboss pressure
+- five arena waves with banners, inter-wave pacing, and staged boss/miniboss pressure
 - enemy contact damage, separation, obstacle collision, defeat tracking, and ability-point rewards
 - replay and recording diagnostics
-- animated shopkeeper talk indicator, proximity prompt, and a first-pass buy/sell dialogue modal
-- JSON-backed configuration for player, enemies, diagnostics, and world combat tuning
+- animated shopkeeper talk indicator, proximity prompts, a first-pass buy/sell dialogue modal, and reusable NPC dialogue panel
+- JSON-backed configuration for player, enemies, diagnostics, world combat tuning, dialogue, hints, and journal templates
 - fast unit tests around gameplay rules, rendering/layout helpers, input, saves, and scene behavior
 
 ## Controls
@@ -61,10 +66,13 @@ The game currently includes:
 - explore the town hub and wilderness scenes
 - open the overworld map from supported scenes
 - fight the current enemy roster with melee, ranged, defense, and dash-based movement
-- enter the arena and play through the current four-wave encounter set
+- enter the arena and play through the current five-wave encounter set
 - fight the horned rabbit boss and the bat miniboss encounter set
 - enter the first shop interior through the town hub
-- approach the counter to open the current buy/sell dialogue shell
+- talk to the shopkeeper for a JSON-backed greeting, then continue into the current buy/sell dialogue shell
+- talk to the two placeholder townsfolk in the overworld
+- receive placeholder hints through NPC dialogue and world toasts
+- quietly discover backend journal entries through narrative flags
 - open the pause-menu inventory and inspect the ability/loadout tab
 - equip implemented loadout options such as base dash, bomb dash, base shield, and fireball
 - save from the pause menu and load the latest save
@@ -98,20 +106,27 @@ The game currently includes:
 - `GameplayLevelBuilder` assembles the town hub, wilderness scenes, shop interior, and arena layout.
 - input is normalized through `IInputService` and `GameAction`.
 - gameplay tuning is loaded from JSON config objects instead of being buried in runtime code.
+- narrative content is loaded from locale-scoped JSON files under `MyGame/Content/Data/en-US`.
+- dialogue, hints, and journal state use plain C# services and state objects so selection and validation can be tested without MonoGame rendering.
 - save/load uses DTOs rather than serializing live game objects directly.
 
 This is still an active prototype, so some systems are intentionally lightweight while the broader game spine is still being discovered.
 
-## Arena, Shop, And Loadout Snapshot
+## Arena, Shop, Narrative, And Loadout Snapshot
 
-The arena, shop, and pause-menu loadout flow are the current test beds for future-facing systems:
+The arena, shop, narrative, and pause-menu loadout flow are the current test beds for future-facing systems:
 
 - entering sub-areas through scene transitions
 - preserving important player state across room changes
 - boss/miniboss encounter sequencing
 - encounter locking and unlock conditions inside interior spaces
 - wave banners and inter-wave pacing rules
-- NPC interaction prompts and dialogue-shell UI
+- reusable NPC interaction prompts and dialogue-shell UI
+- weighted authored dialogue lines with recent-history suppression
+- shopkeeper greeting handoff into the buy/sell shell
+- hint delivery through NPC dialogue and on-screen toasts
+- backend journal discovery, persistence, and debug counters
+- town alert level and player reputation foundations
 - buy/sell tabs that will later connect to wares, currency, and inventory
 - a slot-based ability/loadout presentation that can later connect to real progression and upgrades
 
@@ -130,8 +145,23 @@ Current save/load support restores the active gameplay scene and core world stat
 - enemy positions
 - enemy health / dead state
 - defeated enemy count
+- active narrative quest and objective IDs
+- narrative flags
+- recent dialogue and hint history
+- discovered and read journal entry IDs
+- town alert level and player reputation
 
 The replay menu is currently available through the pause menu when diagnostics are enabled.
+
+## Narrative Data
+
+Narrative content currently lives under:
+
+- `MyGame/Content/Data/en-US/npc_dialogue.json`
+- `MyGame/Content/Data/en-US/hints.json`
+- `MyGame/Content/Data/en-US/journal_templates.json`
+
+Bad narrative data fails fast through validation for duplicate IDs, missing required fields, and broken references to known quest, objective, zone, or flag IDs. The current content is intentionally placeholder-heavy, but the runtime path is real.
 
 ## Running The Project
 
@@ -154,9 +184,10 @@ That test command is the recommended fast path for this repo.
 Near-term work is focused on:
 
 1. turning the inventory, shop, and loadout shells into real progression systems
-2. adding the first reusable NPC interaction and dialogue layer to the town hub
-3. building dungeon entrance and floor plumbing off the current overworld/arena structure
-4. adding arena rewards and encounter selection that tie back into progression
-5. continuing to tune combat readability, balance, and encounter pressure
+2. adding a simple quest-giver NPC on top of the narrative flag/objective foundation
+3. adding a pause-menu journal tab for discovered backend journal entries
+4. building dungeon entrance and floor plumbing off the current overworld/arena structure
+5. adding arena rewards and encounter selection that tie back into progression
+6. continuing to tune combat readability, balance, and encounter pressure
 
 See `docs/GameDesign.md` for broader design direction, and `TODO.md` for the current working list of follow-ups.

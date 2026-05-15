@@ -43,7 +43,12 @@ public sealed class PlayerFireShieldResolver
 
             while (exposureSeconds >= _settings.FireShieldDamageTickSeconds && enemy.State != EnemyState.Dead && !enemy.IsBossStageTransitioning)
             {
-                enemy.TakeDamage(_settings.FireShieldDamage);
+                if (!enemy.TryTakeDamage(_settings.FireShieldDamage))
+                {
+                    exposureSeconds -= _settings.FireShieldDamageTickSeconds;
+                    continue;
+                }
+
                 exposureSeconds -= _settings.FireShieldDamageTickSeconds;
                 hitEnemy = true;
             }

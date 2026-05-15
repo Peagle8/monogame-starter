@@ -30,6 +30,15 @@ public sealed class ArenaEncounterController : IWorldEventController
 
     public void Initialize(World world)
     {
+        Reset(world);
+    }
+
+    public void Reset(World world)
+    {
+        _activeWaveIndex = 0;
+        _nextWaveIndex = 1;
+        _remainingWaveDelaySeconds = 0f;
+        _hasAppliedInterWaveRecovery = false;
         SpawnWave(world, _waves[0]);
         world.ShowBanner(GetWaveLabel(1), BannerDurationSeconds);
     }

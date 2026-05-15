@@ -13,7 +13,9 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
         EnemySettings? batSettings = null,
         EnemySettings? grasshopperSettings = null,
         EnemySettings? batMiniBossSettings = null,
-        EnemySettings? hornedRabbitBossSettings = null)
+        EnemySettings? hornedRabbitBossSettings = null,
+        EnemySettings? skeletonSettings = null,
+        EnemySettings? skeletonEliteSettings = null)
     {
         _settingsByKind = new Dictionary<EnemyKind, EnemySettings>
         {
@@ -23,7 +25,9 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             [EnemyKind.HornedRabbitElite] = Normalize(hornedRabbitEliteSettings ?? CreateDefault(EnemyKind.HornedRabbitElite), EnemyKind.HornedRabbitElite),
             [EnemyKind.Bat] = Normalize(batSettings ?? CreateDefault(EnemyKind.Bat), EnemyKind.Bat),
             [EnemyKind.BatMiniBoss] = Normalize(batMiniBossSettings ?? CreateDefault(EnemyKind.BatMiniBoss), EnemyKind.BatMiniBoss),
-            [EnemyKind.Grasshopper] = Normalize(grasshopperSettings ?? CreateDefault(EnemyKind.Grasshopper), EnemyKind.Grasshopper)
+            [EnemyKind.Grasshopper] = Normalize(grasshopperSettings ?? CreateDefault(EnemyKind.Grasshopper), EnemyKind.Grasshopper),
+            [EnemyKind.Skeleton] = Normalize(skeletonSettings ?? CreateDefault(EnemyKind.Skeleton), EnemyKind.Skeleton),
+            [EnemyKind.SkeletonElite] = Normalize(skeletonEliteSettings ?? CreateDefault(EnemyKind.SkeletonElite), EnemyKind.SkeletonElite)
         };
     }
 
@@ -41,12 +45,13 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             // TODO: these settings should be config driven then loaded in from JSON right? Instead of hard coded
             EnemyKind.Crab => new EnemySettings
             {
-                Kind = EnemyKind.Crab
+                Kind = EnemyKind.Crab,
+                MaxHealth = 8
             },
             EnemyKind.HornedRabbit => new EnemySettings
             {
                 Kind = EnemyKind.HornedRabbit,
-                MaxHealth = 4,
+                MaxHealth = 5,
                 MoveSpeed = 210f,
                 ChaseRange = 260f,
                 RecoverySeconds = 0.5f,
@@ -63,7 +68,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.HornedRabbitBoss => new EnemySettings
             {
                 Kind = EnemyKind.HornedRabbitBoss,
-                MaxHealth = 12,
+                MaxHealth = 15,
                 MoveSpeed = 0f,
                 ChaseRange = 1200f,
                 RecoverySeconds = 0.6f,
@@ -81,7 +86,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.HornedRabbitElite => new EnemySettings
             {
                 Kind = EnemyKind.HornedRabbitElite,
-                MaxHealth = 8,
+                MaxHealth = 10,
                 MoveSpeed = 216f,
                 ChaseRange = 1200f,
                 RecoverySeconds = 0.55f,
@@ -101,7 +106,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.Bat => new EnemySettings
             {
                 Kind = EnemyKind.Bat,
-                MaxHealth = 4,
+                MaxHealth = 5,
                 MoveSpeed = 144f,
                 ChaseRange = 280f,
                 RecoverySeconds = 0.5f,
@@ -119,7 +124,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.BatMiniBoss => new EnemySettings
             {
                 Kind = EnemyKind.BatMiniBoss,
-                MaxHealth = 12,
+                MaxHealth = 15,
                 MoveSpeed = 132f,
                 ChaseRange = 360f,
                 RecoverySeconds = 0.6f,
@@ -142,7 +147,7 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             EnemyKind.Grasshopper => new EnemySettings
             {
                 Kind = EnemyKind.Grasshopper,
-                MaxHealth = 4,
+                MaxHealth = 5,
                 MoveSpeed = 128f,
                 ChaseRange = 280f,
                 RecoverySeconds = 0.5f,
@@ -156,6 +161,62 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
                 InitialDashPauseMinSeconds = 0.0f,
                 InitialDashPauseMaxSeconds = 0.8f,
                 AttackHitboxPadding = 4
+            },
+            EnemyKind.Skeleton => new EnemySettings
+            {
+                Kind = EnemyKind.Skeleton,
+                MaxHealth = 3,
+                MoveSpeed = 112f,
+                ChaseRange = 420f,
+                RecoverySeconds = 0.5f,
+                DefeatedVisibleSeconds = 0.8f,
+                PlayerHitKnockbackDistance = 18f,
+                PlayerHitKnockbackSeconds = 0.1f,
+                PlayerHitPauseSeconds = 0.05f,
+                DashPauseSeconds = 1.75f,
+                InitialDashPauseMinSeconds = 0.0f,
+                InitialDashPauseMaxSeconds = 0.65f,
+                BoundsWidth = 32,
+                BoundsHeight = 32,
+                MaxAbilityPoints = 3f,
+                AbilityPointRegenPerSecond = 0.05f,
+                ShieldActivationCost = 3f,
+                ShieldMaxCharges = 3,
+                ProjectileDamage = 1,
+                ProjectileSpeed = 340f,
+                ProjectileLifetimeSeconds = 3.1f,
+                ProjectileSize = 10,
+                ProjectileAttackRange = 1000f,
+                PreferredRange = 176f
+            },
+            EnemyKind.SkeletonElite => new EnemySettings
+            {
+                Kind = EnemyKind.SkeletonElite,
+                MaxHealth = 3,
+                MoveSpeed = 112f,
+                ChaseRange = 420f,
+                RecoverySeconds = 0.5f,
+                DefeatedVisibleSeconds = 0.8f,
+                PlayerHitKnockbackDistance = 18f,
+                PlayerHitKnockbackSeconds = 0.1f,
+                PlayerHitPauseSeconds = 0.05f,
+                DashSpeed = 400f,
+                DashSeconds = 0.16f,
+                DashPauseSeconds = 1.75f,
+                InitialDashPauseMinSeconds = 0.0f,
+                InitialDashPauseMaxSeconds = 0.65f,
+                BoundsWidth = 36,
+                BoundsHeight = 36,
+                MaxAbilityPoints = 3f,
+                AbilityPointRegenPerSecond = 0.05f,
+                ShieldActivationCost = 3f,
+                ShieldMaxCharges = 6,
+                ProjectileDamage = 1,
+                ProjectileSpeed = 340f,
+                ProjectileLifetimeSeconds = 3.1f,
+                ProjectileSize = 10,
+                ProjectileAttackRange = 1000f,
+                PreferredRange = 192f
             },
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported enemy kind.")
         };
@@ -182,6 +243,16 @@ public sealed class EnemySettingsCatalog : IEnemySettingsCatalog
             AttackHitboxPadding = settings.AttackHitboxPadding,
             BoundsWidth = settings.BoundsWidth,
             BoundsHeight = settings.BoundsHeight,
+            MaxAbilityPoints = settings.MaxAbilityPoints,
+            AbilityPointRegenPerSecond = settings.AbilityPointRegenPerSecond,
+            ShieldActivationCost = settings.ShieldActivationCost,
+            ShieldMaxCharges = settings.ShieldMaxCharges,
+            ProjectileDamage = settings.ProjectileDamage,
+            ProjectileSpeed = settings.ProjectileSpeed,
+            ProjectileLifetimeSeconds = settings.ProjectileLifetimeSeconds,
+            ProjectileSize = settings.ProjectileSize,
+            ProjectileAttackRange = settings.ProjectileAttackRange,
+            PreferredRange = settings.PreferredRange,
             SpecialAttackDamage = settings.SpecialAttackDamage,
             SpecialAttackRange = settings.SpecialAttackRange,
             SpecialAttackPauseSeconds = settings.SpecialAttackPauseSeconds,

@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "id": "overworld_meet_townsfolk_start",
+      "zoneId": "Gameplay",
+      "objectiveId": "meet_townsfolk",
+      "priority": 20,
+      "excludedFlags": [ "met_townsfolk_one" ],
+      "text": "Talk to the townsfolk near the central shops to get your bearings."
+    },
+    {
+      "id": "overworld_meet_townsfolk_second",
+      "zoneId": "Gameplay",
+      "objectiveId": "meet_townsfolk",
+      "priority": 10,
+      "requiredFlags": [ "met_townsfolk_one" ],
+      "excludedFlags": [ "met_townsfolk_two" ],
+      "text": "There is another townsfolk across the square with more placeholder advice."
+    },
+    {
+      "id": "overworld_meet_townsfolk_done",
+      "zoneId": "Gameplay",
+      "objectiveId": "meet_townsfolk",
+      "priority": 1,
+      "requiredFlags": [ "met_townsfolk_one", "met_townsfolk_two" ],
+      "text": "You have heard the current town hints. The shop and arena are ready for the next systems."
+    }
+  ]
+}

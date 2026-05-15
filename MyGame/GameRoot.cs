@@ -8,6 +8,7 @@ using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.World;
 using MyGame.Infrastructure.DependencyInjection;
@@ -87,6 +88,9 @@ public sealed class GameRoot : Game
         var saveGameService = _serviceProvider.GetRequiredService<ISaveGameService>();
         var gameRecorder = _serviceProvider.GetRequiredService<GameRecorder>();
         var diagnosticsSettings = _serviceProvider.GetRequiredService<DiagnosticsSettings>();
+        var npcDialogueService = _serviceProvider.GetRequiredService<NpcDialogueService>();
+        var hintService = _serviceProvider.GetRequiredService<HintService>();
+        var journalService = _serviceProvider.GetRequiredService<JournalService>();
 
         AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.Overworld,
@@ -95,7 +99,10 @@ public sealed class GameRoot : Game
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings));
+            diagnosticsSettings,
+            npcDialogueService,
+            hintService,
+            journalService));
         AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.WildernessNorth,
             builder.BuildWildernessNorth(_serviceProvider.GetRequiredService<PlayerActor>()),
@@ -103,7 +110,10 @@ public sealed class GameRoot : Game
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings));
+            diagnosticsSettings,
+            npcDialogueService,
+            hintService,
+            journalService));
         AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.WildernessSouth,
             builder.BuildWildernessSouth(_serviceProvider.GetRequiredService<PlayerActor>()),
@@ -111,7 +121,10 @@ public sealed class GameRoot : Game
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings));
+            diagnosticsSettings,
+            npcDialogueService,
+            hintService,
+            journalService));
         AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.WildernessEast,
             builder.BuildWildernessEast(_serviceProvider.GetRequiredService<PlayerActor>()),
@@ -119,7 +132,10 @@ public sealed class GameRoot : Game
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings));
+            diagnosticsSettings,
+            npcDialogueService,
+            hintService,
+            journalService));
         AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.WildernessWest,
             builder.BuildWildernessWest(_serviceProvider.GetRequiredService<PlayerActor>()),
@@ -127,7 +143,10 @@ public sealed class GameRoot : Game
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings));
+            diagnosticsSettings,
+            npcDialogueService,
+            hintService,
+            journalService));
         AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.ShopInterior,
             builder.BuildShopInterior(_serviceProvider.GetRequiredService<PlayerActor>()),
@@ -135,7 +154,10 @@ public sealed class GameRoot : Game
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings));
+            diagnosticsSettings,
+            npcDialogueService,
+            hintService,
+            journalService));
         AddGameplayScene(CreateGameplayScene(
             GameplaySceneNames.Arena,
             builder.BuildArena(_serviceProvider.GetRequiredService<PlayerActor>()),
@@ -143,7 +165,10 @@ public sealed class GameRoot : Game
             renderContext,
             saveGameService,
             gameRecorder,
-            diagnosticsSettings));
+            diagnosticsSettings,
+            npcDialogueService,
+            hintService,
+            journalService));
     }
 
     private GameplayScene CreateGameplayScene(
@@ -153,7 +178,10 @@ public sealed class GameRoot : Game
         IRenderContext renderContext,
         ISaveGameService saveGameService,
         GameRecorder gameRecorder,
-        DiagnosticsSettings diagnosticsSettings)
+        DiagnosticsSettings diagnosticsSettings,
+        NpcDialogueService npcDialogueService,
+        HintService hintService,
+        JournalService journalService)
     {
         return new GameplayScene(
             sceneName,
@@ -166,7 +194,10 @@ public sealed class GameRoot : Game
             diagnosticsSettings,
             onRestart: () => StartNewGame(sceneName),
             onReturnToMainMenu: () => _sceneManager!.ChangeScene(CreateMainMenuScene()),
-            onSceneTransition: HandleGameplaySceneTransition);
+            onSceneTransition: HandleGameplaySceneTransition,
+            npcDialogueService: npcDialogueService,
+            hintService: hintService,
+            journalService: journalService);
     }
 
     private void AddGameplayScene(GameplayScene scene)

@@ -1,0 +1,22 @@
+{
+  "entries": [
+    {
+      "id": "flooded_ruins_lightning_hint",
+      "zoneId": "flooded_ruins",
+      "objectiveId": "open_north_gate",
+      "requiredFlags": ["has_lightning_charm"],
+      "excludedFlags": ["water_channel_active"],
+      "priority": 100,
+      "text": "Look for something near the water channel that reacts to lightning."
+    },
+    {
+      "id": "flooded_ruins_surface_hint",
+      "zoneId": "flooded_ruins",
+      "objectiveId": "open_north_gate",
+      "requiredFlags": ["has_lightning_charm"],
+      "excludedFlags": ["water_channel_active"],
+      "priority": 95,
+      "text": "The gate itself may not be the first mechanism you need to activate."
+    }
+  ]
+}

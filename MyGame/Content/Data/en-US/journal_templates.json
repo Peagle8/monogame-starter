@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "id": "journal_met_first_townsfolk",
+      "requiredFlags": [ "met_townsfolk_one" ],
+      "priority": 10,
+      "title": "First Town Notes",
+      "summary": "A townsfolk mentioned the north road. It sounds like future trouble will probably point that way."
+    },
+    {
+      "id": "journal_met_both_townsfolk",
+      "requiredFlags": [ "met_townsfolk_one", "met_townsfolk_two" ],
+      "priority": 20,
+      "title": "The Square Has Opinions",
+      "summary": "Both placeholder townsfolk have been heard. The town is ready for more authored quest and lore entries."
+    },
+    {
+      "id": "journal_met_shopkeeper",
+      "requiredFlags": [ "met_shopkeeper" ],
+      "priority": 5,
+      "title": "Open Counter",
+      "summary": "The shopkeeper is willing to trade once the shop inventory system is ready."
+    }
+  ]
+}

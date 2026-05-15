@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using MyGame.Configuration;
 using MyGame.Core;
 using MyGame.Gameplay.Enemies;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Player;
 using MyGame.Gameplay.Props;
 using MyGame.Infrastructure.Save;
@@ -18,13 +19,16 @@ public sealed class World
     private readonly PlayerAttackHitResolver _playerAttackHitResolver;
     private readonly PlayerBombResolver _playerBombResolver;
     private readonly PlayerFireShieldResolver _playerFireShieldResolver;
+    private readonly PlayerMissileTargetResolver _playerMissileTargetResolver;
     private readonly PlayerProjectileResolver _playerProjectileResolver;
+    private readonly EnemyProjectileResolver _enemyProjectileResolver;
     private readonly WorldObstacleResolver _worldObstacleResolver;
     private readonly EnemySeparationResolver _enemySeparationResolver;
     private readonly EnemyContactResolver _enemyContactResolver;
     private readonly IWorldEventController? _eventController;
     private readonly List<IWorldProp> _props;
     private readonly List<PlayerProjectile> _playerProjectiles;
+    private readonly List<EnemyProjectile> _enemyProjectiles;
     private readonly List<PlayerBomb> _playerBombs;
     private readonly List<WorldToast> _toasts;
     private readonly List<WorldSceneTransition> _sceneTransitions;
@@ -53,6 +57,7 @@ public sealed class World
             playerBombResolver: new PlayerBombResolver(),
             playerFireShieldResolver: new PlayerFireShieldResolver(new PlayerDefenseAbilitySettings()),
             playerProjectileResolver: new PlayerProjectileResolver(),
+            enemyProjectileResolver: new EnemyProjectileResolver(),
             worldObstacleResolver: new WorldObstacleResolver(new WorldCombatSettings()),
             enemySeparationResolver: new EnemySeparationResolver(new WorldCombatSettings()),
             enemyContactResolver: new EnemyContactResolver(new WorldCombatSettings()),
@@ -78,7 +83,9 @@ public sealed class World
         WorldCombatSettings? worldCombatSettings = null,
         IEnumerable<WorldSceneTransition>? sceneTransitions = null,
         Rectangle? worldBounds = null,
-        IWorldEventController? eventController = null)
+        IWorldEventController? eventController = null,
+        EnemyProjectileResolver? enemyProjectileResolver = null,
+        PlayerMissileTargetResolver? playerMissileTargetResolver = null)
     {
         Player = player;
         _enemySettings = enemySettings ?? new EnemySettings();
@@ -90,13 +97,16 @@ public sealed class World
         _playerAttackHitResolver = playerAttackHitResolver ?? new PlayerAttackHitResolver();
         _playerBombResolver = playerBombResolver ?? new PlayerBombResolver();
         _playerFireShieldResolver = playerFireShieldResolver ?? new PlayerFireShieldResolver(new PlayerDefenseAbilitySettings());
+        _playerMissileTargetResolver = playerMissileTargetResolver ?? new PlayerMissileTargetResolver();
         _playerProjectileResolver = playerProjectileResolver ?? new PlayerProjectileResolver();
+        _enemyProjectileResolver = enemyProjectileResolver ?? new EnemyProjectileResolver();
         _worldObstacleResolver = worldObstacleResolver ?? new WorldObstacleResolver(resolvedWorldCombatSettings);
         _enemySeparationResolver = enemySeparationResolver ?? new EnemySeparationResolver(resolvedWorldCombatSettings);
         _enemyContactResolver = enemyContactResolver ?? new EnemyContactResolver(resolvedWorldCombatSettings);
         _props = props.ToList();
         _enemies = enemies.ToList();
         _playerProjectiles = [];
+        _enemyProjectiles = [];
         _playerBombs = [];
         _toasts = [];
         _sceneTransitions = sceneTransitions?.ToList() ?? [];
@@ -106,6 +116,12 @@ public sealed class World
     }
 
     public PlayerActor Player { get; }
+
+    public NarrativeState NarrativeState { get; } = new();
+
+    public RecentSelectionHistory NarrativeHistory { get; } = new();
+
+    public JournalState JournalState { get; } = new();
 
     public IReadOnlyList<EnemyActor> Enemies => _enemies;
 
@@ -122,6 +138,8 @@ public sealed class World
     public IReadOnlyList<GrassProp> GrassProps => _props.OfType<GrassProp>().ToArray();
 
     public IReadOnlyList<PlayerProjectile> PlayerProjectiles => _playerProjectiles;
+
+    public IReadOnlyList<EnemyProjectile> EnemyProjectiles => _enemyProjectiles;
 
     public IReadOnlyList<PlayerBomb> PlayerBombs => _playerBombs;
 
@@ -160,9 +178,40 @@ public sealed class World
         _screenBanner = new ScreenBanner(text, durationSeconds);
     }
 
+    public void ShowHintToast(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        _toasts.Add(new WorldToast(
+            text,
+            GetPlayerToastAnchor(),
+            new Color(255, 232, 150),
+            2.2f));
+    }
+
     public void RestorePlayerToFull()
     {
-        Player.RestoreState(Player.Position, Player.MaxHealth, Player.MaxAbilityPoints);
+        Player.RestoreResources(Player.MaxHealth, Player.MaxAbilityPoints);
+    }
+
+    public void ResetEventProgress()
+    {
+        _remainingPlayerHitPauseSeconds = 0f;
+        _playerAttackHitResolver.Reset();
+        _enemyContactResolver.Reset();
+        _playerFireShieldResolver.Reset();
+        _countedDefeatedEnemies.Clear();
+        _enemies.Clear();
+        _playerBombs.Clear();
+        _playerProjectiles.Clear();
+        _enemyProjectiles.Clear();
+        _toasts.Clear();
+        _screenBanner = null;
+        _pendingSceneTransition = null;
+        _eventController?.Reset(this);
     }
 
     public void Update(FrameTime frameTime)
@@ -177,7 +226,7 @@ public sealed class World
         }
 
         Player.Update(frameTime);
-        _playerProjectiles.AddRange(Player.ConsumeSpawnedProjectiles());
+        SpawnPendingPlayerProjectiles();
         _playerBombs.AddRange(Player.ConsumeSpawnedBombs());
         _worldObstacleResolver.ResolvePlayer(Player, _props);
 
@@ -189,6 +238,7 @@ public sealed class World
         ApplyBossStageTransitionLockToPlayer();
 
         SpawnPendingEnemies();
+        SpawnPendingEnemyProjectiles();
 
         _worldObstacleResolver.Resolve(_enemies, _props);
         _enemySeparationResolver.Resolve(_enemies);
@@ -197,13 +247,16 @@ public sealed class World
         ResolveActiveEnemyBombExplosions();
 
         UpdateProjectiles(frameTime);
+        UpdateEnemyProjectiles(frameTime);
         UpdatePlayerBombs(frameTime);
         UpdateToasts(frameTime);
         UpdateScreenBanner(frameTime);
         var projectileHitEnemy = _playerProjectileResolver.Resolve(_playerProjectiles, _enemies, _props);
         var bombHitEnemy = _playerBombResolver.Resolve(_playerBombs, _props, _enemies);
+        _enemyProjectileResolver.Resolve(_enemyProjectiles, Player, _props);
         _playerFireShieldResolver.Resolve(Player, _enemies, frameTime);
         _playerProjectiles.RemoveAll(projectile => !projectile.IsActive);
+        _enemyProjectiles.RemoveAll(projectile => !projectile.IsActive);
         _playerBombs.RemoveAll(bomb => !bomb.IsActive);
 
         var playerHitEnemy = _playerAttackHitResolver.Resolve(Player, _enemies);
@@ -255,10 +308,13 @@ public sealed class World
             ["PlayerFacing"] = Player.Facing.ToString(),
             ["PlayerStunned"] = Player.IsStunned.ToString(),
             ["ObjectiveComplete"] = IsObjectiveComplete.ToString(),
+            ["TownAlertLevel"] = NarrativeState.TownAlertLevel.ToString(),
+            ["PlayerReputation"] = NarrativeState.PlayerReputation.ToString(),
             ["PlayerBombCount"] = _playerBombs.Count.ToString(),
             ["ScreenBanner"] = ActiveScreenBanner?.Text ?? "<none>",
             ["GrassPropCount"] = GrassProps.Count.ToString(),
             ["PropCount"] = _props.Count.ToString(),
+            ["EnemyProjectileCount"] = _enemyProjectiles.Count.ToString(),
             ["ProjectileCount"] = _playerProjectiles.Count.ToString(),
             ["TreePropCount"] = TreeProps.Count.ToString()
         };
@@ -279,7 +335,17 @@ public sealed class World
             EquippedMeleeAbility = Player.EquippedMeleeAbility,
             PlayerHealth = Player.CurrentHealth,
             PlayerPositionX = Player.Position.X,
-            PlayerPositionY = Player.Position.Y
+            PlayerPositionY = Player.Position.Y,
+            NarrativeLocale = NarrativeState.Locale,
+            ActiveQuestId = NarrativeState.ActiveQuestId,
+            ActiveObjectiveId = NarrativeState.ActiveObjectiveId,
+            TownAlertLevel = NarrativeState.TownAlertLevel,
+            PlayerReputation = NarrativeState.PlayerReputation,
+            NarrativeFlags = NarrativeState.Flags.ToArray(),
+            RecentDialogueIds = NarrativeHistory.GetRecentIds(NpcDialogueService.HistorySystemName).ToArray(),
+            RecentHintIds = NarrativeHistory.GetRecentIds(HintService.HistorySystemName).ToArray(),
+            DiscoveredJournalEntryIds = JournalState.DiscoveredEntryIds.ToArray(),
+            ReadJournalEntryIds = JournalState.ReadEntryIds.ToArray()
         };
     }
 
@@ -305,9 +371,17 @@ public sealed class World
         _enemies.Clear();
         _playerBombs.Clear();
         _playerProjectiles.Clear();
+        _enemyProjectiles.Clear();
         _toasts.Clear();
         _screenBanner = null;
         _pendingSceneTransition = null;
+        NarrativeState.SetLocale(data.NarrativeLocale);
+        NarrativeState.SetProgress(data.ActiveQuestId, data.ActiveObjectiveId);
+        NarrativeState.SetTownState(data.TownAlertLevel, data.PlayerReputation);
+        NarrativeState.ReplaceFlags(data.NarrativeFlags);
+        NarrativeHistory.Replace(NpcDialogueService.HistorySystemName, data.RecentDialogueIds);
+        NarrativeHistory.Replace(HintService.HistorySystemName, data.RecentHintIds);
+        JournalState.Replace(data.DiscoveredJournalEntryIds, data.ReadJournalEntryIds);
 
         foreach (var enemyData in data.Enemies)
         {
@@ -354,6 +428,23 @@ public sealed class World
     private void UpdateProjectiles(FrameTime frameTime)
     {
         foreach (var projectile in _playerProjectiles)
+        {
+            projectile.Update(frameTime);
+        }
+    }
+
+    private void SpawnPendingPlayerProjectiles()
+    {
+        foreach (var projectile in Player.ConsumeSpawnedProjectiles())
+        {
+            _playerMissileTargetResolver.AssignTarget(projectile, _enemies);
+            _playerProjectiles.Add(projectile);
+        }
+    }
+
+    private void UpdateEnemyProjectiles(FrameTime frameTime)
+    {
+        foreach (var projectile in _enemyProjectiles)
         {
             projectile.Update(frameTime);
         }
@@ -488,6 +579,14 @@ public sealed class World
         foreach (var spawn in _enemies.SelectMany(enemy => enemy.ConsumePendingEnemySpawns()).ToArray())
         {
             _enemies.Add(_enemyFactory.Create(spawn));
+        }
+    }
+
+    private void SpawnPendingEnemyProjectiles()
+    {
+        foreach (var projectile in _enemies.SelectMany(enemy => enemy.ConsumeSpawnedProjectiles()).ToArray())
+        {
+            _enemyProjectiles.Add(projectile);
         }
     }
 

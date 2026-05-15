@@ -221,10 +221,11 @@ public static class WildernessSceneDefinitionFactory
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(540f, 240f), EnemyAxisPreference.Horizontal),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(1320f, 260f), EnemyAxisPreference.Vertical),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(540f, 240f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(1320f, 260f), EnemyAxisPreference.None),
             new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(820f, 180f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(1040f, 420f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(1040f, 420f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(932f, 282f), EnemyAxisPreference.None)
         ];
     }
 
@@ -232,10 +233,11 @@ public static class WildernessSceneDefinitionFactory
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(460f, 520f), EnemyAxisPreference.Horizontal),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(1410f, 500f), EnemyAxisPreference.Vertical),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(460f, 520f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(1410f, 500f), EnemyAxisPreference.None),
             new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(920f, 330f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(760f, 620f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(760f, 620f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(1048f, 546f), EnemyAxisPreference.None)
         ];
     }
 
@@ -243,10 +245,11 @@ public static class WildernessSceneDefinitionFactory
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(260f, 540f), EnemyAxisPreference.Horizontal),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(240f, 1360f), EnemyAxisPreference.Vertical),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(260f, 540f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(240f, 1360f), EnemyAxisPreference.None),
             new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(420f, 860f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(560f, 1120f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(560f, 1120f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(392f, 978f), EnemyAxisPreference.None)
         ];
     }
 
@@ -254,10 +257,11 @@ public static class WildernessSceneDefinitionFactory
     {
         return
         [
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(620f, 620f), EnemyAxisPreference.Horizontal),
-            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(600f, 1320f), EnemyAxisPreference.Vertical),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(620f, 620f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.HornedRabbit, new Vector2(600f, 1320f), EnemyAxisPreference.None),
             new EnemySpawnDefinition(EnemyKind.Bat, new Vector2(440f, 980f), EnemyAxisPreference.None),
-            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(250f, 760f), EnemyAxisPreference.None)
+            new EnemySpawnDefinition(EnemyKind.Grasshopper, new Vector2(250f, 760f), EnemyAxisPreference.None),
+            new EnemySpawnDefinition(EnemyKind.Skeleton, new Vector2(352f, 1114f), EnemyAxisPreference.None)
         ];
     }
 

@@ -7,7 +7,7 @@ This document captures the current high-level direction for the project so we ca
 The project currently plays like a compact top-down action RPG prototype with these pieces already in place:
 
 1. a town hub connected to north, south, east, and west wilderness scenes
-2. a dedicated arena interior with a four-wave encounter sequence
+2. a dedicated arena interior with a five-wave encounter sequence
 3. a dedicated shop interior plus three shop exteriors in town
 4. a pause menu with map, inventory tabs, replay controls, and an ability/loadout shell
 5. save/load support for scene state, enemy state, unlocked abilities, and equipped loadout choices

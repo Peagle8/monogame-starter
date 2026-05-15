@@ -21,7 +21,7 @@ public sealed class PlayerAttackControllerTests
 
         Assert.True(state.IsAttacking);
         Assert.Equal(1, state.AttackSequence);
-        Assert.Equal(new Rectangle(132, 200, 30, 32), state.AttackBounds);
+        Assert.Equal(new Rectangle(132, 200, 39, 32), state.AttackBounds);
     }
 
     [Fact]

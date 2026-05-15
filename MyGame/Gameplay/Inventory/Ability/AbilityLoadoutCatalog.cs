@@ -131,6 +131,7 @@ public static class AbilityLoadoutCatalog
             PlayerDashAbilityKind.BaseDash => player.HasAbility(PlayerAbility.Dash),
             PlayerDashAbilityKind.BombDash => player.HasAbility(PlayerAbility.BombDash),
             PlayerRangedAttackKind.Fireball => player.HasAbility(PlayerAbility.Fireball),
+            PlayerRangedAttackKind.Missile => player.HasAbility(PlayerAbility.Missile),
             PlayerDefenseAbilityKind.Shield => true, // TODO: we should check this as well
             _ => false
         };
@@ -179,7 +180,7 @@ public static class AbilityLoadoutCatalog
         [
             new AbilityCatalogEntry(AbilityLoadoutSlot.Ranged, PlayerRangedAttackKind.Fireball, "Fireball", true, true),
             new AbilityCatalogEntry(AbilityLoadoutSlot.Ranged, PlayerRangedAttackKind.WindCutter, "Wind Cutter", false, true),
-            new AbilityCatalogEntry(AbilityLoadoutSlot.Ranged, PlayerRangedAttackKind.Missile, "Missile", false, true),
+            new AbilityCatalogEntry(AbilityLoadoutSlot.Ranged, PlayerRangedAttackKind.Missile, "Missile", true, true),
             new AbilityCatalogEntry(AbilityLoadoutSlot.Ranged, PlayerRangedAttackKind.Bow, "Bow", false, true),
             new AbilityCatalogEntry(AbilityLoadoutSlot.Ranged, PlayerRangedAttackKind.CompactBow, "Compact Bow", false, true),
             new AbilityCatalogEntry(AbilityLoadoutSlot.Ranged, PlayerRangedAttackKind.LegendaryBow, "Legendary Bow", false, true)

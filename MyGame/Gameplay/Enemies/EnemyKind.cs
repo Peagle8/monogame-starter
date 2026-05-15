@@ -8,5 +8,7 @@ public enum EnemyKind
     HornedRabbitElite,
     Bat,
     BatMiniBoss,
-    Grasshopper
+    Grasshopper,
+    Skeleton,
+    SkeletonElite
 }

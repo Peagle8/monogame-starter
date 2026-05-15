@@ -25,14 +25,18 @@ public sealed class EnemyFactory : IEnemyFactory
             saveData.Kind,
             new Vector2(saveData.PositionX, saveData.PositionY),
             saveData.AxisPreference);
-        enemy.RestoreState(enemy.Position, saveData.CurrentHealth);
+        enemy.RestoreState(
+            enemy.Position,
+            saveData.CurrentHealth,
+            saveData.CurrentAbilityPoints ?? enemy.MaxAbilityPoints,
+            saveData.ShieldCharges ?? 0);
         return enemy;
     }
 
     public EnemyActor Create(EnemyKind kind, Vector2 position, EnemyAxisPreference axisPreference = EnemyAxisPreference.None)
     {
         var settings = _enemySettingsCatalog.Get(kind);
-        var initialDashPauseSeconds = kind is EnemyKind.HornedRabbit or EnemyKind.HornedRabbitElite or EnemyKind.Bat or EnemyKind.Grasshopper
+        var initialDashPauseSeconds = kind is EnemyKind.HornedRabbit or EnemyKind.HornedRabbitElite or EnemyKind.Bat or EnemyKind.Grasshopper or EnemyKind.Skeleton or EnemyKind.SkeletonElite
             ? Random.Shared.NextSingle() * (settings.InitialDashPauseMaxSeconds - settings.InitialDashPauseMinSeconds)
                 + settings.InitialDashPauseMinSeconds
             : 0f;

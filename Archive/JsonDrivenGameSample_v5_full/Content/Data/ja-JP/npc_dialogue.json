@@ -1,0 +1,31 @@
+{
+  "entries": [
+    {
+      "id": "villager_guarded_shrine_1",
+      "speakerRole": "Villager",
+      "mood": "guarded",
+      "questId": "forest_shrine",
+      "lineStyle": "short",
+      "weight": 5,
+      "text": "声を落として。祠の近くは何かおかしい。"
+    },
+    {
+      "id": "villager_guarded_shrine_2",
+      "speakerRole": "Villager",
+      "mood": "guarded",
+      "questId": "forest_shrine",
+      "lineStyle": "short",
+      "weight": 2,
+      "text": "こんなことは言うべきではないが、夜の祠には近づくな。"
+    },
+    {
+      "id": "villager_guarded_shrine_3",
+      "speakerRole": "Villager",
+      "mood": "guarded",
+      "questId": "forest_shrine",
+      "lineStyle": "short",
+      "weight": 1,
+      "text": "古い鐘がまた鳴り始めてから、森の様子が変なんだ。"
+    }
+  ]
+}

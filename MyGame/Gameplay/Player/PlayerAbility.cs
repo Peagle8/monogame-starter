@@ -4,5 +4,6 @@ public enum PlayerAbility
 {
     Dash,
     Fireball,
+    Missile,
     BombDash
 }

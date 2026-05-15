@@ -7,6 +7,7 @@ using MyGame.Core.Diagnostics;
 using MyGame.Core.Input;
 using MyGame.Core.Rendering;
 using MyGame.Core.Scenes;
+using MyGame.Gameplay.Narrative;
 using MyGame.Gameplay.Props;
 using MyGame.Gameplay.Shops;
 using MyGame.Gameplay.World;
@@ -27,8 +28,14 @@ public sealed class GameplayScene : IScene
     private readonly ISaveGameService _saveGameService;
     private readonly GameRecorder _gameRecorder;
     private readonly GameplayPauseMenu _pauseMenu;
+    private readonly NpcDialogueService _npcDialogueService;
+    private readonly HintService? _hintService;
+    private readonly JournalService? _journalService;
+    private readonly NpcDialogueController _npcDialogueController = new();
     private readonly ShopDialogueController _shopDialogueController = new();
+    private NpcDialogueState _npcDialogueState = NpcDialogueState.Default;
     private ShopDialogueState _shopDialogueState = ShopDialogueState.Default;
+    private bool _openShopAfterGreeting;
 
     public GameplayScene(
         IInputService inputService,
@@ -66,7 +73,10 @@ public sealed class GameplayScene : IScene
         DiagnosticsSettings diagnosticsSettings,
         Action onRestart,
         Action onReturnToMainMenu,
-        Action<WorldSceneTransition> onSceneTransition)
+        Action<WorldSceneTransition> onSceneTransition,
+        NpcDialogueService? npcDialogueService = null,
+        HintService? hintService = null,
+        JournalService? journalService = null)
     {
         _name = name;
         _onRestart = onRestart;
@@ -78,6 +88,9 @@ public sealed class GameplayScene : IScene
         _renderContext = renderContext;
         _saveGameService = saveGameService;
         _gameRecorder = gameRecorder;
+        _npcDialogueService = npcDialogueService ?? CreateFallbackDialogueService();
+        _hintService = hintService;
+        _journalService = journalService;
         _pauseMenu = GameplayPauseMenu.CreateGameplayMenu(
             World.Player,
             _saveGameService,
@@ -107,8 +120,14 @@ public sealed class GameplayScene : IScene
 
     public ShopDialogueState ShopDialogue => _shopDialogueState;
 
+    public NpcDialogueState NpcDialogue => _npcDialogueState;
+
     public void Enter()
     {
+        if (Name == GameplaySceneNames.Arena && World.IsObjectiveComplete)
+        {
+            World.ResetEventProgress();
+        }
     }
 
     public void Exit()
@@ -149,8 +168,29 @@ public sealed class GameplayScene : IScene
             return;
         }
 
+        if (_npcDialogueState.IsOpen)
+        {
+            var shouldOpenShop = _openShopAfterGreeting
+                && (_inputService.IsJustPressed(GameAction.Confirm) || _inputService.IsJustPressed(GameAction.Interact));
+            UpdateNpcDialogue();
+            if (!_npcDialogueState.IsOpen && shouldOpenShop)
+            {
+                OpenShopDialogue();
+            }
+            else if (!_npcDialogueState.IsOpen)
+            {
+                _openShopAfterGreeting = false;
+            }
+
+            return;
+        }
+
         World.Update(frameTime);
-        UpdateShopDialogue();
+        UpdateNpcDialogue();
+        if (!_npcDialogueState.IsOpen)
+        {
+            UpdateShopDialogue();
+        }
 
         var pendingTransition = World.ConsumePendingSceneTransition();
         if (pendingTransition is not null)
@@ -190,7 +230,20 @@ public sealed class GameplayScene : IScene
             ["RecorderReplayPaused"] = _gameRecorder.IsReplayPaused.ToString(),
             ["ShopDialogueOpen"] = _shopDialogueState.IsOpen.ToString(),
             ["ShopDialoguePromptVisible"] = _shopDialogueState.IsPromptVisible.ToString(),
-            ["ShopDialogueTab"] = _shopDialogueState.ActiveTab.ToString()
+            ["ShopDialogueTab"] = _shopDialogueState.ActiveTab.ToString(),
+            ["NpcDialogueOpen"] = _npcDialogueState.IsOpen.ToString(),
+            ["NpcDialoguePromptVisible"] = _npcDialogueState.IsPromptVisible.ToString(),
+            ["NpcDialogueSpeaker"] = _npcDialogueState.SpeakerName,
+            ["NpcDialogueDebugSpeakerId"] = _npcDialogueService.LastDebugInfo.SpeakerId,
+            ["NpcDialogueDebugLineStyle"] = _npcDialogueService.LastDebugInfo.LineStyle,
+            ["NpcDialogueMatchedIds"] = FormatDebugIds(_npcDialogueService.LastDebugInfo.MatchedEntryIds),
+            ["NpcDialogueSuppressedIds"] = FormatDebugIds(_npcDialogueService.LastDebugInfo.SuppressedEntryIds),
+            ["NpcDialogueSelectedId"] = _npcDialogueService.LastDebugInfo.SelectedEntryId,
+            ["NpcDialogueFallbackReason"] = _npcDialogueService.LastDebugInfo.FallbackReason,
+            ["JournalDiscoveredCount"] = World.JournalState.DiscoveredEntryIds.Count.ToString(),
+            ["JournalReadCount"] = World.JournalState.ReadEntryIds.Count.ToString(),
+            ["TownAlertLevel"] = World.NarrativeState.TownAlertLevel.ToString(),
+            ["PlayerReputation"] = World.NarrativeState.PlayerReputation.ToString()
         };
 
         return debugState;
@@ -227,5 +280,75 @@ public sealed class GameplayScene : IScene
             _inputService.IsJustPressed(GameAction.Cancel),
             _inputService.IsJustPressed(GameAction.PreviousTab),
             _inputService.IsJustPressed(GameAction.NextTab));
+    }
+
+    private void UpdateNpcDialogue()
+    {
+        var wasOpen = _npcDialogueState.IsOpen;
+        _npcDialogueState = _npcDialogueController.Update(
+            _npcDialogueState,
+            World.Player.Bounds,
+            World.GetProps<IConversationProp>(),
+            _inputService.IsJustPressed(GameAction.Interact),
+            _inputService.IsJustPressed(GameAction.Confirm),
+            _inputService.IsJustPressed(GameAction.Cancel),
+            _npcDialogueService,
+            _hintService,
+            Name,
+            World.NarrativeState,
+            World.NarrativeHistory);
+
+        if (!wasOpen && _npcDialogueState.IsOpen)
+        {
+            _openShopAfterGreeting = IsShopkeeperGreetingAtCounter();
+            World.ShowHintToast(_npcDialogueState.HintText);
+            _journalService?.DiscoverAvailableEntries(World.NarrativeState, World.JournalState);
+        }
+    }
+
+    private void OpenShopDialogue()
+    {
+        _openShopAfterGreeting = false;
+        _shopDialogueState = _shopDialogueState with
+        {
+            IsPromptVisible = true,
+            IsOpen = true,
+            ActiveTab = ShopDialogueTab.Buy
+        };
+    }
+
+    private bool IsShopkeeperGreetingAtCounter()
+    {
+        if (_npcDialogueState.SpeakerId != NarrativeIds.SpeakerShopkeeper)
+        {
+            return false;
+        }
+
+        var counterBounds = World.GetProps<CounterProp>().FirstOrDefault()?.Bounds;
+        return counterBounds is Rectangle bounds && GetShopInteractionBounds(bounds).Intersects(World.Player.Bounds);
+    }
+
+    private static Rectangle GetShopInteractionBounds(Rectangle counterBounds)
+    {
+        const int horizontalPromptRange = 24;
+        const int verticalPromptRange = 36;
+        return new Rectangle(
+            counterBounds.X - horizontalPromptRange,
+            counterBounds.Y - verticalPromptRange,
+            counterBounds.Width + (horizontalPromptRange * 2),
+            counterBounds.Height + (verticalPromptRange * 2));
+    }
+
+    private static string FormatDebugIds(IReadOnlyList<string> ids)
+    {
+        return ids.Count == 0 ? "<none>" : string.Join(", ", ids);
+    }
+
+    private static NpcDialogueService CreateFallbackDialogueService()
+    {
+        return new NpcDialogueService(
+            new NpcDialogueDataFile(),
+            new WeightedRandomSelector(new Random(1)),
+            new RecentSelectionHistory());
     }
 }

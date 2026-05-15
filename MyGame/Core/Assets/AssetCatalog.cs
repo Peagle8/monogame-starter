@@ -16,6 +16,7 @@ public sealed class AssetCatalog : IAssetCatalog
 
         ArenaBackground = OptionalTextureLoader.TryLoadFromContentOrProject(
             graphicsDevice,
+            Path.Combine("MapBackgrounds", "Arena_Att_2.png"),
             Path.Combine("Content", "ArenaBackground.png"),
             Path.Combine("MyGame", "Content", "ArenaBackground.png"));
         BatSprite = LoadTextureFromOutput("Content", "BatSpriteSheet.png", graphicsDevice);

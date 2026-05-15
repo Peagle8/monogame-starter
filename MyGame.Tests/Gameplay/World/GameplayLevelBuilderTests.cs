@@ -161,13 +161,101 @@ public sealed class GameplayLevelBuilderTests
     }
 
     [Fact]
-    public void BuildArena_CreatesScaledArenaBounds()
+    public void BuildArena_CreatesArenaLayoutBoundsAndHiddenCollisionProps()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildArena(CreatePlayer());
+        var boundaries = world.GetProps<ArenaBoundaryProp>();
+
+        Assert.Equal(ArenaLayout.WorldBounds, world.WorldBounds);
+        Assert.Equal(ArenaLayout.CollisionBounds.Count, boundaries.Count);
+        Assert.All(boundaries, boundary => Assert.False(boundary.IsVisible));
+    }
+
+    [Fact]
+    public void BuildArena_InitialWaveUsesSixSkeletons()
     {
         var builder = CreateBuilder();
         var world = builder.BuildArena(CreatePlayer());
 
-        Assert.Equal(new Rectangle(0, 0, 960, 576), world.WorldBounds);
-        Assert.Equal(7, world.GetProps<ArenaBoundaryProp>().Count);
+        Assert.Equal(6, world.Enemies.Count(enemy => enemy.State != EnemyState.Dead));
+        Assert.All(world.Enemies.Where(enemy => enemy.State != EnemyState.Dead), enemy => Assert.Equal(EnemyKind.Skeleton, enemy.Kind));
+    }
+
+    [Fact]
+    public void BuildArena_WhenWaveTwoSpawns_UsesMixedSkeletonPack()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildArena(CreatePlayer());
+
+        AdvanceArenaToWaveTwo(world);
+
+        Assert.Equal(5, world.Enemies.Count(enemy => enemy.State != EnemyState.Dead));
+        Assert.Equal(3, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.Skeleton && enemy.State != EnemyState.Dead));
+        Assert.Equal(2, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.SkeletonElite && enemy.State != EnemyState.Dead));
+    }
+
+    [Fact]
+    public void BuildArena_WhenWaveFourBatsSpawn_TheyTrackPlayerFromAcrossArena()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildArena(CreatePlayer());
+        world.Player.RestoreState(new Vector2(760f, 440f), world.Player.MaxHealth);
+
+        AdvanceArenaToWaveFour(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(9.7)));
+
+        var farBat = world.Enemies
+            .Where(enemy => enemy.Kind == EnemyKind.Bat && enemy.State != EnemyState.Dead)
+            .OrderByDescending(enemy => Vector2.Distance(enemy.Position, world.Player.Position))
+            .First();
+
+        Assert.True(Vector2.Distance(farBat.Position, world.Player.Position) > EnemySettingsCatalog.CreateDefault(EnemyKind.Bat).ChaseRange);
+        Assert.NotEqual(EnemyState.Idle, farBat.State);
+    }
+
+    [Fact]
+    public void BuildArena_WhenWaveSixHornedRabbitsSpawn_TheyTrackPlayerFromAcrossArena()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildArena(CreatePlayer());
+        world.Player.RestoreState(new Vector2(760f, 440f), world.Player.MaxHealth);
+
+        AdvanceArenaToWaveSix(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(16.1)));
+
+        var farRabbit = world.Enemies
+            .Where(enemy => enemy.Kind == EnemyKind.HornedRabbit && enemy.State != EnemyState.Dead)
+            .OrderByDescending(enemy => Vector2.Distance(enemy.Position, world.Player.Position))
+            .First();
+        var liveRabbits = world.Enemies
+            .Where(enemy => enemy.Kind == EnemyKind.HornedRabbit && enemy.State != EnemyState.Dead)
+            .ToArray();
+
+        Assert.True(Vector2.Distance(farRabbit.Position, world.Player.Position) > EnemySettingsCatalog.CreateDefault(EnemyKind.HornedRabbit).ChaseRange);
+        Assert.NotEqual(EnemyState.Idle, farRabbit.State);
+        Assert.All(liveRabbits, enemy => Assert.Equal(EnemyAxisPreference.None, enemy.AxisPreference));
+    }
+
+    [Fact]
+    public void BuildArena_WhenWaveSevenSpawns_UsesRequestedEnemyMix()
+    {
+        var builder = CreateBuilder();
+        var world = builder.BuildArena(CreatePlayer());
+
+        AdvanceArenaToWaveSeven(world);
+        var liveRabbits = world.Enemies
+            .Where(enemy => enemy.Kind == EnemyKind.HornedRabbit && enemy.State != EnemyState.Dead)
+            .ToArray();
+
+        Assert.Equal(19, world.Enemies.Count(enemy => enemy.State != EnemyState.Dead));
+        Assert.Equal(4, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.Grasshopper && enemy.State != EnemyState.Dead));
+        Assert.Equal(3, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.Skeleton && enemy.State != EnemyState.Dead));
+        Assert.Equal(1, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.SkeletonElite && enemy.State != EnemyState.Dead));
+        Assert.Equal(4, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.HornedRabbitElite && enemy.State != EnemyState.Dead));
+        Assert.Equal(4, liveRabbits.Length);
+        Assert.Equal(3, world.Enemies.Count(enemy => enemy.Kind == EnemyKind.Bat && enemy.State != EnemyState.Dead));
+        Assert.All(liveRabbits, enemy => Assert.Equal(EnemyAxisPreference.None, enemy.AxisPreference));
     }
 
     private static GameplayLevelBuilder CreateBuilder()
@@ -201,6 +289,64 @@ public sealed class GameplayLevelBuilderTests
             new PlayerDashController(new PlayerMovementSettings()),
             new PlayerAbilityService([PlayerAbility.Dash]),
             new PlayerAttackController(new PlayerAttackSettings()));
+    }
+
+    private static void AdvanceArenaToWaveTwo(global::MyGame.Gameplay.World.World world)
+    {
+        DefeatLivingEnemies(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(3.1), TimeSpan.FromSeconds(3.2)));
+    }
+
+    private static void AdvanceArenaToWaveThree(global::MyGame.Gameplay.World.World world)
+    {
+        AdvanceArenaToWaveTwo(world);
+        DefeatLivingEnemies(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(3.3)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(3.1), TimeSpan.FromSeconds(6.4)));
+    }
+
+    private static void AdvanceArenaToWaveFour(global::MyGame.Gameplay.World.World world)
+    {
+        AdvanceArenaToWaveThree(world);
+        DefeatLivingEnemies(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(6.5)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(3.1), TimeSpan.FromSeconds(9.6)));
+    }
+
+    private static void AdvanceArenaToWaveFive(global::MyGame.Gameplay.World.World world)
+    {
+        AdvanceArenaToWaveFour(world);
+        DefeatLivingEnemies(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(9.7)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(3.1), TimeSpan.FromSeconds(12.8)));
+    }
+
+    private static void AdvanceArenaToWaveSix(global::MyGame.Gameplay.World.World world)
+    {
+        AdvanceArenaToWaveFive(world);
+        DefeatLivingEnemies(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(12.9)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(3.1), TimeSpan.FromSeconds(16.0)));
+    }
+
+    private static void AdvanceArenaToWaveSeven(global::MyGame.Gameplay.World.World world)
+    {
+        AdvanceArenaToWaveSix(world);
+        DefeatLivingEnemies(world);
+        world.Update(new FrameTime(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(16.1)));
+        world.Update(new FrameTime(TimeSpan.FromSeconds(3.1), TimeSpan.FromSeconds(19.2)));
+    }
+
+    private static void DefeatLivingEnemies(global::MyGame.Gameplay.World.World world)
+    {
+        foreach (var enemy in world.Enemies.Where(enemy => enemy.State != EnemyState.Dead))
+        {
+            while (enemy.State != EnemyState.Dead)
+            {
+                enemy.TakeDamage(enemy.MaxHealth);
+            }
+        }
     }
 
     private sealed class StubInputService : IInputService
